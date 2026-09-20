@@ -34,7 +34,7 @@ interface LandingPageProps {
 
 export const LandingPage: React.FC<LandingPageProps> = ({ onEnterDemo }) => {
   return (
-    <div className="min-h-screen bg-[#0d1117] text-[#c9d1d9] font-sans selection:bg-orca-accent/30 selection:text-white">
+    <div className="min-h-screen w-full bg-[#0d1117] text-[#c9d1d9] font-sans selection:bg-orca-accent/30 selection:text-white">
       {/* 1. Header Navbar */}
       <nav className="sticky top-0 z-50 backdrop-blur-md bg-[#0d1117]/85 border-b border-[#30363d] px-6 py-3 flex items-center justify-between">
         <div className="flex items-center space-x-3 cursor-pointer" onClick={() => window.scrollTo({ top: 0, behavior: 'smooth' })}>
