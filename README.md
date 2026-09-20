@@ -4,6 +4,8 @@ MonoTerminal 是一个集成了 **AI 运维助手** 与 **SFTP 文件管理** �
 
 无需注册登录，没有云端依赖，所有凭据和配置均保存在本地并加密。无论是连真实服务器排查问题，还是借助 AI 快速生成与执行排障命令，开箱即可使用。
 
+👉 **[在线体验 Demo (GitHub Pages)](https://sheilacraig.github.io/MonoTerminal/)**
+
 ---
 
 ## 💡 为什么做这个项目？
