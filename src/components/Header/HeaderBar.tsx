@@ -1,9 +1,13 @@
 import React, { useState } from 'react';
 import { useSession } from '../../context/SessionContext';
-import { Plus, Server, Terminal, Settings, BookOpen, X, Edit2, Check, Bot } from 'lucide-react';
+import { Plus, Server, Terminal, Settings, BookOpen, X, Edit2, Check, Bot, Globe } from 'lucide-react';
 import { SessionTab } from '../../types';
 
-export const HeaderBar: React.FC = () => {
+interface HeaderBarProps {
+  onOpenLanding?: () => void;
+}
+
+export const HeaderBar: React.FC<HeaderBarProps> = ({ onOpenLanding }) => {
   const {
     sessions,
     activeSessionId,
@@ -174,6 +178,17 @@ export const HeaderBar: React.FC = () => {
           <Settings size={13} className="text-orca-muted hover:text-orca-accent" />
           <span className="text-[11px] hidden sm:inline">设置</span>
         </button>
+
+        {onOpenLanding && (
+          <button
+            onClick={onOpenLanding}
+            className="flex items-center space-x-1 px-2 py-1 text-xs text-emerald-400 hover:text-white hover:bg-orca-card rounded transition-colors border border-emerald-500/30"
+            title="返回产品介绍落地页"
+          >
+            <Globe size={13} />
+            <span className="text-[11px] hidden sm:inline">产品介绍</span>
+          </button>
+        )}
       </div>
     </header>
   );
