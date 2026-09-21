@@ -42,13 +42,14 @@ export const HeaderBar: React.FC<HeaderBarProps> = ({ onOpenLanding }) => {
     <header className="h-9 bg-orca-surface border-b border-orca-border flex items-center justify-between px-2 select-none z-30">
       {/* Left: Tab list */}
       <div className="flex items-center space-x-1 overflow-x-auto flex-1 h-full py-1 pr-2 no-scrollbar">
-        {sessions.map((tab) => {
+        {sessions.map(tab => {
           const isActive = tab.id === activeSessionId;
           const isEditing = editingTabId === tab.id;
 
           let statusColor = 'bg-orca-success';
           if (tab.status === 'disconnected') statusColor = 'bg-orca-danger';
-          if (tab.status === 'connecting' || tab.status === 'busy') statusColor = 'bg-orca-warning animate-pulse';
+          if (tab.status === 'connecting' || tab.status === 'busy')
+            statusColor = 'bg-orca-warning animate-pulse';
 
           return (
             <div
@@ -65,12 +66,12 @@ export const HeaderBar: React.FC<HeaderBarProps> = ({ onOpenLanding }) => {
 
               {/* Title or edit input */}
               {isEditing ? (
-                <div className="flex items-center space-x-1" onClick={(e) => e.stopPropagation()}>
+                <div className="flex items-center space-x-1" onClick={e => e.stopPropagation()}>
                   <input
                     type="text"
                     value={editingTitle}
-                    onChange={(e) => setEditingTitle(e.target.value)}
-                    onKeyDown={(e) => {
+                    onChange={e => setEditingTitle(e.target.value)}
+                    onKeyDown={e => {
                       if (e.key === 'Enter') handleSaveRename(tab);
                       if (e.key === 'Escape') setEditingTabId(null);
                     }}
@@ -86,7 +87,7 @@ export const HeaderBar: React.FC<HeaderBarProps> = ({ onOpenLanding }) => {
                 </div>
               ) : (
                 <span
-                  onDoubleClick={(e) => handleStartRename(tab, e)}
+                  onDoubleClick={e => handleStartRename(tab, e)}
                   className="truncate flex-1 font-mono text-[11px]"
                   title={`${tab.title} (双击重命名)`}
                 >
@@ -98,14 +99,14 @@ export const HeaderBar: React.FC<HeaderBarProps> = ({ onOpenLanding }) => {
               {!isEditing && (
                 <div className="flex items-center space-x-0.5 opacity-0 group-hover:opacity-100 transition-opacity">
                   <button
-                    onClick={(e) => handleStartRename(tab, e)}
+                    onClick={e => handleStartRename(tab, e)}
                     className="p-0.5 hover:text-white text-orca-muted rounded"
                     title="重命名"
                   >
                     <Edit2 size={10} />
                   </button>
                   <button
-                    onClick={(e) => {
+                    onClick={e => {
                       e.stopPropagation();
                       closeSession(tab.id);
                     }}
@@ -148,7 +149,10 @@ export const HeaderBar: React.FC<HeaderBarProps> = ({ onOpenLanding }) => {
           }`}
           title="展开/收起 AI 助手 (Ctrl+\)"
         >
-          <Bot size={13} className={activeSession?.isAgentOpen ? 'text-white' : 'text-purple-400'} />
+          <Bot
+            size={13}
+            className={activeSession?.isAgentOpen ? 'text-white' : 'text-purple-400'}
+          />
           <span className="text-[11px] hidden sm:inline">AI 助手</span>
         </button>
 

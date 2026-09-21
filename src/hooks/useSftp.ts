@@ -7,39 +7,53 @@ export function useSftp() {
   const { activeSession } = useSession();
   const { requestSftp } = useWebSocket();
 
+  // Read primitives (id/cwd) rather than the whole `activeSession` object.
+  // `activeSession` gets a new reference on every `setSessions` call — which
+  // happens on every terminal write via `appendTerminalContext` — so depending
+  // on the object directly would make `loadDirectory` churn and re-fire the
+  // SFTP list request on every keystroke.
+  const activeSessionId = activeSession?.id;
+  const activeSessionCwd = activeSession?.cwd;
+
   const [currentPath, setCurrentPath] = useState<string>('/etc/nginx');
   const [files, setFiles] = useState<FileItem[]>([]);
   const [loading, setLoading] = useState(false);
 
-  // Sync initial dir from active session
+  // Follow the terminal's cwd: fires on tab switch AND whenever the shell
+  // reports a directory change (e.g. user runs `cd /var/log`). Previously the
+  // dependency array only listed `activeSession?.id`, so cd-driven updates
+  // never propagated to the SFTP sidebar.
   useEffect(() => {
-    if (activeSession?.cwd && activeSession.cwd !== currentPath) {
-      setCurrentPath(activeSession.cwd);
+    if (activeSessionCwd && activeSessionCwd !== currentPath) {
+      setCurrentPath(activeSessionCwd);
     }
-  }, [activeSession?.id]);
+  }, [activeSessionId, activeSessionCwd, currentPath]);
 
   // Load files for currentPath
-  const loadDirectory = useCallback(async (dir: string) => {
-    if (!activeSession) return;
-    setLoading(true);
-    try {
-      const items = await requestSftp<FileItem[]>('sftp:list', {
-        sessionId: activeSession.id,
-        dirPath: dir
-      });
-      setFiles(items || []);
-    } catch (err) {
-      console.warn('Failed to load sftp directory', err);
-    } finally {
-      setLoading(false);
-    }
-  }, [activeSession, requestSftp]);
+  const loadDirectory = useCallback(
+    async (dir: string) => {
+      if (!activeSessionId) return;
+      setLoading(true);
+      try {
+        const items = await requestSftp<FileItem[]>('sftp:list', {
+          sessionId: activeSessionId,
+          dirPath: dir
+        });
+        setFiles(items || []);
+      } catch (err) {
+        console.warn('Failed to load sftp directory', err);
+      } finally {
+        setLoading(false);
+      }
+    },
+    [activeSessionId, requestSftp]
+  );
 
   useEffect(() => {
-    if (activeSession) {
+    if (activeSessionId) {
       loadDirectory(currentPath);
     }
-  }, [currentPath, activeSession?.id, loadDirectory]);
+  }, [currentPath, activeSessionId, loadDirectory]);
 
   // Navigate up
   const goUp = useCallback(() => {
@@ -48,67 +62,85 @@ export function useSftp() {
   }, [currentPath]);
 
   // Read file
-  const readFile = useCallback(async (filePath: string): Promise<string> => {
-    if (!activeSession) throw new Error('无活跃会话');
-    return await requestSftp<string>('sftp:read', {
-      sessionId: activeSession.id,
-      filePath
-    });
-  }, [activeSession, requestSftp]);
+  const readFile = useCallback(
+    async (filePath: string): Promise<string> => {
+      if (!activeSessionId) throw new Error('无活跃会话');
+      return await requestSftp<string>('sftp:read', {
+        sessionId: activeSessionId,
+        filePath
+      });
+    },
+    [activeSessionId, requestSftp]
+  );
 
   // Write file
-  const writeFile = useCallback(async (filePath: string, content: string): Promise<void> => {
-    if (!activeSession) throw new Error('无活跃会话');
-    await requestSftp('sftp:write', {
-      sessionId: activeSession.id,
-      filePath,
-      content
-    });
-    loadDirectory(currentPath);
-  }, [activeSession, requestSftp, loadDirectory, currentPath]);
+  const writeFile = useCallback(
+    async (filePath: string, content: string): Promise<void> => {
+      if (!activeSessionId) throw new Error('无活跃会话');
+      await requestSftp('sftp:write', {
+        sessionId: activeSessionId,
+        filePath,
+        content
+      });
+      loadDirectory(currentPath);
+    },
+    [activeSessionId, requestSftp, loadDirectory, currentPath]
+  );
 
   // Delete file or dir
-  const deleteItem = useCallback(async (targetPath: string, isDirectory: boolean): Promise<void> => {
-    if (!activeSession) throw new Error('无活跃会话');
-    await requestSftp('sftp:delete', {
-      sessionId: activeSession.id,
-      targetPath,
-      isDirectory
-    });
-    loadDirectory(currentPath);
-  }, [activeSession, requestSftp, loadDirectory, currentPath]);
+  const deleteItem = useCallback(
+    async (targetPath: string, isDirectory: boolean): Promise<void> => {
+      if (!activeSessionId) throw new Error('无活跃会话');
+      await requestSftp('sftp:delete', {
+        sessionId: activeSessionId,
+        targetPath,
+        isDirectory
+      });
+      loadDirectory(currentPath);
+    },
+    [activeSessionId, requestSftp, loadDirectory, currentPath]
+  );
 
   // Rename
-  const renameItem = useCallback(async (oldPath: string, newPath: string): Promise<void> => {
-    if (!activeSession) throw new Error('无活跃会话');
-    await requestSftp('sftp:rename', {
-      sessionId: activeSession.id,
-      oldPath,
-      newPath
-    });
-    loadDirectory(currentPath);
-  }, [activeSession, requestSftp, loadDirectory, currentPath]);
+  const renameItem = useCallback(
+    async (oldPath: string, newPath: string): Promise<void> => {
+      if (!activeSessionId) throw new Error('无活跃会话');
+      await requestSftp('sftp:rename', {
+        sessionId: activeSessionId,
+        oldPath,
+        newPath
+      });
+      loadDirectory(currentPath);
+    },
+    [activeSessionId, requestSftp, loadDirectory, currentPath]
+  );
 
   // Chmod
-  const chmodItem = useCallback(async (targetPath: string, mode: string): Promise<void> => {
-    if (!activeSession) throw new Error('无活跃会话');
-    await requestSftp('sftp:chmod', {
-      sessionId: activeSession.id,
-      targetPath,
-      mode
-    });
-    loadDirectory(currentPath);
-  }, [activeSession, requestSftp, loadDirectory, currentPath]);
+  const chmodItem = useCallback(
+    async (targetPath: string, mode: string): Promise<void> => {
+      if (!activeSessionId) throw new Error('无活跃会话');
+      await requestSftp('sftp:chmod', {
+        sessionId: activeSessionId,
+        targetPath,
+        mode
+      });
+      loadDirectory(currentPath);
+    },
+    [activeSessionId, requestSftp, loadDirectory, currentPath]
+  );
 
   // Mkdir
-  const makeDirectory = useCallback(async (dirPath: string): Promise<void> => {
-    if (!activeSession) throw new Error('无活跃会话');
-    await requestSftp('sftp:mkdir', {
-      sessionId: activeSession.id,
-      dirPath
-    });
-    loadDirectory(currentPath);
-  }, [activeSession, requestSftp, loadDirectory, currentPath]);
+  const makeDirectory = useCallback(
+    async (dirPath: string): Promise<void> => {
+      if (!activeSessionId) throw new Error('无活跃会话');
+      await requestSftp('sftp:mkdir', {
+        sessionId: activeSessionId,
+        dirPath
+      });
+      loadDirectory(currentPath);
+    },
+    [activeSessionId, requestSftp, loadDirectory, currentPath]
+  );
 
   return {
     currentPath,

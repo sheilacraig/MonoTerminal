@@ -5,7 +5,7 @@ describe('MockFileSystem & MockTerminalSession', () => {
   it('should list directories correctly', () => {
     const fs = new MockFileSystem();
     const etcFiles = fs.list('/etc/nginx');
-    
+
     expect(etcFiles.length).toBeGreaterThan(0);
     const conf = etcFiles.find(f => f.name === 'nginx.conf');
     expect(conf).toBeDefined();

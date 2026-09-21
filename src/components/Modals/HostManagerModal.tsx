@@ -1,26 +1,11 @@
 import React, { useState } from 'react';
 import { useSession } from '../../context/SessionContext';
 import { HostAsset } from '../../types';
-import {
-  Server,
-  Plus,
-  Trash2,
-  Edit,
-  X,
-  Play,
-  ShieldCheck,
-  Search
-} from 'lucide-react';
+import { Server, Plus, Trash2, Edit, X, Play, ShieldCheck, Search } from 'lucide-react';
 
 export const HostManagerModal: React.FC = () => {
-  const {
-    isHostModalOpen,
-    setIsHostModalOpen,
-    hosts,
-    createSession,
-    saveHost,
-    deleteHost
-  } = useSession();
+  const { isHostModalOpen, setIsHostModalOpen, hosts, createSession, saveHost, deleteHost } =
+    useSession();
 
   const [search, setSearch] = useState('');
   const [selectedGroup, setSelectedGroup] = useState<string>('全部');
@@ -116,7 +101,7 @@ export const HostManagerModal: React.FC = () => {
               <input
                 type="text"
                 value={search}
-                onChange={(e) => setSearch(e.target.value)}
+                onChange={e => setSearch(e.target.value)}
                 placeholder="搜索主机别名、IP 或用户..."
                 className="w-full bg-orca-surface border border-orca-border text-white text-xs pl-8 pr-3 py-1.5 rounded-lg outline-none focus:border-orca-accent"
               />
@@ -224,7 +209,10 @@ export const HostManagerModal: React.FC = () => {
             <div className="bg-orca-surface border border-orca-border rounded-xl shadow-2xl w-full max-w-md overflow-hidden">
               <div className="h-10 bg-orca-card px-4 border-b border-orca-border flex items-center justify-between text-xs font-bold text-white">
                 <span>{form.id ? '编辑主机配置' : '新建主机资产'}</span>
-                <button onClick={() => setIsEditing(false)} className="text-orca-muted hover:text-white">
+                <button
+                  onClick={() => setIsEditing(false)}
+                  className="text-orca-muted hover:text-white"
+                >
                   <X size={15} />
                 </button>
               </div>
@@ -293,7 +281,9 @@ export const HostManagerModal: React.FC = () => {
                   <label className="text-orca-muted block mb-1">认证方式</label>
                   <select
                     value={form.authType || 'password'}
-                    onChange={e => setForm({ ...form, authType: e.target.value as HostAsset['authType'] })}
+                    onChange={e =>
+                      setForm({ ...form, authType: e.target.value as HostAsset['authType'] })
+                    }
                     className="w-full bg-orca-bg border border-orca-border text-white px-2.5 py-1.5 rounded outline-none focus:border-orca-accent"
                   >
                     <option value="password">密码认证 (Password)</option>
@@ -304,7 +294,9 @@ export const HostManagerModal: React.FC = () => {
 
                 {form.authType === 'password' && (
                   <div>
-                    <label className="text-orca-muted block mb-1">登录密码 (本地 AES 加密保存)</label>
+                    <label className="text-orca-muted block mb-1">
+                      登录密码 (本地 AES 加密保存)
+                    </label>
                     <input
                       type="password"
                       value={form.plainPassword || ''}

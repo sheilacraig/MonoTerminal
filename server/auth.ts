@@ -83,7 +83,9 @@ function isBearerValid(header: unknown, token: string): boolean {
 export function createAuthMiddleware(ctx: AuthContext): RequestHandler {
   return (req, res, next) => {
     if (!isAllowedHost(req.headers.host, ctx.allowedPorts)) {
-      res.status(403).json({ success: false, error: 'Forbidden: 非法 Host 头（疑似 DNS rebinding）' });
+      res
+        .status(403)
+        .json({ success: false, error: 'Forbidden: 非法 Host 头（疑似 DNS rebinding）' });
       return;
     }
     if (!isAllowedOrigin(req.headers.origin, ctx.allowedPorts)) {

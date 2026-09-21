@@ -65,10 +65,17 @@ export class StorageLockedError extends Error {
   }
 }
 
-const DEFAULT_DATA_DIR = process.env.MONOTERMINAL_DATA_DIR || process.env.MONOTERM_DATA_DIR || process.env.ORCALOCAL_DATA_DIR || path.join(
-  process.env.APPDATA || (process.platform === 'darwin' ? path.join(os.homedir(), 'Library', 'Preferences') : path.join(os.homedir(), '.local', 'share')),
-  'monoterminal'
-);
+const DEFAULT_DATA_DIR =
+  process.env.MONOTERMINAL_DATA_DIR ||
+  process.env.MONOTERM_DATA_DIR ||
+  process.env.ORCALOCAL_DATA_DIR ||
+  path.join(
+    process.env.APPDATA ||
+      (process.platform === 'darwin'
+        ? path.join(os.homedir(), 'Library', 'Preferences')
+        : path.join(os.homedir(), '.local', 'share')),
+    'monoterminal'
+  );
 
 // Written to .master_verify encrypted with the password-derived key.
 // A successful round-trip proves the entered master password is correct.
@@ -206,19 +213,36 @@ export class LocalStorageManager {
    * Set, change or remove the master password. Every stored secret is
    * decrypted with the current key and re-encrypted with the new one.
    * Pass newPassword = '' to remove protection (falls back to legacy key).
+   *
+   * SECURITY: When master-password protection is already enabled, the caller
+   * MUST prove knowledge of the current password by passing `currentPassword`,
+   * even if the store is already unlocked in memory. Otherwise any local
+   * process able to reach `/api/security/master-password` (malicious browser
+   * extension, CSRF, other user on the same machine, ...) could rotate or
+   * wipe the master password during an active session without knowing it.
    */
   public setMasterPassword(currentPassword: string | null, newPassword: string): void {
-    // Obtain a working current key first
-    if (this.masterKey === null) {
-      if (!currentPassword || !this.unlock(currentPassword)) {
-        throw new Error('存储已锁定：请先提供正确的当前主密码');
+    if (this.masterPasswordEnabled) {
+      // Protection is on — verifying the current password is mandatory,
+      // regardless of the in-memory unlock state.
+      if (!currentPassword) {
+        throw new Error('修改或移除主密码需要提供当前主密码');
       }
-    } else if (this.masterPasswordEnabled && currentPassword) {
       const candidate = this.derivePasswordKey(currentPassword);
       if (this.decryptWith(candidate, this.readVerifyToken()) !== VERIFY_MAGIC) {
         throw new Error('当前主密码不正确');
       }
+      // If we were locked, the verified candidate becomes the working key.
+      if (this.masterKey === null) {
+        this.masterKey = candidate;
+      }
+    } else if (this.masterKey === null) {
+      // Legacy mode should always have a device-bound key available. If for
+      // some reason we are locked here, refuse rather than silently proceeding.
+      throw new Error('存储处于锁定状态：无法设置主密码');
     }
+    // Legacy mode with an available key: first-time enablement, no current
+    // password to verify against.
 
     const oldKey = this.masterKey as Buffer;
     const newKey = newPassword ? this.derivePasswordKey(newPassword) : this.deriveLegacyKey();
@@ -316,7 +340,7 @@ export class LocalStorageManager {
           username: 'root',
           authType: 'mock',
           initialDir: '/etc/nginx',
-          createdAt: Date.now(),
+          createdAt: Date.now()
         }
       ];
       fs.writeFileSync(hostsPath, JSON.stringify(defaultHosts, null, 2), 'utf8');

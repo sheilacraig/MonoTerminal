@@ -66,12 +66,17 @@ export const DangerConfirmModal: React.FC = () => {
           {/* Manual Input Confirmation */}
           <div className="space-y-1.5 pt-2">
             <label className="text-[11px] text-orca-muted block">
-              如确认环境安全并执意执行，请在下方手动输入 <span className="font-mono text-orca-danger font-bold">confirm</span> 或直接敲击 <kbd className="px-1.5 py-0.5 bg-orca-bg text-white rounded border border-orca-border font-mono font-bold">Alt + Y</kbd>：
+              如确认环境安全并执意执行，请在下方手动输入{' '}
+              <span className="font-mono text-orca-danger font-bold">confirm</span> 或直接敲击{' '}
+              <kbd className="px-1.5 py-0.5 bg-orca-bg text-white rounded border border-orca-border font-mono font-bold">
+                Alt + Y
+              </kbd>
+              ：
             </label>
             <input
               type="text"
               value={confirmInput}
-              onChange={(e) => setConfirmInput(e.target.value)}
+              onChange={e => setConfirmInput(e.target.value)}
               placeholder="在此输入 confirm"
               className="w-full bg-orca-bg border border-orca-danger/50 text-white font-mono text-xs px-3 py-2 rounded-lg outline-none focus:border-orca-danger"
               autoFocus

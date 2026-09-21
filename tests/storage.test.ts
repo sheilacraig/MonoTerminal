@@ -26,7 +26,7 @@ describe('LocalStorageManager & AES-256-GCM Encryption', () => {
 
     expect(encrypted).toBeDefined();
     expect(encrypted).not.toBe(sensitivePassword);
-    
+
     // Check format: iv:tag:ciphertext
     const parts = encrypted.split(':');
     expect(parts.length).toBe(3);
@@ -40,7 +40,7 @@ describe('LocalStorageManager & AES-256-GCM Encryption', () => {
   it('should reject tampered ciphertext safely without throwing uncaught exceptions', () => {
     const encrypted = storage.encrypt('ConfidentialData');
     const parts = encrypted.split(':');
-    
+
     // Tamper with the ciphertext
     const tampered = `${parts[0]}:${parts[1]}:deadbeef${parts[2].slice(8)}`;
     const decrypted = storage.decrypt(tampered);
@@ -160,5 +160,26 @@ describe('LocalStorageManager & AES-256-GCM Encryption', () => {
     expect(storage.unlock('anything')).toBe(true); // nothing to unlock
     storage.lock(); // no-op in legacy mode
     expect(storage.isLocked()).toBe(false);
+  });
+
+  // Regression: previously, once the store was unlocked in memory, calling
+  // setMasterPassword with a null / empty currentPassword would silently
+  // rotate or wipe the master password. Any local process able to reach
+  // /api/security/master-password could exploit this during an active session.
+  it('should refuse to change or remove the master password without currentPassword even when unlocked', () => {
+    storage.setMasterPassword(null, 'first-pw-123');
+    expect(storage.getSecurityStatus()).toEqual({ masterPasswordEnabled: true, locked: false });
+
+    // Attacker path 1: null currentPassword while store is unlocked
+    expect(() => storage.setMasterPassword(null, 'attacker-pw')).toThrow(/当前主密码/);
+    // Attacker path 2: empty string currentPassword
+    expect(() => storage.setMasterPassword('', 'attacker-pw')).toThrow(/当前主密码/);
+    // Attacker path 3: attempt to wipe protection entirely
+    expect(() => storage.setMasterPassword(null, '')).toThrow(/当前主密码/);
+    expect(() => storage.setMasterPassword('', '')).toThrow(/当前主密码/);
+
+    // The original password must still work after the rejected attempts
+    const restarted = new LocalStorageManager(tempDir);
+    expect(restarted.unlock('first-pw-123')).toBe(true);
   });
 });

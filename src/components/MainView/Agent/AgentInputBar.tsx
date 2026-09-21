@@ -37,7 +37,7 @@ export const AgentInputBar: React.FC<AgentInputBarProps> = ({
         <textarea
           ref={textareaRef}
           value={input}
-          onChange={(e) => onChange(e.target.value)}
+          onChange={e => onChange(e.target.value)}
           onKeyDown={handleKeyDown}
           placeholder="向运维 Agent 提问 (例如: '查下 Nginx 80 端口占用原因并提供解决脚本')... 按 Enter 发送"
           rows={2}

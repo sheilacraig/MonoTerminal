@@ -13,24 +13,211 @@ export interface GuardrailCheckResult {
 }
 
 export interface DangerousRule {
-  pattern: RegExp;
+  /**
+   * Regex-based matcher. Simple, but insufficient for commands whose danger
+   * depends on flag composition (e.g. `rm -r -f /` vs `rm -rf /`). Prefer
+   * `match` for those cases.
+   */
+  pattern?: RegExp;
+  /**
+   * Structural matcher. Runs against the trimmed command string; return true
+   * to flag as dangerous. Rules may define either `pattern` or `match` (or
+   * both — `match` takes precedence when present).
+   */
+  match?: (cmd: string) => boolean;
   level: 'CRITICAL' | 'HIGH' | 'MEDIUM';
   ruleName: string;
   reason: string;
 }
 
+// ---------------------------------------------------------------------------
+// Structural analyzers
+// ---------------------------------------------------------------------------
+
+/** Privilege escalators that may prefix a dangerous command. */
+const PRIVILEGE_ESCALATORS = new Set(['sudo', 'doas', 'pkexec']);
+
+/**
+ * Absolute paths whose recursive deletion is universally catastrophic. Matched
+ * exactly (or with a trailing `/` or `/*`), never as a prefix — so `/etc/nginx`
+ * stays safe while `/etc` and `/etc/*` are flagged.
+ */
+const CRITICAL_ABSOLUTE_DIRS = [
+  'etc',
+  'usr',
+  'var',
+  'bin',
+  'sbin',
+  'boot',
+  'lib',
+  'lib64',
+  'dev',
+  'proc',
+  'sys',
+  'home',
+  'root',
+  'opt',
+  'srv',
+  'run'
+  // `tmp` deliberately omitted — `rm -rf /tmp/*` is a common legitimate
+  // cleanup and would trigger a false positive.
+];
+
+/** Split a shell command line into segments on `&&`, `||`, `;`, and `|`. */
+function splitShellSegments(cmd: string): string[] {
+  return cmd
+    .split(/&&|\|\||[;|]/)
+    .map(s => s.trim())
+    .filter(Boolean);
+}
+
+/** Naive whitespace tokenizer that also strips one layer of surrounding quotes. */
+function tokenize(segment: string): string[] {
+  return segment
+    .split(/\s+/)
+    .filter(Boolean)
+    .map(t => t.replace(/^["']|["']$/g, ''));
+}
+
+/** True if the token looks like a filesystem root or first-level wildcard. */
+function isRootLikePath(rawToken: string): boolean {
+  if (!rawToken) return false;
+  const t = rawToken.replace(/^["']|["']$/g, '').trim();
+  if (!t) return false;
+
+  // Bare root or root wildcard: `/`, `/*`, `/*/…`
+  if (t === '/' || t === '/*') return true;
+  if (/^\/\*(\/|$)/.test(t)) return true;
+
+  // Home-directory shorthands: `~`, `~/`, `~/*`, `$HOME`, `$HOME/`, `$HOME/*`,
+  // `${HOME}`, `${HOME}/`, `${HOME}/*`
+  if (/^(?:~|\$HOME|\$\{HOME\})(?:\/?\*?)?$/.test(t)) return true;
+
+  // Critical absolute system directories (exact, or with trailing / or /*)
+  for (const d of CRITICAL_ABSOLUTE_DIRS) {
+    if (t === `/${d}` || t === `/${d}/` || t === `/${d}/*`) return true;
+  }
+
+  return false;
+}
+
+interface RmInvocation {
+  recursive: boolean;
+  force: boolean;
+  noPreserveRoot: boolean;
+  targets: string[];
+}
+
+/**
+ * Locate the first `rm` invocation in a shell command (optionally behind a
+ * privilege escalator) and aggregate its flags across separate clusters, so
+ * that all of the following are recognised as recursive + force:
+ *
+ *   rm -rf /            rm -fr /            rm -r -f /        rm -f -r /
+ *   rm --recursive --force /                rm -r --force /
+ *   sudo rm -rf /       sudo -u root rm -r -f /
+ *   rm -rf --no-preserve-root /
+ *
+ * Returns null when no `rm` invocation is present.
+ */
+function analyzeRmCommand(cmd: string): RmInvocation | null {
+  for (const segment of splitShellSegments(cmd)) {
+    const tokens = tokenize(segment);
+    let i = 0;
+
+    // Skip any leading privilege escalator plus its own flags
+    while (i < tokens.length && PRIVILEGE_ESCALATORS.has(tokens[i].toLowerCase())) {
+      i++;
+      while (i < tokens.length && tokens[i].startsWith('-')) {
+        // `sudo -u <user>` / `sudo -C <fd>` take a value; skip it too
+        if (/^-[a-zA-Z]*[uC]$/.test(tokens[i]) && i + 1 < tokens.length) i++;
+        i++;
+      }
+    }
+    if (i >= tokens.length) continue;
+    // Only match the bare `rm` binary (not `rmdir`, `rmagick`, ...)
+    if (tokens[i] !== 'rm') continue;
+
+    let recursive = false;
+    let force = false;
+    let noPreserveRoot = false;
+    const targets: string[] = [];
+    let sawDoubleDash = false;
+
+    for (let j = i + 1; j < tokens.length; j++) {
+      const t = tokens[j];
+      if (sawDoubleDash) {
+        targets.push(t);
+        continue;
+      }
+      if (t === '--') {
+        sawDoubleDash = true;
+        continue;
+      }
+      if (t === '--recursive') {
+        recursive = true;
+        continue;
+      }
+      if (t === '--force') {
+        force = true;
+        continue;
+      }
+      if (t === '--no-preserve-root') {
+        noPreserveRoot = true;
+        continue;
+      }
+      if (t === '--preserve-root') {
+        noPreserveRoot = false;
+        continue;
+      }
+      if (t.startsWith('--')) continue; // ignore other long options (e.g. --one-file-system)
+      if (t.startsWith('-') && t.length > 1) {
+        // Short-flag cluster: -rf, -fr, -rvf, -R, ...
+        const letters = t.slice(1);
+        if (/[rR]/.test(letters)) recursive = true;
+        if (letters.includes('f')) force = true;
+        continue;
+      }
+      targets.push(t);
+    }
+
+    return { recursive, force, noPreserveRoot, targets };
+  }
+  return null;
+}
+
+/** True when the command performs a recursive delete against a root-like path. */
+function matchesRecursiveRootDelete(cmd: string): boolean {
+  const info = analyzeRmCommand(cmd);
+  if (!info || !info.recursive) return false;
+  return info.targets.some(isRootLikePath);
+}
+
+// ---------------------------------------------------------------------------
+// Rule set
+// ---------------------------------------------------------------------------
+
 export const DANGEROUS_RULES: DangerousRule[] = [
   {
-    pattern: /\brm\s+(-[a-zA-Z]*r[a-zA-Z]*f[a-zA-Z]*|--recursive\s+--force)\s+(\/|\/\*|~\/|~|\$HOME)(?:\s|$|;)/i,
+    // Structural matcher — handles every split-flag / escalator / long-option
+    // permutation that the previous regex-based rules missed. See
+    // `analyzeRmCommand` for the recognised forms.
+    match: matchesRecursiveRootDelete,
     level: 'CRITICAL',
     ruleName: 'RM_ROOT_RECURSIVE',
-    reason: '试图递归强制删除根目录或主目录全部数据，将导致系统瞬间损毁。'
+    reason: '试图递归删除根目录或系统关键目录，将导致系统瞬间损毁。'
   },
   {
-    pattern: /\brm\s+-[a-zA-Z]*r[a-zA-Z]*\s+(\/|\/\*|~\/|~)(?:\s|$|;)/i,
+    // `rm -rf --no-preserve-root` targeting anything at all is a red flag on
+    // modern coreutils — GNU rm refuses to touch `/` unless this option is
+    // given, so its presence signals deliberate destructive intent.
+    match: cmd => {
+      const info = analyzeRmCommand(cmd);
+      return Boolean(info && info.noPreserveRoot);
+    },
     level: 'CRITICAL',
-    ruleName: 'RM_ROOT_RECURSIVE_BASIC',
-    reason: '试图递归删除根目录或主目录。'
+    ruleName: 'RM_NO_PRESERVE_ROOT',
+    reason: '使用了 --no-preserve-root 参数解除了 rm 对根目录的内建保护，极度危险。'
   },
   {
     pattern: /\bmkfs(\.[a-z0-9]+)?(?:\s+|$)/i,
@@ -102,7 +289,12 @@ export function checkCommandSafety(command: string): GuardrailCheckResult {
   const cleanCmd = command.trim();
 
   for (const rule of DANGEROUS_RULES) {
-    if (rule.pattern.test(cleanCmd)) {
+    const matched = rule.match
+      ? rule.match(cleanCmd)
+      : rule.pattern
+        ? rule.pattern.test(cleanCmd)
+        : false;
+    if (matched) {
       return {
         isDangerous: true,
         level: rule.level,

@@ -77,7 +77,9 @@ const MessageMarkdown: React.FC<MessageMarkdownProps> = ({
       // Any other language → read-only highlighted block
       return (
         <pre className="my-3 rounded-lg border border-orca-border bg-[#0a0d12] p-3 overflow-x-auto">
-          <code className={`hljs text-xs font-mono leading-5 ${className}`}>{codeProps.children}</code>
+          <code className={`hljs text-xs font-mono leading-5 ${className}`}>
+            {codeProps.children}
+          </code>
         </pre>
       );
     },
@@ -87,16 +89,27 @@ const MessageMarkdown: React.FC<MessageMarkdownProps> = ({
     li: ({ children }) => <li className="leading-relaxed">{children}</li>,
     h1: ({ children }) => <h1 className="text-sm font-bold mt-3 mb-1.5 text-white">{children}</h1>,
     h2: ({ children }) => <h2 className="text-xs font-bold mt-3 mb-1.5 text-white">{children}</h2>,
-    h3: ({ children }) => <h3 className="text-xs font-semibold mt-2 mb-1 text-orca-text">{children}</h3>,
-    h4: ({ children }) => <h4 className="text-xs font-semibold mt-2 mb-1 text-orca-text">{children}</h4>,
+    h3: ({ children }) => (
+      <h3 className="text-xs font-semibold mt-2 mb-1 text-orca-text">{children}</h3>
+    ),
+    h4: ({ children }) => (
+      <h4 className="text-xs font-semibold mt-2 mb-1 text-orca-text">{children}</h4>
+    ),
     strong: ({ children }) => <strong className="font-semibold text-white">{children}</strong>,
     a: ({ children, href }) => (
-      <a className="text-orca-accent underline hover:text-blue-400" href={href} target="_blank" rel="noreferrer">
+      <a
+        className="text-orca-accent underline hover:text-blue-400"
+        href={href}
+        target="_blank"
+        rel="noreferrer"
+      >
         {children}
       </a>
     ),
     blockquote: ({ children }) => (
-      <blockquote className="my-2 pl-3 border-l-2 border-orca-border text-orca-muted italic">{children}</blockquote>
+      <blockquote className="my-2 pl-3 border-l-2 border-orca-border text-orca-muted italic">
+        {children}
+      </blockquote>
     ),
     hr: () => <hr className="my-3 border-orca-border" />,
     table: ({ children }) => (
@@ -105,14 +118,20 @@ const MessageMarkdown: React.FC<MessageMarkdownProps> = ({
       </div>
     ),
     th: ({ children }) => (
-      <th className="border border-orca-border bg-orca-card px-2 py-1 text-left font-semibold">{children}</th>
+      <th className="border border-orca-border bg-orca-card px-2 py-1 text-left font-semibold">
+        {children}
+      </th>
     ),
     td: ({ children }) => <td className="border border-orca-border px-2 py-1">{children}</td>
   };
 
   return (
     <div className="agent-markdown">
-      <ReactMarkdown remarkPlugins={[remarkGfm]} rehypePlugins={[rehypeHighlight]} components={components}>
+      <ReactMarkdown
+        remarkPlugins={[remarkGfm]}
+        rehypePlugins={[rehypeHighlight]}
+        components={components}
+      >
         {content}
       </ReactMarkdown>
     </div>

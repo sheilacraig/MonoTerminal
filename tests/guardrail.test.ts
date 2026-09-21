@@ -55,4 +55,51 @@ describe('Guardrail Security Engine', () => {
       expect(result.level).toBe('SAFE');
     }
   });
+
+  // Regression: previous regex only matched contiguous `-rf` / `-fr` clusters
+  // directly followed by a root-like path, so all of these slipped through.
+  it('should catch rm root-delete bypasses via split flags, escalators and long options', () => {
+    const bypassAttempts = [
+      'rm -r -f /',
+      'rm -f -r /',
+      'rm -R -F /',
+      'rm -rf --no-preserve-root /',
+      'rm --recursive --force /',
+      'rm --recursive -f /*',
+      'sudo rm -r -f /',
+      'sudo rm -rf /',
+      'sudo -u root rm -r -f /',
+      'rm -rvf ~',
+      'rm -rf "$HOME"',
+      'rm -rf /etc',
+      'rm -rf /etc/*',
+      'rm -rf /usr',
+      'rm -rf /var',
+      'rm -rf /home',
+      'ls; rm -r -f /',
+      'echo bye && sudo rm -rf /'
+    ];
+
+    for (const cmd of bypassAttempts) {
+      const result = checkCommandSafety(cmd);
+      expect(result.isDangerous, `Bypass should be flagged: ${cmd}`).toBe(true);
+      expect(result.level).toBe('CRITICAL');
+    }
+  });
+
+  it('should not flag legitimate cleanup that merely touches /tmp or nested paths', () => {
+    const legitCleanup = [
+      'rm -rf /tmp/*',
+      'rm -rf /var/tmp/build-cache',
+      'rm -rf /etc/nginx/conf.d/old-site.conf',
+      'rm -rf /home/deploy/releases/2024-01',
+      'rm -rf ./build',
+      'rm -rf ../cache'
+    ];
+
+    for (const cmd of legitCleanup) {
+      const result = checkCommandSafety(cmd);
+      expect(result.isDangerous, `Should NOT be flagged: ${cmd}`).toBe(false);
+    }
+  });
 });

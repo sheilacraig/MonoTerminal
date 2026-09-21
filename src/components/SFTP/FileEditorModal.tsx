@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import { X, Save, FileCode, Check } from 'lucide-react';
 
 interface FileEditorModalProps {
@@ -19,7 +19,7 @@ export const FileEditorModal: React.FC<FileEditorModalProps> = ({
   const [isSaved, setIsSaved] = useState(false);
   const isDirty = content !== initialContent;
 
-  const handleSave = async () => {
+  const handleSave = useCallback(async () => {
     setIsSaving(true);
     try {
       await onSave(content);
@@ -28,7 +28,7 @@ export const FileEditorModal: React.FC<FileEditorModalProps> = ({
     } finally {
       setIsSaving(false);
     }
-  };
+  }, [content, onSave]);
 
   // Listen for Ctrl+S
   useEffect(() => {
@@ -45,7 +45,7 @@ export const FileEditorModal: React.FC<FileEditorModalProps> = ({
     };
     window.addEventListener('keydown', handleKeyDown);
     return () => window.removeEventListener('keydown', handleKeyDown);
-  }, [content, isDirty]);
+  }, [handleSave, isDirty, onClose]);
 
   const lines = content.split('\n');
 
@@ -56,9 +56,7 @@ export const FileEditorModal: React.FC<FileEditorModalProps> = ({
         <div className="h-10 bg-orca-card px-4 border-b border-orca-border flex items-center justify-between">
           <div className="flex items-center space-x-2">
             <FileCode size={16} className="text-orca-accent" />
-            <span className="font-mono text-xs text-white truncate max-w-md">
-              {filePath}
-            </span>
+            <span className="font-mono text-xs text-white truncate max-w-md">{filePath}</span>
             {isDirty && (
               <span className="w-2 h-2 rounded-full bg-orca-warning" title="有未保存修改" />
             )}
@@ -72,8 +70,8 @@ export const FileEditorModal: React.FC<FileEditorModalProps> = ({
                 isSaved
                   ? 'bg-orca-success text-white'
                   : isDirty
-                  ? 'bg-orca-accent hover:bg-blue-600 text-white font-medium'
-                  : 'bg-orca-card text-orca-muted cursor-not-allowed'
+                    ? 'bg-orca-accent hover:bg-blue-600 text-white font-medium'
+                    : 'bg-orca-card text-orca-muted cursor-not-allowed'
               }`}
               title="保存文件 (Ctrl+S)"
             >
@@ -108,7 +106,7 @@ export const FileEditorModal: React.FC<FileEditorModalProps> = ({
           {/* Textarea code editor */}
           <textarea
             value={content}
-            onChange={(e) => setContent(e.target.value)}
+            onChange={e => setContent(e.target.value)}
             className="flex-1 bg-transparent text-orca-text font-mono text-xs p-3 leading-5 outline-none resize-none focus:ring-0 overflow-auto whitespace-pre"
             spellCheck={false}
             autoFocus
@@ -117,7 +115,9 @@ export const FileEditorModal: React.FC<FileEditorModalProps> = ({
 
         {/* Footer info */}
         <div className="h-6 bg-orca-card px-4 border-t border-orca-border text-[11px] text-orca-muted flex items-center justify-between font-mono">
-          <span>行数: {lines.length} | 字符数: {content.length}</span>
+          <span>
+            行数: {lines.length} | 字符数: {content.length}
+          </span>
           <span>按 [Ctrl + S] 保存并写回远端服务器</span>
         </div>
       </div>

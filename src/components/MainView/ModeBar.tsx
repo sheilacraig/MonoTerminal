@@ -34,9 +34,13 @@ export const ModeBar: React.FC = () => {
         >
           <Bot size={13} className={isAgentOpen ? 'text-white' : 'text-purple-400'} />
           <span>{isAgentOpen ? '🤖 AI 助手 (已展开)' : '🤖 AI 助手'}</span>
-          <kbd className={`px-1 py-0.2 rounded text-[10px] font-mono ${
-            isAgentOpen ? 'bg-purple-800 text-purple-200' : 'bg-orca-bg text-orca-muted border border-orca-border'
-          }`}>
+          <kbd
+            className={`px-1 py-0.2 rounded text-[10px] font-mono ${
+              isAgentOpen
+                ? 'bg-purple-800 text-purple-200'
+                : 'bg-orca-bg text-orca-muted border border-orca-border'
+            }`}
+          >
             Ctrl + \
           </kbd>
 

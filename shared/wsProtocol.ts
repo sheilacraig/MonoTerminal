@@ -249,8 +249,7 @@ const MAX_AI_MESSAGE_LEN = 100_000;
 const MAX_SNIPPET_LEN = 100_000;
 
 export type WsValidationResult =
-  | { ok: true; msg: WsInboundMessage }
-  | { ok: false; reason: string };
+  { ok: true; msg: WsInboundMessage } | { ok: false; reason: string };
 
 function isRecord(v: unknown): v is Record<string, unknown> {
   return typeof v === 'object' && v !== null && !Array.isArray(v);
@@ -281,9 +280,7 @@ function parseOpsContext(v: unknown): OpsContextPayload | undefined {
   if (isStr(v.currentUser, 256)) ctx.currentUser = v.currentUser;
   if (isStr(v.osInfo, 512)) ctx.osInfo = v.osInfo;
   if (Array.isArray(v.commandHistory)) {
-    ctx.commandHistory = v.commandHistory
-      .filter((h): h is string => isStr(h, 2000))
-      .slice(0, 500);
+    ctx.commandHistory = v.commandHistory.filter((h): h is string => isStr(h, 2000)).slice(0, 500);
   }
   return ctx;
 }
@@ -307,7 +304,8 @@ export function validateWsInboundMessage(value: unknown): WsValidationResult {
     }
 
     case 'term:init': {
-      if (!isId(value.sessionId)) return fail('term:init.sessionId 非法（仅允许字母数字 _ . : -，≤128 字符）');
+      if (!isId(value.sessionId))
+        return fail('term:init.sessionId 非法（仅允许字母数字 _ . : -，≤128 字符）');
       if (!isId(value.hostId)) return fail('term:init.hostId 非法');
       if (!isInt(value.cols, 1, 1000)) return fail('term:init.cols 必须是 1-1000 的整数');
       if (!isInt(value.rows, 1, 1000)) return fail('term:init.rows 必须是 1-1000 的整数');
@@ -326,7 +324,10 @@ export function validateWsInboundMessage(value: unknown): WsValidationResult {
     case 'term:input': {
       if (!isId(value.sessionId)) return fail('term:input.sessionId 非法');
       if (!isStr(value.data, MAX_INPUT_LEN)) return fail('term:input.data 必须是 ≤64KB 的字符串');
-      return { ok: true, msg: { type: 'term:input', sessionId: value.sessionId, data: value.data } };
+      return {
+        ok: true,
+        msg: { type: 'term:input', sessionId: value.sessionId, data: value.data }
+      };
     }
 
     case 'term:resize': {
@@ -378,7 +379,8 @@ export function validateWsInboundMessage(value: unknown): WsValidationResult {
       if (!isId(value.requestId)) return fail('sftp:write.requestId 非法');
       if (!isId(value.sessionId)) return fail('sftp:write.sessionId 非法');
       if (!isStr(value.filePath, MAX_PATH_LEN)) return fail('sftp:write.filePath 非法');
-      if (!isStr(value.content, MAX_FILE_CONTENT_LEN)) return fail('sftp:write.content 非法或超出大小限制');
+      if (!isStr(value.content, MAX_FILE_CONTENT_LEN))
+        return fail('sftp:write.content 非法或超出大小限制');
       return {
         ok: true,
         msg: {
@@ -395,7 +397,8 @@ export function validateWsInboundMessage(value: unknown): WsValidationResult {
       if (!isId(value.requestId)) return fail('sftp:delete.requestId 非法');
       if (!isId(value.sessionId)) return fail('sftp:delete.sessionId 非法');
       if (!isStr(value.targetPath, MAX_PATH_LEN)) return fail('sftp:delete.targetPath 非法');
-      if (typeof value.isDirectory !== 'boolean') return fail('sftp:delete.isDirectory 必须是布尔值');
+      if (typeof value.isDirectory !== 'boolean')
+        return fail('sftp:delete.isDirectory 必须是布尔值');
       return {
         ok: true,
         msg: {
@@ -471,7 +474,8 @@ export function validateWsInboundMessage(value: unknown): WsValidationResult {
         if (role !== 'system' && role !== 'user' && role !== 'assistant') {
           return fail('ai:chat.messages[].role 必须是 system/user/assistant');
         }
-        if (!isStr(m.content, MAX_AI_MESSAGE_LEN)) return fail('ai:chat.messages[].content 非法或过长');
+        if (!isStr(m.content, MAX_AI_MESSAGE_LEN))
+          return fail('ai:chat.messages[].content 非法或过长');
         messages.push({ role, content: m.content });
       }
       return {

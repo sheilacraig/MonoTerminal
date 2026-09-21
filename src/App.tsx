@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { SettingsProvider } from './context/SettingsContext';
 import { WebSocketProvider } from './context/WebSocketContext';
 import { SessionProvider } from './context/SessionContext';
+import { AgentChatProvider } from './context/AgentChatContext';
 import { HeaderBar } from './components/Header/HeaderBar';
 import { SftpSidebar } from './components/SFTP/SftpSidebar';
 import { MainWorkspace } from './components/MainView/MainWorkspace';
@@ -12,7 +13,8 @@ import { SnippetModal } from './components/Modals/SnippetModal';
 import { DangerConfirmModal } from './components/Modals/DangerConfirmModal';
 import { LandingPage } from './components/Landing/LandingPage';
 
-const isStaticDemo = typeof window !== 'undefined' && window.location.hostname.includes('github.io');
+const isStaticDemo =
+  typeof window !== 'undefined' && window.location.hostname.includes('github.io');
 
 const AppContent: React.FC<{ onOpenLanding: () => void }> = ({ onOpenLanding }) => {
   return (
@@ -81,7 +83,9 @@ export const App: React.FC = () => {
     <SettingsProvider>
       <WebSocketProvider>
         <SessionProvider>
-          <AppContent onOpenLanding={handleOpenLanding} />
+          <AgentChatProvider>
+            <AppContent onOpenLanding={handleOpenLanding} />
+          </AgentChatProvider>
         </SessionProvider>
       </WebSocketProvider>
     </SettingsProvider>

@@ -49,7 +49,8 @@ export const MainWorkspace: React.FC = () => {
         </div>
         <h2 className="text-base font-semibold text-white mb-2">暂无活跃会话</h2>
         <p className="text-xs text-orca-muted max-w-sm text-center mb-6">
-          MonoTerminal 是 100% 免登录、本地优先的下一代 AI 运维终端。您可以连接远程服务器或体验内置仿真沙盒。
+          MonoTerminal 是 100% 免登录、本地优先的下一代 AI
+          运维终端。您可以连接远程服务器或体验内置仿真沙盒。
         </p>
 
         <div className="flex items-center space-x-3">
@@ -88,17 +89,14 @@ export const MainWorkspace: React.FC = () => {
       <div className="flex-1 flex w-full h-full overflow-hidden relative">
         {/* Terminal Area (Always present in window) */}
         <div className="flex-1 h-full min-w-0 relative overflow-hidden bg-[#0d1117]">
-          {sessions.map((tab) => (
+          {sessions.map(tab => (
             <div
               key={tab.id}
               className={`absolute inset-0 w-full h-full ${
                 tab.id === activeSessionId ? 'block z-10' : 'hidden'
               }`}
             >
-              <TerminalView
-                sessionId={tab.id}
-                isVisible={tab.id === activeSessionId}
-              />
+              <TerminalView sessionId={tab.id} isVisible={tab.id === activeSessionId} />
             </div>
           ))}
         </div>

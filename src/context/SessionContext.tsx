@@ -4,7 +4,12 @@ import { useWebSocket } from './WebSocketContext';
 import { useSettings } from './SettingsContext';
 import { detectTerminalError, ERROR_BUBBLE_COOLDOWN_MS } from '../utils/errorDetector';
 import { checkCommandSafety } from '../utils/guardrail';
-import { isBackslashEvent, isSidebarEvent, isNewTabEvent, isCloseTabEvent } from '../constants/shortcuts';
+import {
+  isBackslashEvent,
+  isSidebarEvent,
+  isNewTabEvent,
+  isCloseTabEvent
+} from '../constants/shortcuts';
 import { generateId } from '../../shared/id';
 import { apiFetch } from '../utils/api';
 
@@ -101,36 +106,39 @@ export const SessionProvider: React.FC<{ children: React.ReactNode }> = ({ child
   }, [refreshHosts]);
 
   // Create session
-  const createSession = useCallback((host: HostAsset): string => {
-    const id = generateId('sess-');
-    const newSession: SessionTab = {
-      id,
-      hostId: host.id,
-      title: host.name,
-      status: 'connected',
-      mode: 'shell',
-      isAgentOpen: false,
-      agentWidth: 460,
-      cwd: host.initialDir || '/etc/nginx',
-      terminalContext: '',
-      unreadError: null
-    };
+  const createSession = useCallback(
+    (host: HostAsset): string => {
+      const id = generateId('sess-');
+      const newSession: SessionTab = {
+        id,
+        hostId: host.id,
+        title: host.name,
+        status: 'connected',
+        mode: 'shell',
+        isAgentOpen: false,
+        agentWidth: 460,
+        cwd: host.initialDir || '/etc/nginx',
+        terminalContext: '',
+        unreadError: null
+      };
 
-    setSessions(prev => [...prev, newSession]);
-    setActiveSessionId(id);
+      setSessions(prev => [...prev, newSession]);
+      setActiveSessionId(id);
 
-    // Initialize terminal on server
-    send({
-      type: 'term:init',
-      sessionId: id,
-      hostId: host.id,
-      cols: 120,
-      rows: 35
-    });
+      // Initialize terminal on server
+      send({
+        type: 'term:init',
+        sessionId: id,
+        hostId: host.id,
+        cols: 120,
+        rows: 35
+      });
 
-    terminalBuffers.current.set(id, []);
-    return id;
-  }, [send]);
+      terminalBuffers.current.set(id, []);
+      return id;
+    },
+    [send]
+  );
 
   // Auto-create default session if none exists once hosts are loaded
   useEffect(() => {
@@ -139,53 +147,58 @@ export const SessionProvider: React.FC<{ children: React.ReactNode }> = ({ child
     }
   }, [hosts, sessions.length, createSession]);
 
-  const closeSession = useCallback((sessionId: string) => {
-    send({ type: 'term:close', sessionId });
-    terminalBuffers.current.delete(sessionId);
-    lastErrorPrompts.current.delete(sessionId);
+  const closeSession = useCallback(
+    (sessionId: string) => {
+      send({ type: 'term:close', sessionId });
+      terminalBuffers.current.delete(sessionId);
+      lastErrorPrompts.current.delete(sessionId);
 
-    setSessions(prev => {
-      const filtered = prev.filter(s => s.id !== sessionId);
-      if (activeSessionId === sessionId && filtered.length > 0) {
-        setActiveSessionId(filtered[filtered.length - 1].id);
-      }
-      return filtered;
-    });
-  }, [send, activeSessionId]);
-
-  const toggleAgent = useCallback((forceState?: boolean) => {
-    setSessions(prev =>
-      prev.map(s => {
-        if (s.id === activeSessionId) {
-          const nextState = forceState !== undefined ? forceState : !s.isAgentOpen;
-          return {
-            ...s,
-            isAgentOpen: nextState,
-            mode: nextState ? 'agent' : 'shell',
-            unreadError: nextState ? null : s.unreadError // Clear bubble when opened
-          };
+      setSessions(prev => {
+        const filtered = prev.filter(s => s.id !== sessionId);
+        if (activeSessionId === sessionId && filtered.length > 0) {
+          setActiveSessionId(filtered[filtered.length - 1].id);
         }
-        return s;
-      })
-    );
-  }, [activeSessionId]);
+        return filtered;
+      });
+    },
+    [send, activeSessionId]
+  );
 
-  const toggleMode = useCallback((targetMode?: 'shell' | 'agent') => {
-    if (targetMode === 'agent') toggleAgent(true);
-    else if (targetMode === 'shell') toggleAgent(false);
-    else toggleAgent();
-  }, [toggleAgent]);
+  const toggleAgent = useCallback(
+    (forceState?: boolean) => {
+      setSessions(prev =>
+        prev.map(s => {
+          if (s.id === activeSessionId) {
+            const nextState = forceState !== undefined ? forceState : !s.isAgentOpen;
+            return {
+              ...s,
+              isAgentOpen: nextState,
+              mode: nextState ? 'agent' : 'shell',
+              unreadError: nextState ? null : s.unreadError // Clear bubble when opened
+            };
+          }
+          return s;
+        })
+      );
+    },
+    [activeSessionId]
+  );
+
+  const toggleMode = useCallback(
+    (targetMode?: 'shell' | 'agent') => {
+      if (targetMode === 'agent') toggleAgent(true);
+      else if (targetMode === 'shell') toggleAgent(false);
+      else toggleAgent();
+    },
+    [toggleAgent]
+  );
 
   const setAgentWidth = useCallback((sessionId: string, width: number) => {
-    setSessions(prev =>
-      prev.map(s => (s.id === sessionId ? { ...s, agentWidth: width } : s))
-    );
+    setSessions(prev => prev.map(s => (s.id === sessionId ? { ...s, agentWidth: width } : s)));
   }, []);
 
   const updateSessionCwd = useCallback((sessionId: string, cwd: string) => {
-    setSessions(prev =>
-      prev.map(s => (s.id === sessionId ? { ...s, cwd } : s))
-    );
+    setSessions(prev => prev.map(s => (s.id === sessionId ? { ...s, cwd } : s)));
   }, []);
 
   const appendTerminalContext = useCallback((sessionId: string, chunk: string) => {
@@ -224,57 +237,64 @@ export const SessionProvider: React.FC<{ children: React.ReactNode }> = ({ child
   }, []);
 
   const clearUnreadError = useCallback((sessionId: string) => {
-    setSessions(prev =>
-      prev.map(s => (s.id === sessionId ? { ...s, unreadError: null } : s))
-    );
+    setSessions(prev => prev.map(s => (s.id === sessionId ? { ...s, unreadError: null } : s)));
   }, []);
 
   // Guardrail command execution checker
-  const executeCommandWithGuardrail = useCallback((command: string, executeFn: () => void) => {
-    if (!settings.guardrail.enabled) {
-      executeFn();
-      return;
-    }
-
-    const check = checkCommandSafety(command);
-    if (check.isDangerous) {
-      setDangerPrompt({
-        command,
-        reason: check.reason || '该命令被识别为高危破坏性操作',
-        level: check.level,
-        onConfirm: () => {
-          setDangerPrompt(null);
-          executeFn();
-        }
-      });
-    } else {
-      executeFn();
-    }
-  }, [settings.guardrail.enabled]);
-
-  const saveHost = useCallback(async (hostData: Partial<HostAsset>) => {
-    try {
-      const res = await apiFetch('/api/hosts', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(hostData)
-      });
-      if (res.ok) {
-        await refreshHosts();
+  const executeCommandWithGuardrail = useCallback(
+    (command: string, executeFn: () => void) => {
+      if (!settings.guardrail.enabled) {
+        executeFn();
+        return;
       }
-    } catch (e) {
-      console.error('Failed to save host', e);
-    }
-  }, [refreshHosts]);
 
-  const deleteHost = useCallback(async (id: string) => {
-    try {
-      await apiFetch(`/api/hosts/${id}`, { method: 'DELETE' });
-      await refreshHosts();
-    } catch (e) {
-      console.error('Failed to delete host', e);
-    }
-  }, [refreshHosts]);
+      const check = checkCommandSafety(command);
+      if (check.isDangerous) {
+        setDangerPrompt({
+          command,
+          reason: check.reason || '该命令被识别为高危破坏性操作',
+          level: check.level,
+          onConfirm: () => {
+            setDangerPrompt(null);
+            executeFn();
+          }
+        });
+      } else {
+        executeFn();
+      }
+    },
+    [settings.guardrail.enabled]
+  );
+
+  const saveHost = useCallback(
+    async (hostData: Partial<HostAsset>) => {
+      try {
+        const res = await apiFetch('/api/hosts', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(hostData)
+        });
+        if (res.ok) {
+          await refreshHosts();
+        }
+      } catch (e) {
+        console.error('Failed to save host', e);
+      }
+    },
+    [refreshHosts]
+  );
+
+  const deleteHost = useCallback(
+    async (id: string) => {
+      try {
+        await apiFetch(`/api/hosts/${id}`, { method: 'DELETE' });
+        await refreshHosts();
+      } catch (e) {
+        console.error('Failed to delete host', e);
+      }
+    },
+    [refreshHosts]
+  );
 
   // Global Keyboard Shortcuts
   useEffect(() => {

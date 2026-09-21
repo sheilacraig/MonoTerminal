@@ -116,7 +116,9 @@ export const SettingsProvider: React.FC<{ children: React.ReactNode }> = ({ chil
     await updateSettings(updated);
   };
 
-  const activeAIProvider = settings.ai.providers.find(p => p.id === settings.ai.activeProvider) || settings.ai.providers[0];
+  const activeAIProvider =
+    settings.ai.providers.find(p => p.id === settings.ai.activeProvider) ||
+    settings.ai.providers[0];
 
   return (
     <SettingsContext.Provider

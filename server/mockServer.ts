@@ -12,7 +12,10 @@ export interface FileItem {
 }
 
 export class MockFileSystem {
-  private files: Map<string, { content: string; isDir: boolean; size: number; mtime: number; mode: string }> = new Map();
+  private files: Map<
+    string,
+    { content: string; isDir: boolean; size: number; mtime: number; mode: string }
+  > = new Map();
 
   constructor() {
     this.initDefaultFiles();
@@ -53,7 +56,9 @@ export class MockFileSystem {
     addDir('/root');
 
     // Nginx configs
-    addFile('/etc/nginx/nginx.conf', `user www-data;
+    addFile(
+      '/etc/nginx/nginx.conf',
+      `user www-data;
 worker_processes auto;
 pid /run/nginx.pid;
 include /etc/nginx/modules-enabled/*.conf;
@@ -77,9 +82,12 @@ http {
     # Virtual Host Configs
     include /etc/nginx/conf.d/*.conf;
 }
-`);
+`
+    );
 
-    addFile('/etc/nginx/conf.d/default.conf', `server {
+    addFile(
+      '/etc/nginx/conf.d/default.conf',
+      `server {
     listen 80 default_server;
     listen [::]:80 default_server;
 
@@ -98,9 +106,12 @@ http {
         proxy_set_header X-Real-IP $remote_addr;
     }
 }
-`);
+`
+    );
 
-    addFile('/etc/nginx/mime.types', `types {
+    addFile(
+      '/etc/nginx/mime.types',
+      `types {
     text/html                             html htm shtml;
     text/css                              css;
     text/xml                              xml;
@@ -109,25 +120,34 @@ http {
     application/javascript                js;
     application/json                      json;
 }
-`);
+`
+    );
 
     // Logs
-    addFile('/var/log/nginx/error.log', `2026/09/20 18:42:10 [emerg] 1042#1042: bind() to 0.0.0.0:80 failed (98: Address already in use)
+    addFile(
+      '/var/log/nginx/error.log',
+      `2026/09/20 18:42:10 [emerg] 1042#1042: bind() to 0.0.0.0:80 failed (98: Address already in use)
 2026/09/20 18:42:11 [emerg] 1042#1042: bind() to 0.0.0.0:80 failed (98: Address already in use)
 2026/09/20 18:42:12 [emerg] 1042#1042: still could not bind()
 2026/09/20 18:42:12 [alert] 1042#1042: could not start nginx master process
-`);
+`
+    );
 
-    addFile('/var/log/syslog', `Sep 20 18:40:01 prod-web01 CRON[892]: (root) CMD (/usr/local/bin/monitor.sh)
+    addFile(
+      '/var/log/syslog',
+      `Sep 20 18:40:01 prod-web01 CRON[892]: (root) CMD (/usr/local/bin/monitor.sh)
 Sep 20 18:42:10 prod-web01 systemd[1]: Starting A high performance web server and a reverse proxy server...
 Sep 20 18:42:12 prod-web01 nginx[1042]: nginx: [emerg] bind() to 0.0.0.0:80 failed (98: Address already in use)
 Sep 20 18:42:12 prod-web01 systemd[1]: nginx.service: Control process exited, code=exited, status=1/FAILURE
 Sep 20 18:42:12 prod-web01 systemd[1]: nginx.service: Failed with result 'exit-code'.
 Sep 20 18:42:12 prod-web01 systemd[1]: Failed to start A high performance web server and a reverse proxy server.
-`);
+`
+    );
 
     // Deploy app
-    addFile('/home/deploy/app/docker-compose.yml', `version: '3.8'
+    addFile(
+      '/home/deploy/app/docker-compose.yml',
+      `version: '3.8'
 services:
   web:
     image: nginx:alpine
@@ -138,15 +158,21 @@ services:
     image: redis:7-alpine
     ports:
       - "6379:6379"
-`);
+`
+    );
 
-    addFile('/home/deploy/app/.env', `NODE_ENV=production
+    addFile(
+      '/home/deploy/app/.env',
+      `NODE_ENV=production
 PORT=3000
 DB_HOST=127.0.0.1
 REDIS_URL=redis://127.0.0.1:6379
-`);
+`
+    );
 
-    addFile('/root/.bashrc', `# ~/.bashrc: executed by bash(1) for non-login shells.
+    addFile(
+      '/root/.bashrc',
+      `# ~/.bashrc: executed by bash(1) for non-login shells.
 export HISTCONTROL=ignoreboth
 export HISTSIZE=1000
 export HISTFILESIZE=2000
@@ -154,7 +180,8 @@ export PS1='\\[\\033[01;32m\\]\\u@\\h\\[\\033[00m\\]:\\[\\033[01;34m\\]\\w\\[\\0
 alias ll='ls -alF'
 alias la='ls -A'
 alias l='ls -CF'
-`);
+`
+    );
   }
 
   public list(dirPath: string): FileItem[] {
@@ -338,7 +365,10 @@ export class MockTerminalSession extends EventEmitter {
     } else if (mainCmd === 'id') {
       this.emit('data', 'uid=0(root) gid=0(root) groups=0(root)\r\n');
     } else if (mainCmd === 'uname' || cmd === 'uname -a') {
-      this.emit('data', 'Linux prod-web01 5.15.0-107-generic #117-Ubuntu SMP Mon Apr 29 16:49:55 UTC 2026 x86_64 x86_64 x86_64 GNU/Linux\r\n');
+      this.emit(
+        'data',
+        'Linux prod-web01 5.15.0-107-generic #117-Ubuntu SMP Mon Apr 29 16:49:55 UTC 2026 x86_64 x86_64 x86_64 GNU/Linux\r\n'
+      );
     } else if (mainCmd === 'clear') {
       this.emit('data', '\x1b[2J\x1b[H');
     } else if (mainCmd === 'cd') {
@@ -351,7 +381,9 @@ export class MockTerminalSession extends EventEmitter {
       } else if (target.startsWith('/')) {
         this.currentDir = target.replace(/\/+$/, '') || '/';
       } else {
-        this.currentDir = (this.currentDir === '/' ? `/${target}` : `${this.currentDir}/${target}`).replace(/\/+$/, '');
+        this.currentDir = (
+          this.currentDir === '/' ? `/${target}` : `${this.currentDir}/${target}`
+        ).replace(/\/+$/, '');
       }
     } else if (mainCmd === 'ls' || mainCmd === 'll') {
       const items = this.fs.list(this.currentDir);
@@ -360,7 +392,10 @@ export class MockTerminalSession extends EventEmitter {
         const dateStr = new Date(item.modifyTime).toISOString().slice(0, 16).replace('T', ' ');
         const sizeStr = item.size.toString().padStart(6, ' ');
         const mode = item.isDirectory ? 'd' + item.permissions : '-' + item.permissions;
-        this.emit('data', `${mode} 1 root root ${sizeStr} ${dateStr} ${color}${item.name}\x1b[0m\r\n`);
+        this.emit(
+          'data',
+          `${mode} 1 root root ${sizeStr} ${dateStr} ${color}${item.name}\x1b[0m\r\n`
+        );
       }
     } else if (mainCmd === 'cat') {
       const filename = args[0];
@@ -368,19 +403,32 @@ export class MockTerminalSession extends EventEmitter {
         this.emit('data', 'cat: missing file operand\r\n');
         return;
       }
-      const fullPath = filename.startsWith('/') ? filename : (this.currentDir === '/' ? `/${filename}` : `${this.currentDir}/${filename}`);
+      const fullPath = filename.startsWith('/')
+        ? filename
+        : this.currentDir === '/'
+          ? `/${filename}`
+          : `${this.currentDir}/${filename}`;
       try {
         const content = this.fs.readFile(fullPath);
         this.emit('data', content.replace(/\n/g, '\r\n') + '\r\n');
       } catch (err) {
         this.emit('data', `cat: ${filename}: ${errorMessage(err)}\r\n`);
       }
-    } else if (cmd.includes('systemctl status nginx') || cmd.includes('systemctl restart nginx') || cmd.includes('nginx')) {
+    } else if (
+      cmd.includes('systemctl status nginx') ||
+      cmd.includes('systemctl restart nginx') ||
+      cmd.includes('nginx')
+    ) {
       if (cmd.includes('nginx -t')) {
-        this.emit('data', 'nginx: the configuration file /etc/nginx/nginx.conf syntax is ok\r\nnginx: configuration file /etc/nginx/nginx.conf test is successful\r\n');
+        this.emit(
+          'data',
+          'nginx: the configuration file /etc/nginx/nginx.conf syntax is ok\r\nnginx: configuration file /etc/nginx/nginx.conf test is successful\r\n'
+        );
       } else {
         // Trigger realistic error
-        this.emit('data', `\x1b[31m● nginx.service - A high performance web server and a reverse proxy server\x1b[0m
+        this.emit(
+          'data',
+          `\x1b[31m● nginx.service - A high performance web server and a reverse proxy server\x1b[0m
      Loaded: loaded (/lib/systemd/system/nginx.service; enabled; vendor preset: enabled)
      Active: \x1b[1;31mfailed\x1b[0m (Result: exit-code) since Sun 2026-09-20 18:42:12 CST; 5min ago
     Process: 1042 ExecStartPre=/usr/sbin/nginx -t -q -g daemon on; master_process on; (code=exited, status=0/SUCCESS)
@@ -390,26 +438,36 @@ export class MockTerminalSession extends EventEmitter {
 Sep 20 18:42:10 prod-web01 nginx[1045]: \x1b[1;31mnginx: [emerg] bind() to 0.0.0.0:80 failed (98: Address already in use)\x1b[0m
 Sep 20 18:42:11 prod-web01 nginx[1045]: \x1b[1;31mnginx: [emerg] bind() to 0.0.0.0:80 failed (98: Address already in use)\x1b[0m
 Sep 20 18:42:12 prod-web01 systemd[1]: nginx.service: Failed with result 'exit-code'.
-\r\n`);
+\r\n`
+        );
       }
     } else if (cmd.includes('netstat') || cmd.includes('ss')) {
-      this.emit('data', `State    Recv-Q   Send-Q     Local Address:Port      Peer Address:Port   Process
+      this.emit(
+        'data',
+        `State    Recv-Q   Send-Q     Local Address:Port      Peer Address:Port   Process
 LISTEN   0        128              0.0.0.0:22             0.0.0.0:*       users:(("sshd",pid=620,fd=3))
 LISTEN   0        511              0.0.0.0:80             0.0.0.0:*       users:(("apache2",pid=842,fd=4))
 LISTEN   0        128            127.0.0.1:3000           0.0.0.0:*       users:(("node",pid=1120,fd=19))
 LISTEN   0        511              0.0.0.0:6379           0.0.0.0:*       users:(("redis-server",pid=710,fd=6))
-\r\n`);
+\r\n`
+      );
     } else if (cmd.includes('docker ps')) {
-      this.emit('data', `CONTAINER ID   IMAGE          COMMAND                  CREATED         STATUS         PORTS                  NAMES
+      this.emit(
+        'data',
+        `CONTAINER ID   IMAGE          COMMAND                  CREATED         STATUS         PORTS                  NAMES
 e3f892a11b0c   redis:7        "docker-entrypoint.s…"   2 hours ago     Up 2 hours     0.0.0.0:6379->6379/tcp redis-prod
 8b3a01944da2   postgres:15    "docker-entrypoint.s…"   5 hours ago     Up 5 hours     5432/tcp               db-cluster
-\r\n`);
+\r\n`
+      );
     } else if (cmd.includes('df -h')) {
-      this.emit('data', `Filesystem      Size  Used Avail Use% Mounted on
+      this.emit(
+        'data',
+        `Filesystem      Size  Used Avail Use% Mounted on
 /dev/sda1        40G   14G   24G  38% /
 /dev/sda15      105M  6.1M   99M   6% /boot/efi
 tmpfs           3.9G     0  3.9G   0% /run/user/0
-\r\n`);
+\r\n`
+      );
     } else if (cmd.includes('kill')) {
       this.emit('data', `[process terminated] successfully released port 80.\r\n`);
     } else {

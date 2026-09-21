@@ -72,10 +72,11 @@ export const SnippetModal: React.FC = () => {
 
   if (!isSnippetModalOpen) return null;
 
-  const filtered = DEFAULT_SNIPPETS.filter(s =>
-    s.title.toLowerCase().includes(search.toLowerCase()) ||
-    s.command.toLowerCase().includes(search.toLowerCase()) ||
-    s.category.toLowerCase().includes(search.toLowerCase())
+  const filtered = DEFAULT_SNIPPETS.filter(
+    s =>
+      s.title.toLowerCase().includes(search.toLowerCase()) ||
+      s.command.toLowerCase().includes(search.toLowerCase()) ||
+      s.category.toLowerCase().includes(search.toLowerCase())
   );
 
   const handleRun = (cmd: string) => {
@@ -159,7 +160,11 @@ export const SnippetModal: React.FC = () => {
                   onClick={() => handleCopy(item.id, item.command)}
                   className="px-2 py-0.5 text-orca-muted hover:text-white bg-orca-surface hover:bg-orca-hover rounded text-[11px] flex items-center space-x-1"
                 >
-                  {copiedId === item.id ? <Check size={11} className="text-orca-success" /> : <Clipboard size={11} />}
+                  {copiedId === item.id ? (
+                    <Check size={11} className="text-orca-success" />
+                  ) : (
+                    <Clipboard size={11} />
+                  )}
                   <span>{copiedId === item.id ? '已复制' : '复制'}</span>
                 </button>
 

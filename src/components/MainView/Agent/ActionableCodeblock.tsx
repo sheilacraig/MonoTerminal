@@ -28,9 +28,7 @@ export const ActionableCodeblock: React.FC<ActionableCodeblockProps> = ({
   return (
     <div
       className={`my-3 rounded-lg border overflow-hidden shadow-lg transition-all ${
-        isDangerous
-          ? 'border-orca-danger/80 bg-orca-danger/5'
-          : 'border-orca-border bg-[#0a0d12]'
+        isDangerous ? 'border-orca-danger/80 bg-orca-danger/5' : 'border-orca-border bg-[#0a0d12]'
       }`}
     >
       {/* Codeblock Action Header */}
@@ -84,7 +82,11 @@ export const ActionableCodeblock: React.FC<ActionableCodeblockProps> = ({
 
       {/* Code content — highlighted body when provided, else plain shell text */}
       <pre className="p-3 text-xs font-mono overflow-x-auto selection:bg-orca-accent/30 leading-5">
-        {children ? <code className="hljs">{children}</code> : <span className="text-emerald-400">{code}</span>}
+        {children ? (
+          <code className="hljs">{children}</code>
+        ) : (
+          <span className="text-emerald-400">{code}</span>
+        )}
       </pre>
 
       {/* Explanation drawer if triggered */}

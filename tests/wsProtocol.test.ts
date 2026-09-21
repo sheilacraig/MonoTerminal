@@ -5,16 +5,51 @@ describe('validateWsInboundMessage', () => {
   it('accepts well-formed messages of every type', () => {
     const valid: unknown[] = [
       { type: 'ping', timestamp: Date.now() },
-      { type: 'term:init', sessionId: 'sess-abc_123', hostId: 'mock-local-demo', cols: 120, rows: 35 },
+      {
+        type: 'term:init',
+        sessionId: 'sess-abc_123',
+        hostId: 'mock-local-demo',
+        cols: 120,
+        rows: 35
+      },
       { type: 'term:input', sessionId: 'sess-1', data: 'ls -la\r' },
       { type: 'term:resize', sessionId: 'sess-1', cols: 80, rows: 24 },
       { type: 'term:close', sessionId: 'sess-1' },
       { type: 'sftp:list', requestId: 'req-1', sessionId: 'sess-1', dirPath: '/etc/nginx' },
-      { type: 'sftp:read', requestId: 'req-2', sessionId: 'sess-1', filePath: '/etc/nginx/nginx.conf' },
-      { type: 'sftp:write', requestId: 'req-3', sessionId: 'sess-1', filePath: '/tmp/a.txt', content: 'hello' },
-      { type: 'sftp:delete', requestId: 'req-4', sessionId: 'sess-1', targetPath: '/tmp/a.txt', isDirectory: false },
-      { type: 'sftp:rename', requestId: 'req-5', sessionId: 'sess-1', oldPath: '/a', newPath: '/b' },
-      { type: 'sftp:chmod', requestId: 'req-6', sessionId: 'sess-1', targetPath: '/a', mode: '0644' },
+      {
+        type: 'sftp:read',
+        requestId: 'req-2',
+        sessionId: 'sess-1',
+        filePath: '/etc/nginx/nginx.conf'
+      },
+      {
+        type: 'sftp:write',
+        requestId: 'req-3',
+        sessionId: 'sess-1',
+        filePath: '/tmp/a.txt',
+        content: 'hello'
+      },
+      {
+        type: 'sftp:delete',
+        requestId: 'req-4',
+        sessionId: 'sess-1',
+        targetPath: '/tmp/a.txt',
+        isDirectory: false
+      },
+      {
+        type: 'sftp:rename',
+        requestId: 'req-5',
+        sessionId: 'sess-1',
+        oldPath: '/a',
+        newPath: '/b'
+      },
+      {
+        type: 'sftp:chmod',
+        requestId: 'req-6',
+        sessionId: 'sess-1',
+        targetPath: '/a',
+        mode: '0644'
+      },
       { type: 'sftp:mkdir', requestId: 'req-7', sessionId: 'sess-1', dirPath: '/newdir' },
       {
         type: 'ai:chat',
@@ -106,7 +141,9 @@ describe('validateWsInboundMessage', () => {
     expect(res.ok).toBe(true);
     if (res.ok && res.msg.type === 'ai:chat') {
       expect(res.msg.opsContext?.terminalSnippet).toBe('some output');
-      expect((res.msg.opsContext as Record<string, unknown> | undefined)?.bogusField).toBeUndefined();
+      expect(
+        (res.msg.opsContext as Record<string, unknown> | undefined)?.bogusField
+      ).toBeUndefined();
       // Non-string history entries are dropped, valid ones kept in order
       expect(res.msg.opsContext?.commandHistory).toEqual(['ls', 'pwd']);
     }

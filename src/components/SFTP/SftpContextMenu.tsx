@@ -29,7 +29,7 @@ export const SftpContextMenu: React.FC<SftpContextMenuProps> = ({
     <div
       style={{ top: `${y}px`, left: `${x}px` }}
       className="fixed z-50 bg-orca-surface border border-orca-border rounded shadow-xl py-1 w-40 text-xs select-none animate-in fade-in zoom-in-95 duration-100"
-      onClick={(e) => e.stopPropagation()}
+      onClick={e => e.stopPropagation()}
     >
       {!file.isDirectory && (
         <button

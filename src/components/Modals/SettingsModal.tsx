@@ -4,17 +4,7 @@ import { useSettings } from '../../context/SettingsContext';
 import { AIProvider } from '../../types';
 import { generateId } from '../../../shared/id';
 import { apiFetch } from '../../utils/api';
-import {
-  Settings,
-  X,
-  Bot,
-  Keyboard,
-  Shield,
-  Terminal,
-  Check,
-  Plus,
-  Lock
-} from 'lucide-react';
+import { Settings, X, Bot, Keyboard, Shield, Terminal, Check, Plus, Lock } from 'lucide-react';
 
 interface SecurityStatus {
   masterPasswordEnabled: boolean;
@@ -28,7 +18,9 @@ export const SettingsModal: React.FC = () => {
   const { isSettingsModalOpen, setIsSettingsModalOpen } = useSession();
   const { settings, updateSettings } = useSettings();
 
-  const [activeTab, setActiveTab] = useState<'ai' | 'shortcuts' | 'guardrail' | 'terminal' | 'security'>('ai');
+  const [activeTab, setActiveTab] = useState<
+    'ai' | 'shortcuts' | 'guardrail' | 'terminal' | 'security'
+  >('ai');
   const [activeProviderId, setActiveProviderId] = useState(settings.ai.activeProvider);
   const [providers, setProviders] = useState<AIProvider[]>(settings.ai.providers);
   const [selectedProvider, setSelectedProvider] = useState<AIProvider>(
@@ -74,7 +66,10 @@ export const SettingsModal: React.FC = () => {
         if (json.data) setSecStatus(json.data as SecurityStatus);
         return { ok: true as const, error: undefined as string | undefined };
       }
-      return { ok: false as const, error: (json?.error as string) || `请求失败 (HTTP ${res.status})` };
+      return {
+        ok: false as const,
+        error: (json?.error as string) || `请求失败 (HTTP ${res.status})`
+      };
     } catch {
       return { ok: false as const, error: '无法连接后端服务' };
     }
@@ -83,7 +78,11 @@ export const SettingsModal: React.FC = () => {
   const handleUnlock = async () => {
     const r = await secPost('/api/security/unlock', { password: secUnlockPw });
     if (r.ok) setSecUnlockPw('');
-    setSecMessage(r.ok ? { kind: 'ok', text: '已解锁，凭据解密与真实主机连接已恢复' } : { kind: 'err', text: r.error! });
+    setSecMessage(
+      r.ok
+        ? { kind: 'ok', text: '已解锁，凭据解密与真实主机连接已恢复' }
+        : { kind: 'err', text: r.error! }
+    );
   };
 
   const handleSetMasterPassword = async () => {
@@ -302,22 +301,30 @@ export const SettingsModal: React.FC = () => {
                 {/* Active Provider Config Form */}
                 <div className="space-y-3 bg-orca-card/40 p-3.5 rounded-lg border border-orca-border">
                   <div>
-                    <label className="text-orca-muted block mb-1">接口 Base URL (OpenAI 兼容)</label>
+                    <label className="text-orca-muted block mb-1">
+                      接口 Base URL (OpenAI 兼容)
+                    </label>
                     <input
                       type="text"
                       value={selectedProvider.baseUrl}
-                      onChange={e => setSelectedProvider({ ...selectedProvider, baseUrl: e.target.value })}
+                      onChange={e =>
+                        setSelectedProvider({ ...selectedProvider, baseUrl: e.target.value })
+                      }
                       placeholder="https://api.deepseek.com 或 http://localhost:11434/v1"
                       className="w-full bg-orca-bg border border-orca-border text-white px-2.5 py-1.5 rounded outline-none focus:border-orca-accent font-mono"
                     />
                   </div>
 
                   <div>
-                    <label className="text-orca-muted block mb-1">模型名称 (Model Identifier)</label>
+                    <label className="text-orca-muted block mb-1">
+                      模型名称 (Model Identifier)
+                    </label>
                     <input
                       type="text"
                       value={selectedProvider.model}
-                      onChange={e => setSelectedProvider({ ...selectedProvider, model: e.target.value })}
+                      onChange={e =>
+                        setSelectedProvider({ ...selectedProvider, model: e.target.value })
+                      }
                       placeholder="deepseek-chat / deepseek-r1:8b / gpt-4o"
                       className="w-full bg-orca-bg border border-orca-border text-white px-2.5 py-1.5 rounded outline-none focus:border-orca-accent font-mono"
                     />
@@ -325,7 +332,9 @@ export const SettingsModal: React.FC = () => {
 
                   {selectedProvider.type !== 'mock' && (
                     <div>
-                      <label className="text-orca-muted block mb-1">API Key (本地 AES-256 加密保存)</label>
+                      <label className="text-orca-muted block mb-1">
+                        API Key (本地 AES-256 加密保存)
+                      </label>
                       <input
                         type="password"
                         value={plainKey}
@@ -346,7 +355,12 @@ export const SettingsModal: React.FC = () => {
                       max="1"
                       step="0.1"
                       value={selectedProvider.temperature}
-                      onChange={e => setSelectedProvider({ ...selectedProvider, temperature: parseFloat(e.target.value) })}
+                      onChange={e =>
+                        setSelectedProvider({
+                          ...selectedProvider,
+                          temperature: parseFloat(e.target.value)
+                        })
+                      }
                       className="w-full accent-orca-accent cursor-pointer"
                     />
                   </div>
@@ -383,7 +397,9 @@ export const SettingsModal: React.FC = () => {
                     <input
                       type="checkbox"
                       checked={guardrail.requireConfirmPhrase}
-                      onChange={e => setGuardrail({ ...guardrail, requireConfirmPhrase: e.target.checked })}
+                      onChange={e =>
+                        setGuardrail({ ...guardrail, requireConfirmPhrase: e.target.checked })
+                      }
                       className="w-4 h-4 accent-orca-accent"
                     />
                   </label>
@@ -436,7 +452,9 @@ export const SettingsModal: React.FC = () => {
                   <div className="space-y-3 bg-orca-card/40 p-3.5 rounded-lg border border-orca-border">
                     {secStatus.masterPasswordEnabled && (
                       <div>
-                        <label className="text-orca-muted block mb-1">当前主密码（修改 / 移除时需要）</label>
+                        <label className="text-orca-muted block mb-1">
+                          当前主密码（修改 / 移除时需要）
+                        </label>
                         <input
                           type="password"
                           value={secCurrentPw}
@@ -495,9 +513,10 @@ export const SettingsModal: React.FC = () => {
                     </div>
 
                     <p className="text-[10px] text-orca-muted leading-relaxed">
-                      启用后：加密密钥经 PBKDF2-SHA512（200,000 轮）从「主密码 + 设备指纹 + 随机盐」派生，
-                      所有已保存的密码 / 私钥口令 / API Key 会立即用新密钥重新加密；服务重启后需输入主密码解锁。
-                      请牢记主密码 —— 丢失后将无法恢复已加密的凭据。
+                      启用后：加密密钥经 PBKDF2-SHA512（200,000 轮）从「主密码 + 设备指纹 +
+                      随机盐」派生， 所有已保存的密码 / 私钥口令 / API Key
+                      会立即用新密钥重新加密；服务重启后需输入主密码解锁。 请牢记主密码 ——
+                      丢失后将无法恢复已加密的凭据。
                     </p>
                   </div>
                 )}
@@ -568,13 +587,20 @@ export const SettingsModal: React.FC = () => {
                 <h4 className="font-semibold text-white">终端字体与渲染</h4>
                 <div className="space-y-3">
                   <div>
-                    <label className="text-orca-muted block mb-1">终端字号 ({terminalConfig.fontSize}px)</label>
+                    <label className="text-orca-muted block mb-1">
+                      终端字号 ({terminalConfig.fontSize}px)
+                    </label>
                     <input
                       type="range"
                       min="12"
                       max="20"
                       value={terminalConfig.fontSize}
-                      onChange={e => setTerminalConfig({ ...terminalConfig, fontSize: parseInt(e.target.value, 10) })}
+                      onChange={e =>
+                        setTerminalConfig({
+                          ...terminalConfig,
+                          fontSize: parseInt(e.target.value, 10)
+                        })
+                      }
                       className="w-full accent-orca-accent cursor-pointer"
                     />
                   </div>
@@ -584,7 +610,9 @@ export const SettingsModal: React.FC = () => {
                     <input
                       type="text"
                       value={terminalConfig.fontFamily}
-                      onChange={e => setTerminalConfig({ ...terminalConfig, fontFamily: e.target.value })}
+                      onChange={e =>
+                        setTerminalConfig({ ...terminalConfig, fontFamily: e.target.value })
+                      }
                       className="w-full bg-orca-bg border border-orca-border text-white px-2.5 py-1.5 rounded outline-none font-mono"
                     />
                   </div>

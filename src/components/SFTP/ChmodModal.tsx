@@ -58,7 +58,7 @@ export const ChmodModal: React.FC<ChmodModalProps> = ({
             <input
               type="text"
               value={mode}
-              onChange={(e) => setMode(e.target.value)}
+              onChange={e => setMode(e.target.value)}
               placeholder="0644 / 0755"
               className="w-full bg-orca-bg border border-orca-border text-white font-mono text-xs px-2.5 py-1.5 rounded outline-none focus:border-orca-accent"
               autoFocus

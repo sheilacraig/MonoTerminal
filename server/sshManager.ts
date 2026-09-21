@@ -86,7 +86,7 @@ export class SshManager {
         });
       });
 
-      client.on('error', (err) => {
+      client.on('error', err => {
         events.emit('error', err);
         if (!isResolved) {
           isResolved = true;
@@ -169,7 +169,9 @@ export class SshManager {
           const isDir = (item.attrs.mode & 0o40000) === 0o40000;
           return {
             name: item.filename,
-            path: dirPath.endsWith('/') ? `${dirPath}${item.filename}` : `${dirPath}/${item.filename}`,
+            path: dirPath.endsWith('/')
+              ? `${dirPath}${item.filename}`
+              : `${dirPath}/${item.filename}`,
             isDirectory: isDir,
             size: item.attrs.size,
             modifyTime: item.attrs.mtime * 1000,
@@ -207,7 +209,11 @@ export class SshManager {
     });
   }
 
-  public async sftpDelete(sessionId: string, targetPath: string, isDirectory: boolean): Promise<void> {
+  public async sftpDelete(
+    sessionId: string,
+    targetPath: string,
+    isDirectory: boolean
+  ): Promise<void> {
     const session = this.sessions.get(sessionId);
     if (!session || !session.sftp) throw new Error('SFTP 未就绪');
 
@@ -244,7 +250,7 @@ export class SshManager {
     if (!session || !session.sftp) throw new Error('SFTP 未就绪');
 
     return new Promise((resolve, reject) => {
-      session.sftp!.mkdir(dirPath, (err) => {
+      session.sftp!.mkdir(dirPath, err => {
         if (err) return reject(err);
         resolve();
       });

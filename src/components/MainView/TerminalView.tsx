@@ -5,7 +5,12 @@ import '@xterm/xterm/css/xterm.css';
 import { useWebSocket } from '../../context/WebSocketContext';
 import { useSession } from '../../context/SessionContext';
 import { useSettings } from '../../context/SettingsContext';
-import { isBackslashEvent, isSidebarEvent, isNewTabEvent, isCloseTabEvent } from '../../constants/shortcuts';
+import {
+  isBackslashEvent,
+  isSidebarEvent,
+  isNewTabEvent,
+  isCloseTabEvent
+} from '../../constants/shortcuts';
 import { Zap } from 'lucide-react';
 
 interface TerminalViewProps {
@@ -18,7 +23,8 @@ export const TerminalView: React.FC<TerminalViewProps> = ({ sessionId, isVisible
   const xtermInstance = useRef<Terminal | null>(null);
   const fitAddonRef = useRef<FitAddon | null>(null);
 
-  const { sendTermInput, resizeTerm, registerTermHandler, registerTermErrorHandler } = useWebSocket();
+  const { sendTermInput, resizeTerm, registerTermHandler, registerTermErrorHandler } =
+    useWebSocket();
   const {
     activeSession,
     appendTerminalContext,
@@ -29,8 +35,40 @@ export const TerminalView: React.FC<TerminalViewProps> = ({ sessionId, isVisible
   } = useSession();
   const { settings } = useSettings();
 
+  // Ref-mirror every value the xterm init effect reads. Keeping the effect
+  // keyed on [sessionId] alone is critical: `toggleAgent` and `closeSession`
+  // change identity whenever `activeSessionId` changes (they depend on it via
+  // useCallback), and `settings.terminal.*` changes when the user tweaks font
+  // size etc. Without this indirection, tab-switching or a settings tweak
+  // would tear down xterm and lose the scrollback buffer.
+  const ctxRef = useRef({
+    settings,
+    sendTermInput,
+    resizeTerm,
+    registerTermHandler,
+    registerTermErrorHandler,
+    appendTerminalContext,
+    toggleAgent,
+    setIsSidebarCollapsed,
+    setIsHostModalOpen,
+    closeSession
+  });
+  ctxRef.current = {
+    settings,
+    sendTermInput,
+    resizeTerm,
+    registerTermHandler,
+    registerTermErrorHandler,
+    appendTerminalContext,
+    toggleAgent,
+    setIsSidebarCollapsed,
+    setIsHostModalOpen,
+    closeSession
+  };
+
   useEffect(() => {
     if (!terminalRef.current) return;
+    const ctx = ctxRef.current;
 
     // Initialize xterm.js
     const term = new Terminal({
@@ -57,10 +95,10 @@ export const TerminalView: React.FC<TerminalViewProps> = ({ sessionId, isVisible
         brightCyan: '#56d4dd',
         brightWhite: '#f0f6fc'
       },
-      fontFamily: settings.terminal.fontFamily || '"JetBrains Mono", Consolas, monospace',
-      fontSize: settings.terminal.fontSize || 14,
-      cursorBlink: settings.terminal.cursorBlink ?? true,
-      scrollback: settings.terminal.scrollback || 5000,
+      fontFamily: ctx.settings.terminal.fontFamily || '"JetBrains Mono", Consolas, monospace',
+      fontSize: ctx.settings.terminal.fontSize || 14,
+      cursorBlink: ctx.settings.terminal.cursorBlink ?? true,
+      scrollback: ctx.settings.terminal.scrollback || 5000,
       convertEol: true,
       allowProposedApi: true
     });
@@ -76,30 +114,31 @@ export const TerminalView: React.FC<TerminalViewProps> = ({ sessionId, isVisible
 
     // Intercept custom shortcuts before xterm consumes or transmits them as control characters
     term.attachCustomKeyEventHandler((event: KeyboardEvent) => {
+      const c = ctxRef.current;
       if ((event.ctrlKey || event.metaKey) && isBackslashEvent(event)) {
         if (event.type === 'keydown') {
-          toggleAgent();
+          c.toggleAgent();
         }
         return false; // Prevent xterm from sending 0x1c (SIGQUIT)
       }
 
       if ((event.ctrlKey || event.metaKey) && isSidebarEvent(event)) {
         if (event.type === 'keydown') {
-          setIsSidebarCollapsed((prev: boolean) => !prev);
+          c.setIsSidebarCollapsed((prev: boolean) => !prev);
         }
         return false;
       }
 
       if ((event.ctrlKey || event.metaKey) && isNewTabEvent(event)) {
         if (event.type === 'keydown') {
-          setIsHostModalOpen(true);
+          c.setIsHostModalOpen(true);
         }
         return false;
       }
 
       if ((event.ctrlKey || event.metaKey) && isCloseTabEvent(event)) {
         if (event.type === 'keydown') {
-          closeSession(sessionId);
+          c.closeSession(sessionId);
         }
         return false;
       }
@@ -108,17 +147,17 @@ export const TerminalView: React.FC<TerminalViewProps> = ({ sessionId, isVisible
     });
 
     // Send input from user typing to server
-    const dataSub = term.onData((data) => {
-      sendTermInput(sessionId, data);
+    const dataSub = term.onData(data => {
+      ctxRef.current.sendTermInput(sessionId, data);
     });
 
     // Receive data from server
-    const unregisterData = registerTermHandler(sessionId, (data: string) => {
+    const unregisterData = ctx.registerTermHandler(sessionId, (data: string) => {
       term.write(data);
-      appendTerminalContext(sessionId, data);
+      ctxRef.current.appendTerminalContext(sessionId, data);
     });
 
-    const unregisterError = registerTermErrorHandler(sessionId, (err: string) => {
+    const unregisterError = ctx.registerTermErrorHandler(sessionId, (err: string) => {
       term.write(`\r\n\x1b[31m[错误] ${err}\x1b[0m\r\n`);
     });
 
@@ -127,7 +166,7 @@ export const TerminalView: React.FC<TerminalViewProps> = ({ sessionId, isVisible
       if (terminalRef.current && terminalRef.current.clientWidth > 0) {
         try {
           fitAddon.fit();
-          resizeTerm(sessionId, term.cols, term.rows);
+          ctxRef.current.resizeTerm(sessionId, term.cols, term.rows);
         } catch {
           // Ignore fit errors during transitions
         }
@@ -158,7 +197,8 @@ export const TerminalView: React.FC<TerminalViewProps> = ({ sessionId, isVisible
     }
   }, [isVisible]);
 
-  const hasUnreadError = isVisible && activeSession?.id === sessionId && Boolean(activeSession.unreadError);
+  const hasUnreadError =
+    isVisible && activeSession?.id === sessionId && Boolean(activeSession.unreadError);
 
   return (
     <div
@@ -171,7 +211,7 @@ export const TerminalView: React.FC<TerminalViewProps> = ({ sessionId, isVisible
       {/* Floating Error Bubble (PRD 3.1) */}
       {hasUnreadError && (
         <div
-          onClick={() => toggleAgent(true)}
+          onClick={() => ctxRef.current.toggleAgent(true)}
           className="absolute bottom-6 right-6 z-40 bg-orca-card/95 hover:bg-orca-card border-2 border-orca-danger rounded-lg px-3.5 py-2 shadow-2xl flex items-center space-x-2.5 cursor-pointer backdrop-blur-md error-bubble-anim transition-all hover:scale-105 group"
           title="点击或敲击 [Ctrl + \] 展开 AI 助手排查"
         >

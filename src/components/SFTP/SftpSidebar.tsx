@@ -87,7 +87,7 @@ export const SftpSidebar: React.FC = () => {
   const handleSaveFileContent = async (newContent: string) => {
     if (!editingFile) return;
     await writeFile(editingFile.path, newContent);
-    setEditingFile(prev => prev ? { ...prev, content: newContent } : null);
+    setEditingFile(prev => (prev ? { ...prev, content: newContent } : null));
   };
 
   const handleItemDoubleClick = (file: FileItem) => {
@@ -242,8 +242,8 @@ export const SftpSidebar: React.FC = () => {
         <input
           type="text"
           value={currentPath}
-          onChange={(e) => setCurrentPath(e.target.value)}
-          onKeyDown={(e) => {
+          onChange={e => setCurrentPath(e.target.value)}
+          onKeyDown={e => {
             if (e.key === 'Enter') refresh();
           }}
           className="flex-1 bg-orca-surface border border-orca-border text-orca-text font-mono text-[11px] px-1.5 py-0.5 rounded outline-none focus:border-orca-accent truncate"
@@ -254,12 +254,10 @@ export const SftpSidebar: React.FC = () => {
       {/* Directory File Tree View */}
       <div className="flex-1 overflow-y-auto overflow-x-hidden p-1 space-y-0.5 font-mono text-xs">
         {files.length === 0 && !loading && (
-          <div className="text-center py-8 text-orca-muted text-[11px]">
-            空目录或暂无读取权限
-          </div>
+          <div className="text-center py-8 text-orca-muted text-[11px]">空目录或暂无读取权限</div>
         )}
 
-        {files.map((file) => (
+        {files.map(file => (
           <FileTreeItem
             key={file.path}
             file={file}
@@ -295,11 +293,7 @@ export const SftpSidebar: React.FC = () => {
         >
           <FolderPlus size={13} />
         </button>
-        <button
-          onClick={refresh}
-          className="p-1 hover:text-orca-accent rounded"
-          title="刷新目录"
-        >
+        <button onClick={refresh} className="p-1 hover:text-orca-accent rounded" title="刷新目录">
           <RefreshCw size={13} />
         </button>
       </div>
@@ -317,8 +311,8 @@ export const SftpSidebar: React.FC = () => {
           y={contextMenu.y}
           file={contextMenu.file}
           onEdit={handleOpenFileEditor}
-          onCopyPath={(f) => navigator.clipboard.writeText(f.path)}
-          onChmod={(f) => setChmodTarget(f)}
+          onCopyPath={f => navigator.clipboard.writeText(f.path)}
+          onChmod={f => setChmodTarget(f)}
           onRename={handleRename}
           onDelete={handleDelete}
           onClose={() => setContextMenu(null)}
@@ -340,7 +334,7 @@ export const SftpSidebar: React.FC = () => {
         <ChmodModal
           filePath={chmodTarget.path}
           currentMode={chmodTarget.permissions}
-          onConfirm={async (mode) => {
+          onConfirm={async mode => {
             await chmodItem(chmodTarget.path, mode);
           }}
           onClose={() => setChmodTarget(null)}

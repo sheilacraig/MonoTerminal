@@ -50,10 +50,10 @@ describe('AIService & Ops Prompt Generation', () => {
         currentUser: 'root'
       },
       {
-        onThinking: (chunk) => {
+        onThinking: chunk => {
           streamedThinking += chunk;
         },
-        onContent: (chunk) => {
+        onContent: chunk => {
           streamedContent += chunk;
         },
         onDone: (_content, _thinking) => {

@@ -36,12 +36,14 @@ export const FileTreeItem: React.FC<FileTreeItemProps> = ({
   return (
     <div
       onDoubleClick={() => onDoubleClick(file)}
-      onContextMenu={(e) => onContextMenu(e, file)}
+      onContextMenu={e => onContextMenu(e, file)}
       className="flex items-center justify-between px-2 py-1 rounded hover:bg-orca-hover cursor-pointer group transition-colors select-none"
     >
       <div className="flex items-center space-x-2 truncate flex-1 mr-2">
         {getFileIcon()}
-        <span className={`truncate text-[11px] ${file.isDirectory ? 'font-medium text-white' : 'text-orca-text'}`}>
+        <span
+          className={`truncate text-[11px] ${file.isDirectory ? 'font-medium text-white' : 'text-orca-text'}`}
+        >
           {file.name}
         </span>
       </div>

@@ -65,13 +65,38 @@ describe('ThinkTagParser', () => {
     expect(thinking).toBe('step 1step 2');
   });
 
-  it('treats a stray leading close tag as a delimiter, not as text', () => {
-    // Robustness: some models emit the closing marker without an opening one;
-    // the parser flips mode on ANY complete delimiter so raw markup never
-    // leaks into the visible answer.
+  it('treats a stray leading close tag as a no-op, not as a mode flip', () => {
+    // Strict semantics: `</think>` sets insideThink = false. When we are
+    // already outside thinking mode, an unmatched close tag must NOT flip
+    // the parser INTO thinking mode — the following text stays as content.
     const { content, thinking } = run([`${CLOSE}never closed`]);
-    expect(content).toBe('');
-    expect(thinking).toBe('never closed');
+    expect(content).toBe('never closed');
+    expect(thinking).toBe('');
+  });
+
+  // Regression: the previous implementation used `insideThink = !insideThink`
+  // on any tag, so a stray close tag before the real answer would route all
+  // subsequent visible content into the thinking pane.
+  it('does not misroute real content into thinking after a stray close tag', () => {
+    const { content, thinking } = run([
+      `${CLOSE}Here is the actual answer.`,
+      ` Run \`systemctl status nginx\` to verify.`
+    ]);
+    expect(thinking).toBe('');
+    expect(content).toBe('Here is the actual answer. Run `systemctl status nginx` to verify.');
+  });
+
+  it('ignores duplicate open tags while already inside thinking mode', () => {
+    // Nested or repeated <think> must not toggle us out of thinking mode.
+    const { content, thinking } = run([`${OPEN}first${OPEN}second${CLOSE}answer`]);
+    expect(thinking).toBe('firstsecond');
+    expect(content).toBe('answer');
+  });
+
+  it('ignores duplicate close tags while already in content mode', () => {
+    const { content, thinking } = run([`${OPEN}thought${CLOSE}answer${CLOSE}more`]);
+    expect(thinking).toBe('thought');
+    expect(content).toBe('answermore');
   });
 
   it('does not swallow angle brackets that are not tags', () => {

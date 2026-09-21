@@ -43,7 +43,9 @@ securityRouter.post('/master-password', (req, res) => {
   };
 
   if (typeof newPassword !== 'string') {
-    res.status(400).json({ success: false, error: '缺少 newPassword 字段（传空字符串表示移除主密码）' });
+    res
+      .status(400)
+      .json({ success: false, error: '缺少 newPassword 字段（传空字符串表示移除主密码）' });
     return;
   }
   if (newPassword && newPassword.length < 6) {

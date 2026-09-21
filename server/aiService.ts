@@ -38,9 +38,13 @@ export class AIService {
 - 当前用户: ${opsContext.currentUser || 'root'}
 - 当前工作目录: ${opsContext.currentDir || '/etc/nginx'}
 - 操作系统画像: ${opsContext.osInfo || 'Linux x86_64 Ubuntu 22.04 LTS'}
-${opsContext.terminalSnippet ? `
+${
+  opsContext.terminalSnippet
+    ? `
 - 终端最近输出 (背景上下文):\n\`\`\`text\n${opsContext.terminalSnippet}\n\`\`\`
-` : ''}
+`
+    : ''
+}
 ================================
 `;
     }
@@ -69,7 +73,9 @@ ${contextStr}
     callbacks: StreamCallbacks
   ): Promise<void> {
     const settings = this.storage.getSettings();
-    const activeProvider = settings.ai.providers.find(p => p.id === settings.ai.activeProvider) || settings.ai.providers[0];
+    const activeProvider =
+      settings.ai.providers.find(p => p.id === settings.ai.activeProvider) ||
+      settings.ai.providers[0];
 
     if (!activeProvider || activeProvider.type === 'mock') {
       // Run offline Mock AI engine
@@ -84,7 +90,9 @@ ${contextStr}
       return;
     }
 
-    const apiKey = activeProvider.apiKeyEncrypted ? this.storage.decrypt(activeProvider.apiKeyEncrypted) : '';
+    const apiKey = activeProvider.apiKeyEncrypted
+      ? this.storage.decrypt(activeProvider.apiKeyEncrypted)
+      : '';
     const baseUrl = (activeProvider.baseUrl || 'https://api.deepseek.com').replace(/\/+$/, '');
     const model = activeProvider.model || 'deepseek-chat';
 
@@ -94,19 +102,34 @@ ${contextStr}
       ...messages.map(m => ({ role: m.role, content: m.content }))
     ];
 
+    // Idle watchdog: if the upstream stalls (no bytes for STREAM_IDLE_TIMEOUT_MS)
+    // abort the fetch. Without this, a misbehaving provider that keeps the TCP
+    // socket open but stops sending — or that never emits `data: [DONE]` —
+    // would leave `reader.read()` blocked forever, callbacks.onDone would
+    // never fire, and the frontend spinner would hang.
+    const STREAM_IDLE_TIMEOUT_MS = 120_000;
+    const controller = new AbortController();
+    let watchdog: ReturnType<typeof setTimeout> | null = null;
+    const resetWatchdog = () => {
+      if (watchdog) clearTimeout(watchdog);
+      watchdog = setTimeout(() => controller.abort(), STREAM_IDLE_TIMEOUT_MS);
+    };
+
     try {
+      resetWatchdog();
       const response = await fetch(`${baseUrl}/chat/completions`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
-          'Authorization': `Bearer ${apiKey}`
+          Authorization: `Bearer ${apiKey}`
         },
         body: JSON.stringify({
           model: model,
           messages: fullMessages,
           stream: true,
           temperature: activeProvider.temperature ?? 0.7
-        })
+        }),
+        signal: controller.signal
       });
 
       if (!response.ok) {
@@ -138,9 +161,15 @@ ${contextStr}
         }
       };
 
-      while (true) {
+      // `outer:` label so `data: [DONE]` breaks BOTH the per-line for-loop
+      // and the read-loop. Without the label, `break` only exits the inner
+      // for, the outer while calls `reader.read()` again, and on HTTP
+      // keep-alive connections (where the server does NOT close the socket
+      // after [DONE]) that read blocks forever.
+      outer: while (true) {
         const { done, value } = await reader.read();
         if (done) break;
+        resetWatchdog();
 
         buffer += decoder.decode(value, { stream: true });
         const lines = buffer.split('\n');
@@ -149,7 +178,9 @@ ${contextStr}
         for (const line of lines) {
           const trimmed = line.trim();
           if (!trimmed || !trimmed.startsWith('data:')) continue;
-          if (trimmed === 'data: [DONE]') break;
+          if (trimmed === 'data: [DONE]' || trimmed === 'data:[DONE]') {
+            break outer;
+          }
 
           try {
             const data = JSON.parse(trimmed.slice(5).trim());
@@ -172,12 +203,24 @@ ${contextStr}
         }
       }
 
+      // Proactively release the underlying TCP connection. On HTTP keep-alive
+      // the socket would otherwise be returned to the pool with unread bytes
+      // pending, or worse, remain half-open. cancel() also unblocks any
+      // concurrent reader.read() that might still be parked.
+      try {
+        await reader.cancel();
+      } catch {
+        /* already closed */
+      }
+
       // End of stream: emit any retained trailing fragment as plain text
       emitSegments(thinkParser.flush());
 
       callbacks.onDone?.(fullContent, fullThinking);
     } catch (err) {
       callbacks.onError?.(toError(err));
+    } finally {
+      if (watchdog) clearTimeout(watchdog);
     }
   }
 
@@ -200,7 +243,8 @@ ${contextStr}
     let content: string;
 
     if (lowerAll.includes('nginx') || lowerAll.includes('80') || lowerAll.includes('443')) {
-      thinking += '1. 检测到与 Nginx 服务或 Web 端口相关的问题。\n2. 需先测试配置文件语法，再检查端口占用情况与服务系统日志。\n3. 生成精准的安全排查与恢复命令。';
+      thinking +=
+        '1. 检测到与 Nginx 服务或 Web 端口相关的问题。\n2. 需先测试配置文件语法，再检查端口占用情况与服务系统日志。\n3. 生成精准的安全排查与恢复命令。';
       content = `### 🔍 Nginx 状态排查与修复建议
 
 根据诊断，Nginx 服务启动异常通常有以下两个常见诱因：
@@ -230,8 +274,14 @@ journalctl -u nginx.service -n 30 --no-pager
 systemctl reload nginx || systemctl restart nginx
 \`\`\`
 `;
-    } else if (lowerAll.includes('port') || lowerAll.includes('占用') || lowerAll.includes('bind') || lowerAll.includes('address already in use')) {
-      thinking += '1. 识别出典型的 Address already in use / 端口绑定冲突报错。\n2. 需要查询占用特定端口的进程 PID，并安全停止该进程。';
+    } else if (
+      lowerAll.includes('port') ||
+      lowerAll.includes('占用') ||
+      lowerAll.includes('bind') ||
+      lowerAll.includes('address already in use')
+    ) {
+      thinking +=
+        '1. 识别出典型的 Address already in use / 端口绑定冲突报错。\n2. 需要查询占用特定端口的进程 PID，并安全停止该进程。';
       content = `### ⚠️ 端口冲突分析与处理方案
 
 错误表明目标端口已被其他进程绑定。请执行以下命令定位并释放端口：
@@ -247,8 +297,13 @@ lsof -i :8080 -P -n || ss -lptn 'sport = :8080'
 kill -15 <PID>
 \`\`\`
 `;
-    } else if (lowerAll.includes('permission denied') || lowerAll.includes('权限不足') || lowerAll.includes('denied')) {
-      thinking += '1. 检测到 Permission Denied 权限不足报错。\n2. 检查当前执行用户、文件权限及所属组。';
+    } else if (
+      lowerAll.includes('permission denied') ||
+      lowerAll.includes('权限不足') ||
+      lowerAll.includes('denied')
+    ) {
+      thinking +=
+        '1. 检测到 Permission Denied 权限不足报错。\n2. 检查当前执行用户、文件权限及所属组。';
       content = `### 🛡️ 权限不足 (Permission Denied) 诊断
 
 当前尝试访问或写入的文件/目录存在权限限制。

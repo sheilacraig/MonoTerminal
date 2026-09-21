@@ -8,8 +8,16 @@
  * fragments. This parser buffers any trailing partial-tag suffix and resolves
  * it once more text arrives (or at flush time).
  *
- * Delimiter semantics: EITHER complete tag flips the current mode, so a stray
- * leading close tag cannot leak raw markup into the visible answer.
+ * Delimiter semantics are STRICT and asymmetric:
+ *   • `<think>` sets insideThink = true
+ *   • `</think>` sets insideThink = false
+ *
+ * Rationale: the previous implementation toggled the flag on either tag, so a
+ * stray `</think>` emitted by the model (a common artefact when the reasoning
+ * trace is post-processed or truncated) would flip the parser INTO thinking
+ * mode and route all subsequent real answer content into the reasoning pane.
+ * With strict semantics, an unmatched close tag is a no-op (it cannot enter
+ * thinking mode on its own) and the following text stays as content.
  */
 
 const OPEN_TAG = '<think>';
@@ -63,7 +71,10 @@ export class ThinkTagParser {
       }
 
       if (idx !== -1) {
-        // Complete tag found: emit everything before it, flip state, keep scanning
+        // Complete tag found: emit everything before it under the CURRENT
+        // mode, then transition based on WHICH tag matched (strict, not a
+        // toggle). Unmatched close tags in content mode are effectively
+        // no-ops; unmatched open tags in thinking mode are also no-ops.
         const before = this.pending.slice(0, idx);
         if (this.insideThink) {
           thinking += before;
@@ -71,7 +82,9 @@ export class ThinkTagParser {
           content += before;
         }
         this.pending = this.pending.slice(idx + tagLength);
-        this.insideThink = !this.insideThink;
+        // `idx` was resolved from openIdx/closeIdx above; recompute which tag
+        // won to set the state deterministically instead of toggling.
+        this.insideThink = idx === openIdx;
         continue;
       }
 
@@ -104,8 +117,6 @@ export class ThinkTagParser {
   public flush(): ThinkParseSegment {
     const rest = this.pending;
     this.pending = '';
-    return this.insideThink
-      ? { content: '', thinking: rest }
-      : { content: rest, thinking: '' };
+    return this.insideThink ? { content: '', thinking: rest } : { content: rest, thinking: '' };
   }
 }

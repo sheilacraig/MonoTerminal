@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useRef, Suspense } from 'react';
+import React, { useEffect, useRef, Suspense } from 'react';
 import { useSession } from '../../context/SessionContext';
 import { useSettings } from '../../context/SettingsContext';
 import { useAgentChat } from '../../hooks/useAgentChat';
@@ -22,6 +22,8 @@ export const AgentView: React.FC<AgentViewProps> = ({ isVisible }) => {
     isStreaming,
     expandedThinking,
     commandExplanations,
+    input,
+    setInput,
     toggleThinking,
     sendMessage,
     runCommand,
@@ -29,16 +31,17 @@ export const AgentView: React.FC<AgentViewProps> = ({ isVisible }) => {
     explainCommand
   } = useAgentChat();
 
-  const [input, setInput] = useState('');
   const messagesEndRef = useRef<HTMLDivElement>(null);
 
   // Auto-fill error snippet if opened via error trigger
   useEffect(() => {
     if (isVisible && activeSession?.unreadError) {
-      setInput(`终端刚刚报出以下错误，请帮我分析原因并给出修复命令：\n${activeSession.unreadError}`);
+      setInput(
+        `终端刚刚报出以下错误，请帮我分析原因并给出修复命令：\n${activeSession.unreadError}`
+      );
       clearUnreadError(activeSession.id);
     }
-  }, [isVisible, activeSession?.unreadError, clearUnreadError, activeSession?.id]);
+  }, [isVisible, activeSession?.unreadError, clearUnreadError, activeSession?.id, setInput]);
 
   // Scroll to bottom on new messages
   useEffect(() => {
@@ -52,11 +55,7 @@ export const AgentView: React.FC<AgentViewProps> = ({ isVisible }) => {
   };
 
   return (
-    <div
-      className={`w-full h-full flex flex-col bg-[#0d1117] ${
-        isVisible ? 'flex' : 'hidden'
-      }`}
-    >
+    <div className={`w-full h-full flex flex-col bg-[#0d1117] ${isVisible ? 'flex' : 'hidden'}`}>
       {/* Header Context Indicator */}
       <div className="h-7 bg-purple-950/20 border-b border-purple-900/30 px-3 flex items-center justify-between text-xs text-purple-300 select-none shrink-0">
         <div className="flex items-center space-x-2">
@@ -83,7 +82,7 @@ export const AgentView: React.FC<AgentViewProps> = ({ isVisible }) => {
 
       {/* Messages Stream Area */}
       <div className="flex-1 overflow-y-auto p-4 space-y-4">
-        {messages.map((msg) => (
+        {messages.map(msg => (
           <div
             key={msg.id}
             className={`flex flex-col space-y-1.5 ${
@@ -124,7 +123,9 @@ export const AgentView: React.FC<AgentViewProps> = ({ isVisible }) => {
 
               {/* Message Content & Actionable Codeblocks (lazy markdown chunk) */}
               <Suspense
-                fallback={<div className="whitespace-pre-wrap leading-relaxed text-xs">{msg.content}</div>}
+                fallback={
+                  <div className="whitespace-pre-wrap leading-relaxed text-xs">{msg.content}</div>
+                }
               >
                 <MessageMarkdown
                   content={msg.content}
