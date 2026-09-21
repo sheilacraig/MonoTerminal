@@ -1,6 +1,6 @@
 import React from 'react';
 import { useSession } from '../../context/SessionContext';
-import { Terminal, Bot, Sparkles, PanelRightClose, PanelRightOpen } from 'lucide-react';
+import { Terminal, Bot, PanelRightClose, PanelRightOpen } from 'lucide-react';
 
 export const ModeBar: React.FC = () => {
   const { activeSession, toggleAgent } = useSession();
@@ -30,7 +30,7 @@ export const ModeBar: React.FC = () => {
               ? 'bg-purple-600 hover:bg-purple-700 text-white shadow-sm'
               : 'bg-orca-card hover:bg-orca-card/80 border border-purple-900/60 text-purple-300 hover:text-white'
           }`}
-          title={isAgentOpen ? '收起 AI 助手 (Ctrl+\)' : '在当前窗口展开 AI 运维助手 (Ctrl+\)'}
+          title={isAgentOpen ? '收起 AI 助手 (Ctrl+\\)' : '在当前窗口展开 AI 运维助手 (Ctrl+\\)'}
         >
           <Bot size={13} className={isAgentOpen ? 'text-white' : 'text-purple-400'} />
           <span>{isAgentOpen ? '🤖 AI 助手 (已展开)' : '🤖 AI 助手'}</span>

@@ -2,6 +2,7 @@ import { useState, useCallback } from 'react';
 import { ChatMessage } from '../types';
 import { useWebSocket } from '../context/WebSocketContext';
 import { useSession } from '../context/SessionContext';
+import { generateId } from '../../shared/id';
 
 const INITIAL_GREETING: ChatMessage = {
   id: 'init-msg',
@@ -29,7 +30,7 @@ export function useAgentChat() {
   const sendMessage = useCallback((content: string) => {
     if (!content.trim() || isStreaming || !activeSession) return;
 
-    const userMsgId = 'msg-' + Date.now();
+    const userMsgId = generateId('msg-');
     const userMsg: ChatMessage = {
       id: userMsgId,
       role: 'user',
@@ -37,7 +38,7 @@ export function useAgentChat() {
       timestamp: Date.now()
     };
 
-    const assistantMsgId = 'msg-' + (Date.now() + 1);
+    const assistantMsgId = generateId('msg-');
     const assistantMsg: ChatMessage = {
       id: assistantMsgId,
       role: 'assistant',

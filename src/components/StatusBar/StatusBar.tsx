@@ -1,13 +1,11 @@
 import React from 'react';
 import { useWebSocket } from '../../context/WebSocketContext';
 import { useSettings } from '../../context/SettingsContext';
-import { useSession } from '../../context/SessionContext';
-import { Activity, ShieldCheck, Cpu, Command } from 'lucide-react';
+import { Activity, ShieldCheck, Cpu } from 'lucide-react';
 
 export const StatusBar: React.FC = () => {
   const { rtt, isConnected } = useWebSocket();
   const { activeAIProvider } = useSettings();
-  const { activeSession } = useSession();
 
   let latencyColor = 'text-orca-success';
   if (rtt > 80) latencyColor = 'text-orca-warning';

@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { useSession } from '../../context/SessionContext';
 import { useSftp } from '../../hooks/useSftp';
 import { FileItem } from '../../types';
+import { errorMessage } from '../../../shared/errors';
 import { FileTreeItem } from './FileTreeItem';
 import { SftpContextMenu } from './SftpContextMenu';
 import { FileEditorModal } from './FileEditorModal';
@@ -78,8 +79,8 @@ export const SftpSidebar: React.FC = () => {
     try {
       const content = await readFile(file.path);
       setEditingFile({ path: file.path, content });
-    } catch (err: any) {
-      alert(`读取文件失败: ${err.message}`);
+    } catch (err) {
+      alert(`读取文件失败: ${errorMessage(err)}`);
     }
   };
 
@@ -101,8 +102,8 @@ export const SftpSidebar: React.FC = () => {
     if (!confirm(`确定要彻底删除 ${file.name} 吗？`)) return;
     try {
       await deleteItem(file.path, file.isDirectory);
-    } catch (err: any) {
-      alert(`删除失败: ${err.message}`);
+    } catch (err) {
+      alert(`删除失败: ${errorMessage(err)}`);
     }
   };
 
@@ -113,8 +114,8 @@ export const SftpSidebar: React.FC = () => {
     const newPath = `${parent}/${newName}`;
     try {
       await renameItem(file.path, newPath);
-    } catch (err: any) {
-      alert(`重命名失败: ${err.message}`);
+    } catch (err) {
+      alert(`重命名失败: ${errorMessage(err)}`);
     }
   };
 
@@ -124,8 +125,8 @@ export const SftpSidebar: React.FC = () => {
     const filePath = currentPath === '/' ? `/${name}` : `${currentPath}/${name}`;
     try {
       await writeFile(filePath, '# New file created with MonoTerminal\n');
-    } catch (err: any) {
-      alert(`新建文件失败: ${err.message}`);
+    } catch (err) {
+      alert(`新建文件失败: ${errorMessage(err)}`);
     }
   };
 
@@ -135,8 +136,8 @@ export const SftpSidebar: React.FC = () => {
     const dirPath = currentPath === '/' ? `/${name}` : `${currentPath}/${name}`;
     try {
       await makeDirectory(dirPath);
-    } catch (err: any) {
-      alert(`新建目录失败: ${err.message}`);
+    } catch (err) {
+      alert(`新建目录失败: ${errorMessage(err)}`);
     }
   };
 

@@ -50,57 +50,233 @@ export interface AppSettings {
   };
 }
 
+export interface SecurityStatus {
+  /** A user master password protects the key derivation. */
+  masterPasswordEnabled: boolean;
+  /** Store is waiting for unlock (only possible when masterPasswordEnabled). */
+  locked: boolean;
+}
+
+/** Thrown when an operation needs the key but the store is locked. */
+export class StorageLockedError extends Error {
+  constructor() {
+    super('本地加密存储已被主密码锁定，请先在 设置 → 安全 中解锁');
+    this.name = 'StorageLockedError';
+  }
+}
+
 const DEFAULT_DATA_DIR = process.env.MONOTERMINAL_DATA_DIR || process.env.MONOTERM_DATA_DIR || process.env.ORCALOCAL_DATA_DIR || path.join(
   process.env.APPDATA || (process.platform === 'darwin' ? path.join(os.homedir(), 'Library', 'Preferences') : path.join(os.homedir(), '.local', 'share')),
   'monoterminal'
 );
 
+// Written to .master_verify encrypted with the password-derived key.
+// A successful round-trip proves the entered master password is correct.
+const VERIFY_MAGIC = 'MONOTERMINAL_MASTER_KEY_VERIFY_V1';
+const LEGACY_ITERATIONS = 100_000;
+const STRONG_ITERATIONS = 200_000;
+
 export class LocalStorageManager {
   private dataDir: string;
-  private masterKey: Buffer;
+  /** null while the store is locked (master password set but not entered). */
+  private masterKey: Buffer | null;
+  private masterPasswordEnabled: boolean;
 
   constructor(customDataDir?: string) {
     this.dataDir = customDataDir || DEFAULT_DATA_DIR;
     if (!fs.existsSync(this.dataDir)) {
       fs.mkdirSync(this.dataDir, { recursive: true });
     }
-    this.masterKey = this.initMasterKey();
+
+    this.masterPasswordEnabled = fs.existsSync(this.verifyFilePath());
+    if (this.masterPasswordEnabled) {
+      // Password-protected: stay locked until unlock() verifies the password
+      this.masterKey = null;
+    } else {
+      // Legacy mode: device-bound key, identical derivation to before so that
+      // data encrypted by earlier versions stays readable
+      this.masterKey = this.deriveLegacyKey();
+    }
+
     this.initDefaultConfigs();
   }
 
-  private initMasterKey(): Buffer {
-    const saltFile = path.join(this.dataDir, '.master_salt');
-    let salt: Buffer;
-    if (fs.existsSync(saltFile)) {
-      salt = fs.readFileSync(saltFile);
-    } else {
-      salt = crypto.randomBytes(32);
-      fs.writeFileSync(saltFile, salt, { mode: 0o600 });
-    }
+  // -------------------------------------------------------------------------
+  // Key derivation
+  // -------------------------------------------------------------------------
 
-    const machineId = `${os.hostname()}:${os.userInfo().username}:${os.platform()}:${os.arch()}`;
-    return crypto.pbkdf2Sync(machineId, salt, 100000, 32, 'sha256');
+  private saltFilePath(): string {
+    return path.join(this.dataDir, '.master_salt');
   }
 
-  public encrypt(plainText: string): string {
-    if (!plainText) return '';
+  private verifyFilePath(): string {
+    return path.join(this.dataDir, '.master_verify');
+  }
+
+  private readSalt(): Buffer {
+    const saltFile = this.saltFilePath();
+    if (fs.existsSync(saltFile)) {
+      // Best-effort hardening: keep the salt owner-only (no-op on Windows)
+      try {
+        fs.chmodSync(saltFile, 0o600);
+      } catch {
+        // Platform without POSIX permissions — ignore
+      }
+      return fs.readFileSync(saltFile);
+    }
+    const salt = crypto.randomBytes(32);
+    fs.writeFileSync(saltFile, salt, { mode: 0o600 });
+    return salt;
+  }
+
+  private machineId(): string {
+    return `${os.hostname()}:${os.userInfo().username}:${os.platform()}:${os.arch()}`;
+  }
+
+  /**
+   * Legacy derivation. Kept byte-for-byte compatible with pre-master-password
+   * versions; the machineId alone is guessable by any local process, which is
+   * exactly why setMasterPassword() exists.
+   */
+  private deriveLegacyKey(): Buffer {
+    return crypto.pbkdf2Sync(this.machineId(), this.readSalt(), LEGACY_ITERATIONS, 32, 'sha256');
+  }
+
+  /** Strong derivation mixing in the user-supplied master password. */
+  private derivePasswordKey(password: string): Buffer {
+    return crypto.pbkdf2Sync(
+      `mp:${password}:${this.machineId()}`,
+      this.readSalt(),
+      STRONG_ITERATIONS,
+      32,
+      'sha512'
+    );
+  }
+
+  // -------------------------------------------------------------------------
+  // Lock state
+  // -------------------------------------------------------------------------
+
+  public getDataDir(): string {
+    return this.dataDir;
+  }
+
+  public getSecurityStatus(): SecurityStatus {
+    return {
+      masterPasswordEnabled: this.masterPasswordEnabled,
+      locked: this.masterKey === null
+    };
+  }
+
+  public isLocked(): boolean {
+    return this.masterKey === null;
+  }
+
+  /**
+   * Try to unlock with the master password. Returns true when unlocked
+   * (or when no master password is set — nothing to unlock).
+   */
+  public unlock(password: string): boolean {
+    if (!this.masterPasswordEnabled) return true;
+    const candidate = this.derivePasswordKey(password);
+    const decrypted = this.decryptWith(candidate, this.readVerifyToken());
+    if (decrypted === VERIFY_MAGIC) {
+      this.masterKey = candidate;
+      return true;
+    }
+    return false;
+  }
+
+  /** Re-lock the store (drops the key from memory). No-op in legacy mode. */
+  public lock(): void {
+    if (this.masterPasswordEnabled) {
+      this.masterKey = null;
+    }
+  }
+
+  private readVerifyToken(): string {
+    try {
+      return fs.readFileSync(this.verifyFilePath(), 'utf8');
+    } catch {
+      return '';
+    }
+  }
+
+  /**
+   * Set, change or remove the master password. Every stored secret is
+   * decrypted with the current key and re-encrypted with the new one.
+   * Pass newPassword = '' to remove protection (falls back to legacy key).
+   */
+  public setMasterPassword(currentPassword: string | null, newPassword: string): void {
+    // Obtain a working current key first
+    if (this.masterKey === null) {
+      if (!currentPassword || !this.unlock(currentPassword)) {
+        throw new Error('存储已锁定：请先提供正确的当前主密码');
+      }
+    } else if (this.masterPasswordEnabled && currentPassword) {
+      const candidate = this.derivePasswordKey(currentPassword);
+      if (this.decryptWith(candidate, this.readVerifyToken()) !== VERIFY_MAGIC) {
+        throw new Error('当前主密码不正确');
+      }
+    }
+
+    const oldKey = this.masterKey as Buffer;
+    const newKey = newPassword ? this.derivePasswordKey(newPassword) : this.deriveLegacyKey();
+
+    // Re-encrypt all secret-bearing fields
+    const reEncrypt = (cipherPackage: string): string => {
+      const plain = this.decryptWith(oldKey, cipherPackage);
+      // Keep the original ciphertext if it cannot be decrypted (corrupt entry)
+      return plain ? this.encryptWith(newKey, plain) : cipherPackage;
+    };
+
+    const hosts = this.getHosts();
+    for (const h of hosts) {
+      if (h.passwordEncrypted) h.passwordEncrypted = reEncrypt(h.passwordEncrypted);
+      if (h.passphraseEncrypted) h.passphraseEncrypted = reEncrypt(h.passphraseEncrypted);
+    }
+    this.saveHosts(hosts);
+
+    const settings = this.getSettings();
+    for (const p of settings.ai?.providers ?? []) {
+      if (p.apiKeyEncrypted) p.apiKeyEncrypted = reEncrypt(p.apiKeyEncrypted);
+    }
+    this.saveSettings(settings);
+
+    // Persist or remove the verification token, then flip in-memory state
+    if (newPassword) {
+      fs.writeFileSync(this.verifyFilePath(), this.encryptWith(newKey, VERIFY_MAGIC), {
+        mode: 0o600
+      });
+      this.masterPasswordEnabled = true;
+    } else if (fs.existsSync(this.verifyFilePath())) {
+      fs.unlinkSync(this.verifyFilePath());
+      this.masterPasswordEnabled = false;
+    }
+    this.masterKey = newKey;
+  }
+
+  // -------------------------------------------------------------------------
+  // Encrypt / decrypt
+  // -------------------------------------------------------------------------
+
+  private encryptWith(key: Buffer, plainText: string): string {
     const iv = crypto.randomBytes(12);
-    const cipher = crypto.createCipheriv('aes-256-gcm', this.masterKey, iv);
+    const cipher = crypto.createCipheriv('aes-256-gcm', key, iv);
     let encrypted = cipher.update(plainText, 'utf8', 'hex');
     encrypted += cipher.final('hex');
     const tag = cipher.getAuthTag();
     return `${iv.toString('hex')}:${tag.toString('hex')}:${encrypted}`;
   }
 
-  public decrypt(cipherPackage: string): string {
-    if (!cipherPackage) return '';
+  private decryptWith(key: Buffer, cipherPackage: string): string {
     try {
       const parts = cipherPackage.split(':');
       if (parts.length !== 3) return '';
       const iv = Buffer.from(parts[0], 'hex');
       const tag = Buffer.from(parts[1], 'hex');
       const encrypted = parts[2];
-      const decipher = crypto.createDecipheriv('aes-256-gcm', this.masterKey, iv);
+      const decipher = crypto.createDecipheriv('aes-256-gcm', key, iv);
       decipher.setAuthTag(tag);
       let decrypted = decipher.update(encrypted, 'hex', 'utf8');
       decrypted += decipher.final('utf8');
@@ -109,6 +285,23 @@ export class LocalStorageManager {
       return '';
     }
   }
+
+  public encrypt(plainText: string): string {
+    if (!plainText) return '';
+    if (this.masterKey === null) throw new StorageLockedError();
+    return this.encryptWith(this.masterKey, plainText);
+  }
+
+  public decrypt(cipherPackage: string): string {
+    if (!cipherPackage) return '';
+    // While locked nothing can be decrypted; callers surface the lock state
+    if (this.masterKey === null) return '';
+    return this.decryptWith(this.masterKey, cipherPackage);
+  }
+
+  // -------------------------------------------------------------------------
+  // Config persistence
+  // -------------------------------------------------------------------------
 
   private initDefaultConfigs() {
     const hostsPath = path.join(this.dataDir, 'hosts.json');

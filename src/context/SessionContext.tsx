@@ -2,9 +2,11 @@ import React, { createContext, useContext, useState, useEffect, useCallback, use
 import { SessionTab, HostAsset } from '../types';
 import { useWebSocket } from './WebSocketContext';
 import { useSettings } from './SettingsContext';
-import { detectTerminalError } from '../utils/errorDetector';
+import { detectTerminalError, ERROR_BUBBLE_COOLDOWN_MS } from '../utils/errorDetector';
 import { checkCommandSafety } from '../utils/guardrail';
 import { isBackslashEvent, isSidebarEvent, isNewTabEvent, isCloseTabEvent } from '../constants/shortcuts';
+import { generateId } from '../../shared/id';
+import { apiFetch } from '../utils/api';
 
 interface DangerPromptData {
   command: string;
@@ -46,7 +48,7 @@ interface SessionContextType {
 const SessionContext = createContext<SessionContextType | null>(null);
 
 export const SessionProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
-  const { send, sendTermInput } = useWebSocket();
+  const { send } = useWebSocket();
   const { settings } = useSettings();
 
   const [sessions, setSessions] = useState<SessionTab[]>([]);
@@ -61,11 +63,14 @@ export const SessionProvider: React.FC<{ children: React.ReactNode }> = ({ child
   const [dangerPrompt, setDangerPrompt] = useState<DangerPromptData | null>(null);
 
   const terminalBuffers = useRef<Map<string, string[]>>(new Map());
+  // Per-session cooldown for the error bubble: same snippet won't re-trigger
+  // within ERROR_BUBBLE_COOLDOWN_MS to avoid a storm of repeated popups
+  const lastErrorPrompts = useRef<Map<string, { snippet: string; ts: number }>>(new Map());
 
   // Fetch host assets from server
   const refreshHosts = useCallback(async () => {
     try {
-      const res = await fetch('/api/hosts');
+      const res = await apiFetch('/api/hosts');
       if (res.ok) {
         const json = await res.json();
         if (json.data && json.data.length > 0) {
@@ -97,7 +102,7 @@ export const SessionProvider: React.FC<{ children: React.ReactNode }> = ({ child
 
   // Create session
   const createSession = useCallback((host: HostAsset): string => {
-    const id = 'sess-' + Math.random().toString(36).slice(2, 9);
+    const id = generateId('sess-');
     const newSession: SessionTab = {
       id,
       hostId: host.id,
@@ -137,6 +142,7 @@ export const SessionProvider: React.FC<{ children: React.ReactNode }> = ({ child
   const closeSession = useCallback((sessionId: string) => {
     send({ type: 'term:close', sessionId });
     terminalBuffers.current.delete(sessionId);
+    lastErrorPrompts.current.delete(sessionId);
 
     setSessions(prev => {
       const filtered = prev.filter(s => s.id !== sessionId);
@@ -188,15 +194,28 @@ export const SessionProvider: React.FC<{ children: React.ReactNode }> = ({ child
     lines = [...lines, ...newLines].slice(-60); // keep last 60 lines
     terminalBuffers.current.set(sessionId, lines);
 
-    // Check for error in chunk
+    // Check for error in chunk.
+    // Only critical/error tiers raise the bubble (warnings just enrich the AI
+    // context); identical errors are suppressed within the cooldown window.
     const check = detectTerminalError(chunk);
+    let bubbleSnippet: string | null = null;
+    if (check.hasError && check.severity !== 'warning') {
+      const snippet = check.snippet || '检测到命令执行异常';
+      const last = lastErrorPrompts.current.get(sessionId);
+      const now = Date.now();
+      if (!last || last.snippet !== snippet || now - last.ts >= ERROR_BUBBLE_COOLDOWN_MS) {
+        lastErrorPrompts.current.set(sessionId, { snippet, ts: now });
+        bubbleSnippet = snippet;
+      }
+    }
+
     setSessions(prev =>
       prev.map(s => {
         if (s.id === sessionId) {
           return {
             ...s,
             terminalContext: lines.join('\n'),
-            unreadError: check.hasError ? (check.snippet || '检测到命令执行异常') : s.unreadError
+            unreadError: bubbleSnippet ?? s.unreadError
           };
         }
         return s;
@@ -235,7 +254,7 @@ export const SessionProvider: React.FC<{ children: React.ReactNode }> = ({ child
 
   const saveHost = useCallback(async (hostData: Partial<HostAsset>) => {
     try {
-      const res = await fetch('/api/hosts', {
+      const res = await apiFetch('/api/hosts', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(hostData)
@@ -250,7 +269,7 @@ export const SessionProvider: React.FC<{ children: React.ReactNode }> = ({ child
 
   const deleteHost = useCallback(async (id: string) => {
     try {
-      await fetch(`/api/hosts/${id}`, { method: 'DELETE' });
+      await apiFetch(`/api/hosts/${id}`, { method: 'DELETE' });
       await refreshHosts();
     } catch (e) {
       console.error('Failed to delete host', e);

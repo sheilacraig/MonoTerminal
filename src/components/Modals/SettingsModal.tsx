@@ -1,7 +1,9 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import { useSession } from '../../context/SessionContext';
 import { useSettings } from '../../context/SettingsContext';
 import { AIProvider } from '../../types';
+import { generateId } from '../../../shared/id';
+import { apiFetch } from '../../utils/api';
 import {
   Settings,
   X,
@@ -11,15 +13,22 @@ import {
   Terminal,
   Check,
   Plus,
-  Cpu,
-  Trash2
+  Lock
 } from 'lucide-react';
+
+interface SecurityStatus {
+  masterPasswordEnabled: boolean;
+  locked: boolean;
+}
+
+const SEC_INPUT_CLS =
+  'w-full bg-orca-bg border border-orca-border text-white px-2.5 py-1.5 rounded outline-none focus:border-orca-accent font-mono';
 
 export const SettingsModal: React.FC = () => {
   const { isSettingsModalOpen, setIsSettingsModalOpen } = useSession();
   const { settings, updateSettings } = useSettings();
 
-  const [activeTab, setActiveTab] = useState<'ai' | 'shortcuts' | 'guardrail' | 'terminal'>('ai');
+  const [activeTab, setActiveTab] = useState<'ai' | 'shortcuts' | 'guardrail' | 'terminal' | 'security'>('ai');
   const [activeProviderId, setActiveProviderId] = useState(settings.ai.activeProvider);
   const [providers, setProviders] = useState<AIProvider[]>(settings.ai.providers);
   const [selectedProvider, setSelectedProvider] = useState<AIProvider>(
@@ -30,6 +39,99 @@ export const SettingsModal: React.FC = () => {
   const [guardrail, setGuardrail] = useState(settings.guardrail);
   const [terminalConfig, setTerminalConfig] = useState(settings.terminal);
   const [savedSuccess, setSavedSuccess] = useState(false);
+
+  // ---- Data security (master password) state ----
+  const [secStatus, setSecStatus] = useState<SecurityStatus | null>(null);
+  const [secUnlockPw, setSecUnlockPw] = useState('');
+  const [secCurrentPw, setSecCurrentPw] = useState('');
+  const [secNewPw, setSecNewPw] = useState('');
+  const [secConfirmPw, setSecConfirmPw] = useState('');
+  const [secMessage, setSecMessage] = useState<{ kind: 'ok' | 'err'; text: string } | null>(null);
+
+  const refreshSecStatus = useCallback(() => {
+    apiFetch('/api/security/status')
+      .then(r => (r.ok ? r.json() : null))
+      .then(j => setSecStatus(j?.data ?? null))
+      .catch(() => setSecStatus(null)); // static demo: backend unavailable
+  }, []);
+
+  useEffect(() => {
+    if (isSettingsModalOpen) {
+      refreshSecStatus();
+      setSecMessage(null);
+    }
+  }, [isSettingsModalOpen, refreshSecStatus]);
+
+  const secPost = async (url: string, body: Record<string, unknown>) => {
+    try {
+      const res = await apiFetch(url, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(body)
+      });
+      const json = await res.json().catch(() => null);
+      if (res.ok && json?.success) {
+        if (json.data) setSecStatus(json.data as SecurityStatus);
+        return { ok: true as const, error: undefined as string | undefined };
+      }
+      return { ok: false as const, error: (json?.error as string) || `请求失败 (HTTP ${res.status})` };
+    } catch {
+      return { ok: false as const, error: '无法连接后端服务' };
+    }
+  };
+
+  const handleUnlock = async () => {
+    const r = await secPost('/api/security/unlock', { password: secUnlockPw });
+    if (r.ok) setSecUnlockPw('');
+    setSecMessage(r.ok ? { kind: 'ok', text: '已解锁，凭据解密与真实主机连接已恢复' } : { kind: 'err', text: r.error! });
+  };
+
+  const handleSetMasterPassword = async () => {
+    if (secNewPw.length < 6) {
+      setSecMessage({ kind: 'err', text: '新主密码至少需要 6 个字符' });
+      return;
+    }
+    if (secNewPw !== secConfirmPw) {
+      setSecMessage({ kind: 'err', text: '两次输入的新主密码不一致' });
+      return;
+    }
+    const r = await secPost('/api/security/master-password', {
+      currentPassword: secCurrentPw || null,
+      newPassword: secNewPw
+    });
+    if (r.ok) {
+      setSecCurrentPw('');
+      setSecNewPw('');
+      setSecConfirmPw('');
+    }
+    setSecMessage(
+      r.ok
+        ? { kind: 'ok', text: '主密码已生效，所有已存凭据已用新密钥重新加密' }
+        : { kind: 'err', text: r.error! }
+    );
+  };
+
+  const handleRemoveMasterPassword = async () => {
+    if (!secCurrentPw) {
+      setSecMessage({ kind: 'err', text: '移除保护前请输入当前主密码' });
+      return;
+    }
+    const r = await secPost('/api/security/master-password', {
+      currentPassword: secCurrentPw,
+      newPassword: ''
+    });
+    if (r.ok) setSecCurrentPw('');
+    setSecMessage(
+      r.ok
+        ? { kind: 'ok', text: '主密码已移除，已回退为设备绑定密钥（安全性较低）' }
+        : { kind: 'err', text: r.error! }
+    );
+  };
+
+  const handleLockNow = async () => {
+    const r = await secPost('/api/security/lock', {});
+    setSecMessage(r.ok ? { kind: 'ok', text: '存储已锁定' } : { kind: 'err', text: r.error! });
+  };
 
   if (!isSettingsModalOpen) return null;
 
@@ -69,7 +171,7 @@ export const SettingsModal: React.FC = () => {
 
   const handleAddCustomProvider = () => {
     const newP: AIProvider = {
-      id: 'custom-' + Date.now().toString(36),
+      id: generateId('custom-'),
       name: '自定义 OpenAI 兼容接口',
       type: 'custom',
       baseUrl: 'https://api.openai.com/v1',
@@ -125,6 +227,18 @@ export const SettingsModal: React.FC = () => {
             >
               <Shield size={14} />
               <span>安全门禁</span>
+            </button>
+
+            <button
+              onClick={() => setActiveTab('security')}
+              className={`w-full text-left px-3 py-2 rounded flex items-center space-x-2 transition-colors ${
+                activeTab === 'security'
+                  ? 'bg-orca-accent text-white font-medium shadow-sm'
+                  : 'text-orca-muted hover:bg-orca-card hover:text-white'
+              }`}
+            >
+              <Lock size={14} />
+              <span>数据加密</span>
             </button>
 
             <button
@@ -274,6 +388,131 @@ export const SettingsModal: React.FC = () => {
                     />
                   </label>
                 </div>
+              </div>
+            )}
+
+            {activeTab === 'security' && (
+              <div className="space-y-4">
+                <h4 className="font-semibold text-white">数据加密与主密码</h4>
+
+                {secStatus === null && (
+                  <div className="p-3 rounded-lg bg-orca-card/40 border border-orca-border text-orca-muted leading-relaxed">
+                    当前环境未连接后端服务（静态演示模式），主密码功能不可用。
+                  </div>
+                )}
+
+                {secStatus?.locked && (
+                  <div className="space-y-2.5 p-3.5 rounded-lg bg-orca-danger/10 border border-orca-danger/50">
+                    <div className="font-medium text-orca-danger flex items-center space-x-1.5">
+                      <Lock size={13} />
+                      <span>存储已锁定 — 真实主机连接与 API Key 解密已暂停</span>
+                    </div>
+                    <input
+                      type="password"
+                      value={secUnlockPw}
+                      onChange={e => setSecUnlockPw(e.target.value)}
+                      onKeyDown={e => e.key === 'Enter' && handleUnlock()}
+                      placeholder="输入主密码解锁"
+                      className={SEC_INPUT_CLS}
+                      autoFocus
+                    />
+                    <button
+                      onClick={handleUnlock}
+                      className="px-3 py-1.5 bg-orca-accent hover:bg-blue-600 text-white rounded text-xs font-medium"
+                    >
+                      解锁
+                    </button>
+                  </div>
+                )}
+
+                {secStatus && !secStatus.locked && !secStatus.masterPasswordEnabled && (
+                  <div className="p-3 rounded-lg bg-orca-warning/10 border border-orca-warning/50 text-[11px] text-orca-warning leading-relaxed">
+                    ⚠️ 当前使用「设备绑定密钥」加密（未设置主密码）。密钥由本机公开信息派生，
+                    能读取数据目录的本机进程理论上可解密已存凭据。强烈建议启用主密码保护。
+                  </div>
+                )}
+
+                {secStatus && !secStatus.locked && (
+                  <div className="space-y-3 bg-orca-card/40 p-3.5 rounded-lg border border-orca-border">
+                    {secStatus.masterPasswordEnabled && (
+                      <div>
+                        <label className="text-orca-muted block mb-1">当前主密码（修改 / 移除时需要）</label>
+                        <input
+                          type="password"
+                          value={secCurrentPw}
+                          onChange={e => setSecCurrentPw(e.target.value)}
+                          placeholder="••••••••"
+                          className={SEC_INPUT_CLS}
+                        />
+                      </div>
+                    )}
+
+                    <div>
+                      <label className="text-orca-muted block mb-1">新主密码（至少 6 位）</label>
+                      <input
+                        type="password"
+                        value={secNewPw}
+                        onChange={e => setSecNewPw(e.target.value)}
+                        placeholder="••••••••"
+                        className={SEC_INPUT_CLS}
+                      />
+                    </div>
+
+                    <div>
+                      <label className="text-orca-muted block mb-1">确认新主密码</label>
+                      <input
+                        type="password"
+                        value={secConfirmPw}
+                        onChange={e => setSecConfirmPw(e.target.value)}
+                        placeholder="••••••••"
+                        className={SEC_INPUT_CLS}
+                      />
+                    </div>
+
+                    <div className="flex items-center space-x-2 pt-1 flex-wrap gap-y-2">
+                      <button
+                        onClick={handleSetMasterPassword}
+                        className="px-3 py-1.5 bg-orca-accent hover:bg-blue-600 text-white rounded text-xs font-medium"
+                      >
+                        {secStatus.masterPasswordEnabled ? '修改主密码' : '启用主密码保护'}
+                      </button>
+                      {secStatus.masterPasswordEnabled && (
+                        <>
+                          <button
+                            onClick={handleRemoveMasterPassword}
+                            className="px-3 py-1.5 bg-orca-danger/80 hover:bg-orca-danger text-white rounded text-xs"
+                          >
+                            移除保护
+                          </button>
+                          <button
+                            onClick={handleLockNow}
+                            className="px-3 py-1.5 bg-orca-surface hover:bg-orca-hover text-orca-muted rounded text-xs border border-orca-border"
+                          >
+                            立即锁定
+                          </button>
+                        </>
+                      )}
+                    </div>
+
+                    <p className="text-[10px] text-orca-muted leading-relaxed">
+                      启用后：加密密钥经 PBKDF2-SHA512（200,000 轮）从「主密码 + 设备指纹 + 随机盐」派生，
+                      所有已保存的密码 / 私钥口令 / API Key 会立即用新密钥重新加密；服务重启后需输入主密码解锁。
+                      请牢记主密码 —— 丢失后将无法恢复已加密的凭据。
+                    </p>
+                  </div>
+                )}
+
+                {secMessage && (
+                  <div
+                    className={`p-2.5 rounded text-[11px] border leading-relaxed ${
+                      secMessage.kind === 'ok'
+                        ? 'bg-orca-success/10 border-orca-success/40 text-orca-success'
+                        : 'bg-orca-danger/10 border-orca-danger/40 text-orca-danger'
+                    }`}
+                  >
+                    {secMessage.text}
+                  </div>
+                )}
               </div>
             )}
 

@@ -1,4 +1,5 @@
 import EventEmitter from 'events';
+import { errorMessage } from '../shared/errors';
 
 export interface FileItem {
   name: string;
@@ -371,8 +372,8 @@ export class MockTerminalSession extends EventEmitter {
       try {
         const content = this.fs.readFile(fullPath);
         this.emit('data', content.replace(/\n/g, '\r\n') + '\r\n');
-      } catch (err: any) {
-        this.emit('data', `cat: ${filename}: ${err.message}\r\n`);
+      } catch (err) {
+        this.emit('data', `cat: ${filename}: ${errorMessage(err)}\r\n`);
       }
     } else if (cmd.includes('systemctl status nginx') || cmd.includes('systemctl restart nginx') || cmd.includes('nginx')) {
       if (cmd.includes('nginx -t')) {
@@ -416,7 +417,7 @@ tmpfs           3.9G     0  3.9G   0% /run/user/0
     }
   }
 
-  public resize(cols: number, rows: number) {
+  public resize(_cols: number, _rows: number) {
     // Terminal resize event
   }
 

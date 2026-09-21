@@ -6,6 +6,8 @@ interface ActionableCodeblockProps {
   code: string;
   lang: string;
   explanation?: string;
+  /** Optional syntax-highlighted body (from react-markdown + rehype-highlight). */
+  children?: React.ReactNode;
   onRun: (code: string) => void;
   onFill: (code: string) => void;
   onExplain: (code: string) => void;
@@ -15,6 +17,7 @@ export const ActionableCodeblock: React.FC<ActionableCodeblockProps> = ({
   code,
   lang,
   explanation,
+  children,
   onRun,
   onFill,
   onExplain
@@ -79,9 +82,9 @@ export const ActionableCodeblock: React.FC<ActionableCodeblockProps> = ({
         </div>
       </div>
 
-      {/* Code content */}
-      <pre className="p-3 text-xs font-mono text-emerald-400 overflow-x-auto selection:bg-orca-accent/30 leading-5">
-        {code}
+      {/* Code content — highlighted body when provided, else plain shell text */}
+      <pre className="p-3 text-xs font-mono overflow-x-auto selection:bg-orca-accent/30 leading-5">
+        {children ? <code className="hljs">{children}</code> : <span className="text-emerald-400">{code}</span>}
       </pre>
 
       {/* Explanation drawer if triggered */}

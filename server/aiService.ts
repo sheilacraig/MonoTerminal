@@ -1,4 +1,6 @@
-import { LocalStorageManager, AppSettings } from './storage';
+import { LocalStorageManager } from './storage';
+import { toError } from '../shared/errors';
+import { ThinkTagParser } from './thinkTagParser';
 
 export interface ChatMessage {
   role: 'system' | 'user' | 'assistant';
@@ -74,6 +76,14 @@ ${contextStr}
       return this.handleMockChat(messages, opsContext, callbacks);
     }
 
+    // A locked store cannot decrypt the API key — fail with a clear message
+    if (this.storage.isLocked() && activeProvider.apiKeyEncrypted) {
+      callbacks.onError?.(
+        new Error('本地加密存储已被主密码锁定，请先在 设置 → 安全 中解锁（离线演示模型不受影响）。')
+      );
+      return;
+    }
+
     const apiKey = activeProvider.apiKeyEncrypted ? this.storage.decrypt(activeProvider.apiKeyEncrypted) : '';
     const baseUrl = (activeProvider.baseUrl || 'https://api.deepseek.com').replace(/\/+$/, '');
     const model = activeProvider.model || 'deepseek-chat';
@@ -112,8 +122,21 @@ ${contextStr}
       const decoder = new TextDecoder('utf-8');
       let fullContent = '';
       let fullThinking = '';
-      let insideThinkTag = false;
       let buffer = '';
+
+      // Cross-chunk state machine for <think> tags — a tag split across
+      // SSE deltas (e.g. "<thi" + "nk>") is buffered, never lost
+      const thinkParser = new ThinkTagParser();
+      const emitSegments = (seg: { content: string; thinking: string }) => {
+        if (seg.thinking) {
+          fullThinking += seg.thinking;
+          callbacks.onThinking?.(seg.thinking);
+        }
+        if (seg.content) {
+          fullContent += seg.content;
+          callbacks.onContent?.(seg.content);
+        }
+      };
 
       while (true) {
         const { done, value } = await reader.read();
@@ -141,47 +164,7 @@ ${contextStr}
 
             // Handle standard content (which may contain <think> tags)
             if (delta.content) {
-              const text = delta.content;
-              
-              // Parse <think> and </think> if present in stream
-              if (text.includes('<think>')) {
-                insideThinkTag = true;
-                const parts = text.split('<think>');
-                if (parts[0]) {
-                  fullContent += parts[0];
-                  callbacks.onContent?.(parts[0]);
-                }
-                if (parts[1]) {
-                  if (parts[1].includes('</think>')) {
-                    const subParts = parts[1].split('</think>');
-                    fullThinking += subParts[0];
-                    callbacks.onThinking?.(subParts[0]);
-                    insideThinkTag = false;
-                    if (subParts[1]) {
-                      fullContent += subParts[1];
-                      callbacks.onContent?.(subParts[1]);
-                    }
-                  } else {
-                    fullThinking += parts[1];
-                    callbacks.onThinking?.(parts[1]);
-                  }
-                }
-              } else if (text.includes('</think>')) {
-                insideThinkTag = false;
-                const parts = text.split('</think>');
-                fullThinking += parts[0];
-                callbacks.onThinking?.(parts[0]);
-                if (parts[1]) {
-                  fullContent += parts[1];
-                  callbacks.onContent?.(parts[1]);
-                }
-              } else if (insideThinkTag) {
-                fullThinking += text;
-                callbacks.onThinking?.(text);
-              } else {
-                fullContent += text;
-                callbacks.onContent?.(text);
-              }
+              emitSegments(thinkParser.feed(delta.content));
             }
           } catch {
             // Ignore parse errors on chunk boundaries
@@ -189,9 +172,12 @@ ${contextStr}
         }
       }
 
+      // End of stream: emit any retained trailing fragment as plain text
+      emitSegments(thinkParser.flush());
+
       callbacks.onDone?.(fullContent, fullThinking);
-    } catch (err: any) {
-      callbacks.onError?.(err);
+    } catch (err) {
+      callbacks.onError?.(toError(err));
     }
   }
 
@@ -210,7 +196,8 @@ ${contextStr}
     const lowerAll = `${userMsg} ${termContext}`.toLowerCase();
 
     let thinking = '正在分析运维现场...\n';
-    let content = '';
+    // Assigned in every branch of the if/else chain below
+    let content: string;
 
     if (lowerAll.includes('nginx') || lowerAll.includes('80') || lowerAll.includes('443')) {
       thinking += '1. 检测到与 Nginx 服务或 Web 端口相关的问题。\n2. 需先测试配置文件语法，再检查端口占用情况与服务系统日志。\n3. 生成精准的安全排查与恢复命令。';

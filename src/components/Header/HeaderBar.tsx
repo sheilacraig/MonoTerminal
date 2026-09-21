@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { useSession } from '../../context/SessionContext';
-import { Plus, Server, Terminal, Settings, BookOpen, X, Edit2, Check, Bot, Globe } from 'lucide-react';
+import { Plus, Server, Settings, BookOpen, X, Edit2, Check, Bot, Globe } from 'lucide-react';
 import { SessionTab } from '../../types';
 
 interface HeaderBarProps {

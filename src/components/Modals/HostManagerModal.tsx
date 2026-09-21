@@ -8,11 +8,8 @@ import {
   Edit,
   X,
   Play,
-  Lock,
-  Key,
   ShieldCheck,
-  Search,
-  Tag
+  Search
 } from 'lucide-react';
 
 export const HostManagerModal: React.FC = () => {
@@ -296,7 +293,7 @@ export const HostManagerModal: React.FC = () => {
                   <label className="text-orca-muted block mb-1">认证方式</label>
                   <select
                     value={form.authType || 'password'}
-                    onChange={e => setForm({ ...form, authType: e.target.value as any })}
+                    onChange={e => setForm({ ...form, authType: e.target.value as HostAsset['authType'] })}
                     className="w-full bg-orca-bg border border-orca-border text-white px-2.5 py-1.5 rounded outline-none focus:border-orca-accent"
                   >
                     <option value="password">密码认证 (Password)</option>

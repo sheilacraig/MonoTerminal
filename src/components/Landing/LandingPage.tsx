@@ -7,19 +7,14 @@ import {
   Zap,
   Lock,
   ArrowRight,
-  ExternalLink,
-  Code2,
   CheckCircle2,
   XCircle,
   Play,
   Copy,
   Download,
   Cpu,
-  RefreshCw,
   Sparkles,
-  Command,
-  FileCode,
-  Layers
+  FileCode
 } from 'lucide-react';
 
 const GithubIcon: React.FC<{ size?: number; className?: string }> = ({ size = 16, className = '' }) => (

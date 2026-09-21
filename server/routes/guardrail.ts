@@ -5,7 +5,7 @@ export const guardrailRouter = Router();
 
 // POST /api/guardrail/check
 guardrailRouter.post('/check', (req, res) => {
-  const { command } = req.body;
-  const result = checkCommandSafety(command);
+  const { command } = req.body as { command?: string };
+  const result = checkCommandSafety(command ?? '');
   res.json({ success: true, data: result });
 });

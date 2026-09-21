@@ -1,6 +1,6 @@
 import React from 'react';
 import { FileItem } from '../../types';
-import { Edit, Download, Copy, Shield, Trash2 } from 'lucide-react';
+import { Edit, Copy, Shield, Trash2 } from 'lucide-react';
 
 interface SftpContextMenuProps {
   x: number;

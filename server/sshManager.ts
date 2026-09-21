@@ -1,6 +1,7 @@
-import { Client, ClientChannel, SFTPWrapper } from 'ssh2';
+import { Client, ClientChannel, SFTPWrapper, ConnectConfig } from 'ssh2';
 import EventEmitter from 'events';
 import { HostAsset } from './storage';
+import { FileItem } from './mockServer';
 
 export interface SshSessionInstance {
   id: string;
@@ -99,7 +100,7 @@ export class SshManager {
       });
 
       // Connect config with TCP keepalive
-      const connectConfig: any = {
+      const connectConfig: ConnectConfig = {
         host: host.host,
         port: host.port || 22,
         username: host.username,
@@ -155,7 +156,7 @@ export class SshManager {
     }
   }
 
-  public async sftpList(sessionId: string, dirPath: string): Promise<any[]> {
+  public async sftpList(sessionId: string, dirPath: string): Promise<FileItem[]> {
     const session = this.sessions.get(sessionId);
     if (!session || !session.sftp) {
       throw new Error('SFTP 未就绪或会话不存在');
@@ -190,7 +191,7 @@ export class SshManager {
       const readStream = session.sftp!.createReadStream(filePath);
       readStream.on('data', (chunk: Buffer | string) => chunks.push(Buffer.from(chunk)));
       readStream.on('end', () => resolve(Buffer.concat(chunks).toString('utf-8')));
-      readStream.on('error', (err: any) => reject(err));
+      readStream.on('error', (err: Error) => reject(err));
     });
   }
 
@@ -201,7 +202,7 @@ export class SshManager {
     return new Promise((resolve, reject) => {
       const writeStream = session.sftp!.createWriteStream(filePath);
       writeStream.on('close', () => resolve());
-      writeStream.on('error', (err: any) => reject(err));
+      writeStream.on('error', (err: Error) => reject(err));
       writeStream.end(content, 'utf-8');
     });
   }
@@ -235,6 +236,18 @@ export class SshManager {
 
     return new Promise((resolve, reject) => {
       session.sftp!.rename(oldPath, newPath, err => (err ? reject(err) : resolve()));
+    });
+  }
+
+  public async sftpMkdir(sessionId: string, dirPath: string): Promise<void> {
+    const session = this.sessions.get(sessionId);
+    if (!session || !session.sftp) throw new Error('SFTP 未就绪');
+
+    return new Promise((resolve, reject) => {
+      session.sftp!.mkdir(dirPath, (err) => {
+        if (err) return reject(err);
+        resolve();
+      });
     });
   }
 }

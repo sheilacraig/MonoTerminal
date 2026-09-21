@@ -1,5 +1,6 @@
 import React, { createContext, useContext, useEffect, useState, useCallback } from 'react';
 import { AppSettings, AIProvider } from '../types';
+import { apiFetch } from '../utils/api';
 
 interface SettingsContextType {
   settings: AppSettings;
@@ -65,7 +66,7 @@ export const SettingsProvider: React.FC<{ children: React.ReactNode }> = ({ chil
 
   const fetchSettings = useCallback(async () => {
     try {
-      const res = await fetch('/api/settings');
+      const res = await apiFetch('/api/settings');
       if (res.ok) {
         const json = await res.json();
         if (json.data) {
@@ -87,7 +88,7 @@ export const SettingsProvider: React.FC<{ children: React.ReactNode }> = ({ chil
     const updated = { ...settings, ...newSettings };
     setSettings(updated);
     try {
-      await fetch('/api/settings', {
+      await apiFetch('/api/settings', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(updated)

@@ -1,24 +1,34 @@
 import React, { createContext, useContext, useEffect, useRef, useState, useCallback } from 'react';
+import { generateId } from '../../shared/id';
+import {
+  WsInboundMessage,
+  WsOutboundMessage,
+  SftpRequestType,
+  ChatPayload,
+  OpsContextPayload,
+  AiStreamCallbacks
+} from '../../shared/wsProtocol';
+import { getAuthToken, invalidateAuthToken } from '../utils/api';
 
 interface WebSocketContextType {
   isConnected: boolean;
   rtt: number;
-  send: (msg: any) => void;
+  send: (msg: WsInboundMessage) => void;
   sendTermInput: (sessionId: string, data: string) => void;
   resizeTerm: (sessionId: string, cols: number, rows: number) => void;
-  requestSftp: (type: string, payload: any) => Promise<any>;
+  requestSftp: <T = unknown>(type: SftpRequestType, payload: Record<string, unknown>) => Promise<T>;
   streamAI: (
-    messages: any[],
-    opsContext: any,
-    callbacks: {
-      onThinking?: (delta: string) => void;
-      onContent?: (delta: string) => void;
-      onDone?: (fullContent: string, fullThinking?: string) => void;
-      onError?: (err: string) => void;
-    }
+    messages: ChatPayload[],
+    opsContext: OpsContextPayload | undefined,
+    callbacks: AiStreamCallbacks
   ) => () => void;
   registerTermHandler: (sessionId: string, handler: (data: string) => void) => () => void;
   registerTermErrorHandler: (sessionId: string, handler: (err: string) => void) => () => void;
+}
+
+interface PendingRequest {
+  resolve: (val: unknown) => void;
+  reject: (err: Error) => void;
 }
 
 const WebSocketContext = createContext<WebSocketContextType | null>(null);
@@ -33,10 +43,10 @@ export const WebSocketProvider: React.FC<{ children: React.ReactNode }> = ({ chi
   const [rtt, setRtt] = useState<number>(isStaticDemo ? 1 : 12);
   const wsRef = useRef<WebSocket | null>(null);
 
-  const pendingRequests = useRef<Map<string, { resolve: (val: any) => void; reject: (err: any) => void }>>(new Map());
+  const pendingRequests = useRef<Map<string, PendingRequest>>(new Map());
   const termHandlers = useRef<Map<string, Set<(data: string) => void>>>(new Map());
   const termErrorHandlers = useRef<Map<string, Set<(err: string) => void>>>(new Map());
-  const aiCallbacks = useRef<Map<string, any>>(new Map());
+  const aiCallbacks = useRef<Map<string, AiStreamCallbacks>>(new Map());
 
   const connect = useCallback(() => {
     if (isStaticDemo) {
@@ -45,83 +55,109 @@ export const WebSocketProvider: React.FC<{ children: React.ReactNode }> = ({ chi
       return;
     }
 
-    const protocol = window.location.protocol === 'https:' ? 'wss:' : 'ws:';
-    const host = window.location.host;
-    const wsUrl = `${protocol}//${host}/ws`;
+    // Handshake carries the bootstrap token (query param — browsers cannot
+    // set headers on WebSocket upgrades)
+    void (async () => {
+      const token = await getAuthToken();
+      const protocol = window.location.protocol === 'https:' ? 'wss:' : 'ws:';
+      const host = window.location.host;
+      const wsUrl = `${protocol}//${host}/ws${token ? `?token=${encodeURIComponent(token)}` : ''}`;
 
-    const ws = new WebSocket(wsUrl);
-    wsRef.current = ws;
+      const ws = new WebSocket(wsUrl);
+      wsRef.current = ws;
 
-    ws.onopen = () => {
-      setIsConnected(true);
-    };
+      ws.onopen = () => {
+        setIsConnected(true);
+      };
 
-    ws.onclose = () => {
-      setIsConnected(false);
-      setTimeout(connect, 2000);
-    };
+      ws.onclose = (ev) => {
+        setIsConnected(false);
+        // 4401: server rejected the token (typically a backend restart with a
+        // fresh token) — drop the stale one so the next attempt re-bootstraps
+        if (ev.code === 4401) {
+          invalidateAuthToken();
+        }
+        setTimeout(connect, 2000);
+      };
 
-    ws.onerror = () => {
-      setIsConnected(false);
-    };
+      ws.onerror = () => {
+        setIsConnected(false);
+      };
 
-    ws.onmessage = (event) => {
-      try {
-        const msg = JSON.parse(event.data);
-        const { type } = msg;
-
-        if (type === 'pong') {
-          const now = Date.now();
-          const latency = Math.max(1, now - msg.clientTime);
-          setRtt(latency);
+      ws.onmessage = (event) => {
+        // Single trust-boundary cast; branches below narrow via msg.type
+        let msg: WsOutboundMessage;
+        try {
+          msg = JSON.parse(event.data as string) as WsOutboundMessage;
+        } catch (err) {
+          console.error('WS parse error', err);
           return;
         }
 
-        if (type === 'term:data') {
-          const handlers = termHandlers.current.get(msg.sessionId);
-          handlers?.forEach(h => h(msg.data));
-          return;
-        }
-
-        if (type === 'term:error') {
-          const handlers = termErrorHandlers.current.get(msg.sessionId);
-          handlers?.forEach(h => h(msg.message));
-          return;
-        }
-
-        if (type === 'sftp:response') {
-          const req = pendingRequests.current.get(msg.requestId);
-          if (req) {
-            pendingRequests.current.delete(msg.requestId);
-            if (msg.success) {
-              req.resolve(msg.data);
-            } else {
-              req.reject(new Error(msg.error || 'SFTP request failed'));
-            }
+        switch (msg.type) {
+          case 'pong': {
+            const latency = Math.max(1, Date.now() - msg.clientTime);
+            setRtt(latency);
+            return;
           }
-          return;
-        }
 
-        if (type.startsWith('ai:')) {
-          const cb = aiCallbacks.current.get(msg.requestId);
-          if (cb) {
-            if (type === 'ai:thinking') cb.onThinking?.(msg.delta);
-            if (type === 'ai:content') cb.onContent?.(msg.delta);
-            if (type === 'ai:done') {
-              cb.onDone?.(msg.fullContent, msg.fullThinking);
-              aiCallbacks.current.delete(msg.requestId);
-            }
-            if (type === 'ai:error') {
-              cb.onError?.(msg.error);
-              aiCallbacks.current.delete(msg.requestId);
-            }
+          case 'term:data': {
+            const handlers = termHandlers.current.get(msg.sessionId);
+            handlers?.forEach(h => h(msg.data));
+            return;
           }
-          return;
+
+          case 'term:error': {
+            const handlers = termErrorHandlers.current.get(msg.sessionId);
+            handlers?.forEach(h => h(msg.message));
+            return;
+          }
+
+          case 'sftp:response': {
+            const req = pendingRequests.current.get(msg.requestId);
+            if (req) {
+              pendingRequests.current.delete(msg.requestId);
+              if (msg.success) {
+                req.resolve(msg.data);
+              } else {
+                req.reject(new Error(msg.error || 'SFTP request failed'));
+              }
+            }
+            return;
+          }
+
+          case 'ai:thinking':
+          case 'ai:content':
+          case 'ai:done':
+          case 'ai:error': {
+            const cb = aiCallbacks.current.get(msg.requestId);
+            if (!cb) return;
+            switch (msg.type) {
+              case 'ai:thinking':
+                cb.onThinking?.(msg.delta);
+                break;
+              case 'ai:content':
+                cb.onContent?.(msg.delta);
+                break;
+              case 'ai:done':
+                cb.onDone?.(msg.fullContent, msg.fullThinking);
+                aiCallbacks.current.delete(msg.requestId);
+                break;
+              case 'ai:error':
+                cb.onError?.(msg.error);
+                aiCallbacks.current.delete(msg.requestId);
+                break;
+            }
+            return;
+          }
+
+          default: {
+            // term:ready / term:close currently need no client-side dispatch
+            return;
+          }
         }
-      } catch (err) {
-        console.error('WS parse error', err);
-      }
-    };
+      };
+    })();
   }, []);
 
   useEffect(() => {
@@ -132,7 +168,7 @@ export const WebSocketProvider: React.FC<{ children: React.ReactNode }> = ({ chi
     // RTT Heartbeat ping every 3 seconds
     const pingInterval = setInterval(() => {
       if (wsRef.current && wsRef.current.readyState === WebSocket.OPEN) {
-        wsRef.current.send(JSON.stringify({ type: 'ping', timestamp: Date.now() }));
+        wsRef.current.send(JSON.stringify({ type: 'ping', timestamp: Date.now() } satisfies WsInboundMessage));
       }
     }, 3000);
 
@@ -142,7 +178,7 @@ export const WebSocketProvider: React.FC<{ children: React.ReactNode }> = ({ chi
     };
   }, [connect]);
 
-  const send = useCallback((msg: any) => {
+  const send = useCallback((msg: WsInboundMessage) => {
     if (wsRef.current && wsRef.current.readyState === WebSocket.OPEN) {
       wsRef.current.send(JSON.stringify(msg));
     }
@@ -168,14 +204,17 @@ export const WebSocketProvider: React.FC<{ children: React.ReactNode }> = ({ chi
     send({ type: 'term:resize', sessionId, cols, rows });
   }, [send]);
 
-  const requestSftp = useCallback((type: string, payload: any): Promise<any> => {
+  const requestSftp = useCallback(<T = unknown,>(
+    type: SftpRequestType,
+    payload: Record<string, unknown>
+  ): Promise<T> => {
     if (isStaticDemo) {
       if (type === 'sftp:list') {
         return Promise.resolve([
           { name: 'conf.d', path: '/etc/nginx/conf.d', isDirectory: true, size: 4096, modifyTime: Date.now() - 3600000, permissions: '0755', owner: 'root' },
           { name: 'ssl', path: '/etc/nginx/ssl', isDirectory: true, size: 4096, modifyTime: Date.now() - 3600000, permissions: '0755', owner: 'root' },
           { name: 'nginx.conf', path: '/etc/nginx/nginx.conf', isDirectory: false, size: 842, modifyTime: Date.now() - 1800000, permissions: '0644', owner: 'root' }
-        ]);
+        ] as unknown as T);
       }
       if (type === 'sftp:read') {
         return Promise.resolve(
@@ -200,16 +239,21 @@ http {
       proxy_pass http://127.0.0.1:3000;
     }
   }
-}`
+}` as unknown as T
         );
       }
-      return Promise.resolve({ success: true });
+      return Promise.resolve({ success: true } as unknown as T);
     }
 
-    return new Promise((resolve, reject) => {
-      const requestId = 'req-' + Math.random().toString(36).slice(2, 10);
-      pendingRequests.current.set(requestId, { resolve, reject });
-      send({ type, requestId, ...payload });
+    return new Promise<T>((resolve, reject) => {
+      const requestId = generateId('req-');
+      pendingRequests.current.set(requestId, {
+        resolve: (val) => resolve(val as T),
+        reject
+      });
+      // Dynamically assembled request: `type` + payload fields together form
+      // one of the Sftp*Message union members (see shared/wsProtocol.ts)
+      send({ type, requestId, ...payload } as unknown as WsInboundMessage);
 
       // Timeout after 20s
       setTimeout(() => {
@@ -222,14 +266,9 @@ http {
   }, [send]);
 
   const streamAI = useCallback((
-    _messages: any[],
-    _opsContext: any,
-    callbacks: {
-      onThinking?: (delta: string) => void;
-      onContent?: (delta: string) => void;
-      onDone?: (fullContent: string, fullThinking?: string) => void;
-      onError?: (err: string) => void;
-    }
+    messages: ChatPayload[],
+    opsContext: OpsContextPayload | undefined,
+    callbacks: AiStreamCallbacks
   ) => {
     if (isStaticDemo) {
       const diagnosis = `经排查分析，80 端口已被外部进程占用，导致 Nginx 服务启动失败（(98: Address already in use)）。
@@ -254,9 +293,9 @@ sudo systemctl restart nginx
       return () => clearTimeout(timer);
     }
 
-    const requestId = 'ai-' + Math.random().toString(36).slice(2, 10);
+    const requestId = generateId('ai-');
     aiCallbacks.current.set(requestId, callbacks);
-    send({ type: 'ai:chat', requestId, messages: _messages, opsContext: _opsContext });
+    send({ type: 'ai:chat', requestId, messages, opsContext });
 
     return () => {
       aiCallbacks.current.delete(requestId);
@@ -275,7 +314,7 @@ sudo systemctl restart nginx
           "\x1b[32m=== MonoTerminal 演示环境 (Ubuntu 22.04 LTS) ===\x1b[0m\r\n" +
           "\x1b[90m当前页面运行在 GitHub Pages 静态演示环境中。\x1b[0m\r\n" +
           "\x1b[90m提示：按 [Ctrl + \\] 呼出 AI 排错助手，即可自动提取报错上下文并生成修复命令。\x1b[0m\r\n\r\n" +
-          "\x1b[31m2026/09/20 18:42:12 [emerg] 1042#1042: bind() to 0.0.0.0:80 failed (98: Address already in use)\x1b[0m\r\n" +
+          "\x1b[31m2026-09-20 18:42:12 [emerg] 1042#1042: bind() to 0.0.0.0:80 failed (98: Address already in use)\x1b[0m\r\n" +
           "\x1b[31mnginx.service: Failed with result 'exit-code'.\x1b[0m\r\n\r\n" +
           "root@prod-web01:/etc/nginx# "
         );

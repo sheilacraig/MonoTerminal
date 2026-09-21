@@ -1,7 +1,19 @@
 import { Router } from 'express';
-import { localStorageManager } from '../storage';
+import { localStorageManager, HostAsset, StorageLockedError } from '../storage';
+import { generateId } from '../../shared/id';
+import { errorMessage } from '../../shared/errors';
 
 export const hostsRouter = Router();
+
+/**
+ * Payload accepted by POST /api/hosts: a (partial) host record plus optional
+ * plaintext secrets. Plaintext fields are encrypted immediately and must
+ * never be persisted.
+ */
+interface HostPayload extends Partial<HostAsset> {
+  plainPassword?: string;
+  plainPassphrase?: string;
+}
 
 // GET /api/hosts
 hostsRouter.get('/', (req, res) => {
@@ -11,30 +23,38 @@ hostsRouter.get('/', (req, res) => {
 
 // POST /api/hosts
 hostsRouter.post('/', (req, res) => {
-  const hostData = req.body;
+  // Destructure plaintext secrets out so they can never leak into storage
+  const { plainPassword, plainPassphrase, ...hostData } = req.body as HostPayload;
+
   if (!hostData.id) {
-    hostData.id = 'host-' + Date.now().toString(36);
+    hostData.id = generateId('host-');
   }
   if (!hostData.createdAt) {
     hostData.createdAt = Date.now();
   }
 
   // Encrypt password or passphrase if provided in plaintext
-  if (hostData.plainPassword) {
-    hostData.passwordEncrypted = localStorageManager.encrypt(hostData.plainPassword);
-    delete hostData.plainPassword;
-  }
-  if (hostData.plainPassphrase) {
-    hostData.passphraseEncrypted = localStorageManager.encrypt(hostData.plainPassphrase);
-    delete hostData.plainPassphrase;
+  try {
+    if (plainPassword) {
+      hostData.passwordEncrypted = localStorageManager.encrypt(plainPassword);
+    }
+    if (plainPassphrase) {
+      hostData.passphraseEncrypted = localStorageManager.encrypt(plainPassphrase);
+    }
+  } catch (err) {
+    if (err instanceof StorageLockedError) {
+      res.status(423).json({ success: false, error: errorMessage(err) });
+      return;
+    }
+    throw err;
   }
 
   const hosts = localStorageManager.getHosts();
   const index = hosts.findIndex(h => h.id === hostData.id);
   if (index >= 0) {
-    hosts[index] = { ...hosts[index], ...hostData };
+    hosts[index] = { ...hosts[index], ...hostData } as HostAsset;
   } else {
-    hosts.push(hostData);
+    hosts.push(hostData as HostAsset);
   }
 
   localStorageManager.saveHosts(hosts);

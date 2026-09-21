@@ -23,7 +23,7 @@ export function useSftp() {
     if (!activeSession) return;
     setLoading(true);
     try {
-      const items = await requestSftp('sftp:list', {
+      const items = await requestSftp<FileItem[]>('sftp:list', {
         sessionId: activeSession.id,
         dirPath: dir
       });
@@ -50,7 +50,7 @@ export function useSftp() {
   // Read file
   const readFile = useCallback(async (filePath: string): Promise<string> => {
     if (!activeSession) throw new Error('无活跃会话');
-    return await requestSftp('sftp:read', {
+    return await requestSftp<string>('sftp:read', {
       sessionId: activeSession.id,
       filePath
     });

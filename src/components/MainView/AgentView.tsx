@@ -1,11 +1,14 @@
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useState, useEffect, useRef, Suspense } from 'react';
 import { useSession } from '../../context/SessionContext';
 import { useSettings } from '../../context/SettingsContext';
 import { useAgentChat } from '../../hooks/useAgentChat';
 import { ThinkingAccordion } from './Agent/ThinkingAccordion';
-import { ActionableCodeblock } from './Agent/ActionableCodeblock';
 import { AgentInputBar } from './Agent/AgentInputBar';
 import { Bot, User, Brain, X } from 'lucide-react';
+
+// react-markdown + highlight.js are heavy → split into an on-demand chunk so
+// they stay out of the initial bundle (loaded the first time a message renders).
+const MessageMarkdown = React.lazy(() => import('./Agent/MessageMarkdown'));
 
 interface AgentViewProps {
   isVisible: boolean;
@@ -46,52 +49,6 @@ export const AgentView: React.FC<AgentViewProps> = ({ isVisible }) => {
     if (!input.trim() || isStreaming) return;
     sendMessage(input);
     setInput('');
-  };
-
-  // Render markdown text and transform code blocks into ActionableCodeblock components
-  const renderMessageContent = (content: string, msgId: string) => {
-    const codeBlockRegex = /```(bash|shell|sh|zsh)?\n([\s\S]*?)```/g;
-    const parts: React.ReactNode[] = [];
-    let lastIndex = 0;
-    let match: RegExpExecArray | null;
-
-    while ((match = codeBlockRegex.exec(content)) !== null) {
-      const matchIndex = match.index;
-      if (matchIndex > lastIndex) {
-        parts.push(
-          <div key={`text-${lastIndex}`} className="whitespace-pre-wrap leading-relaxed text-xs">
-            {content.substring(lastIndex, matchIndex)}
-          </div>
-        );
-      }
-
-      const lang = match[1] || 'bash';
-      const code = match[2].trim();
-
-      parts.push(
-        <ActionableCodeblock
-          key={`code-${matchIndex}`}
-          code={code}
-          lang={lang}
-          explanation={commandExplanations[code]}
-          onRun={runCommand}
-          onFill={fillCommand}
-          onExplain={explainCommand}
-        />
-      );
-
-      lastIndex = matchIndex + match[0].length;
-    }
-
-    if (lastIndex < content.length) {
-      parts.push(
-        <div key={`text-${lastIndex}`} className="whitespace-pre-wrap leading-relaxed text-xs">
-          {content.substring(lastIndex)}
-        </div>
-      );
-    }
-
-    return parts;
   };
 
   return (
@@ -165,8 +122,18 @@ export const AgentView: React.FC<AgentViewProps> = ({ isVisible }) => {
                 />
               )}
 
-              {/* Message Content & Actionable Codeblocks */}
-              {renderMessageContent(msg.content, msg.id)}
+              {/* Message Content & Actionable Codeblocks (lazy markdown chunk) */}
+              <Suspense
+                fallback={<div className="whitespace-pre-wrap leading-relaxed text-xs">{msg.content}</div>}
+              >
+                <MessageMarkdown
+                  content={msg.content}
+                  commandExplanations={commandExplanations}
+                  onRun={runCommand}
+                  onFill={fillCommand}
+                  onExplain={explainCommand}
+                />
+              </Suspense>
 
               {msg.isStreaming && (
                 <span className="inline-block w-1.5 h-3 bg-orca-accent animate-pulse ml-1 align-middle" />

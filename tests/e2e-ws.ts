@@ -56,7 +56,7 @@ async function testE2E() {
   await termDataPromise;
 
   // 3. Test SFTP List
-  const sftpListPromise = new Promise<any[]>((resolve) => {
+  const sftpListPromise = new Promise<{ name: string }[]>((resolve) => {
     const requestId = 'req-list-1';
     const handler = (data: string) => {
       const msg = JSON.parse(data.toString());

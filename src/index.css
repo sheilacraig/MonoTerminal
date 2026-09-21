@@ -53,3 +53,23 @@
 .error-bubble-anim {
   animation: bubble-glow 2.5s infinite ease-in-out;
 }
+
+/* ------------------------------------------------------------------ */
+/* AI Agent markdown rendering (react-markdown + rehype-highlight)      */
+/* ------------------------------------------------------------------ */
+.agent-markdown {
+  @apply text-xs leading-relaxed break-words;
+}
+
+/* Inline code chips (block code lives inside <pre> and is excluded). */
+.agent-markdown :not(pre) > code {
+  @apply px-1 py-0.5 rounded bg-orca-card border border-orca-border text-orca-accent font-mono text-[11px];
+}
+
+/* Let the highlight.js theme contribute TOKEN COLORS ONLY: strip its own
+   block padding/background so our command cards keep full layout control. */
+.agent-markdown pre code.hljs {
+  display: block;
+  padding: 0;
+  background: transparent;
+}

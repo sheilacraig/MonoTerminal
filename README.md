@@ -66,7 +66,7 @@ MonoTerminal 将这三件事整合到了同一个界面中：
 
 ### 1. 安装依赖
 ```bash
-git clone <repository-url>
+git clone https://github.com/sheilacraig/MonoTerminal.git
 cd MonoTerminal
 npm install
 ```
@@ -112,6 +112,7 @@ MonoTerminal/
 │   ├── components/       # 界面组件 (终端、AI 对话窗、SFTP 侧边栏、弹窗等)
 │   ├── context/          # 全局状态 (会话管理、设置、WebSocket 通信)
 │   └── utils/            # 报错检测与命令安全匹配工具
+├── shared/               # 前后端共享代码 (高危命令规则、ID 生成)
 ├── server/               # 后端服务 (Node.js + Express + WebSocket)
 │   ├── sshManager.ts     # SSH2 连接池与 SFTP 管理
 │   ├── mockServer.ts     # 内置虚拟 Linux 沙盒
@@ -123,6 +124,62 @@ MonoTerminal/
 ├── docs/                 # 项目文档 (打包指南等)
 └── tests/                # 单元测试与集成测试
 ```
+
+---
+
+## 🏗️ 架构概览
+
+前端通过 REST（配置/主机管理）与 WebSocket（终端流、SFTP、AI 对话）两条通道与本地后端通信；所有请求先经过 `auth` 中间件的 Host/Origin 白名单与 Bearer Token 校验。高危命令规则、ID 生成与消息协议位于 `shared/`，前后端共用同一份定义，避免规则漂移。
+
+```mermaid
+flowchart TB
+    subgraph Client["前端 · React + Vite"]
+        UI["双栏界面<br/>TerminalView / SftpSidebar / AgentView"]
+        CTX["Context 层<br/>Session · Settings · WebSocket"]
+        UI --> CTX
+    end
+
+    subgraph Shared["shared · 前后端共享"]
+        GR["guardrail 规则"]
+        ID["id 生成"]
+        WSP["wsProtocol 校验"]
+    end
+
+    subgraph Server["后端 · Node.js + Express + ws"]
+        AUTH["auth 中间件<br/>Host/Origin 白名单 + Bearer Token"]
+        ROUTES["REST routes<br/>hosts / settings / guardrail / security"]
+        WSR["wsRouter<br/>term / sftp / ai:chat"]
+        SSH["sshManager<br/>SSH2 连接池 + SFTP"]
+        MOCK["mockServer<br/>虚拟 Linux 沙盒"]
+        AI["aiService<br/>大模型中继 + ThinkTagParser"]
+        STORE["storage<br/>AES-256-GCM 加密"]
+    end
+
+    EXT_SSH["远程 SSH 服务器"]
+    EXT_AI["AI 提供方<br/>Ollama / DeepSeek / OpenAI"]
+
+    CTX -->|"REST + Bearer"| AUTH
+    CTX -->|"WebSocket + token"| AUTH
+    AUTH --> ROUTES
+    AUTH --> WSR
+    ROUTES --> STORE
+    WSR --> SSH
+    WSR --> MOCK
+    WSR --> AI
+    SSH --> EXT_SSH
+    AI --> EXT_AI
+
+    CTX -.-> ID
+    ROUTES -.-> GR
+    WSR -.-> WSP
+```
+
+---
+
+## 🤝 贡献指南
+
+欢迎提交 Issue 与 Pull Request！开发环境搭建、分支/提交规范、代码检查与测试要求详见：  
+👉 [贡献指南 (CONTRIBUTING.md)](CONTRIBUTING.md)
 
 ---
 

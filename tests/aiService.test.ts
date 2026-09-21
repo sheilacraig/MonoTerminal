@@ -56,7 +56,7 @@ describe('AIService & Ops Prompt Generation', () => {
         onContent: (chunk) => {
           streamedContent += chunk;
         },
-        onDone: (content, thinking) => {
+        onDone: (_content, _thinking) => {
           isCompleted = true;
         }
       }

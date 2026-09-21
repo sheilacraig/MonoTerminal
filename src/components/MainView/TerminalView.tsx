@@ -6,7 +6,7 @@ import { useWebSocket } from '../../context/WebSocketContext';
 import { useSession } from '../../context/SessionContext';
 import { useSettings } from '../../context/SettingsContext';
 import { isBackslashEvent, isSidebarEvent, isNewTabEvent, isCloseTabEvent } from '../../constants/shortcuts';
-import { Zap, AlertCircle } from 'lucide-react';
+import { Zap } from 'lucide-react';
 
 interface TerminalViewProps {
   sessionId: string;
@@ -22,7 +22,6 @@ export const TerminalView: React.FC<TerminalViewProps> = ({ sessionId, isVisible
   const {
     activeSession,
     appendTerminalContext,
-    toggleMode,
     toggleAgent,
     setIsSidebarCollapsed,
     setIsHostModalOpen,
