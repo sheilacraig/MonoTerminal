@@ -42,6 +42,7 @@ interface SessionContextType {
   toggleAgent: (forceState?: boolean) => void;
   setAgentWidth: (sessionId: string, width: number) => void;
   updateSessionCwd: (sessionId: string, cwd: string) => void;
+  updateSessionTermSize: (sessionId: string, cols: number, rows: number) => void;
   appendTerminalContext: (sessionId: string, chunk: string) => void;
   clearUnreadError: (sessionId: string) => void;
   executeCommandWithGuardrail: (command: string, executeFn: () => void) => void;
@@ -53,7 +54,7 @@ interface SessionContextType {
 const SessionContext = createContext<SessionContextType | null>(null);
 
 export const SessionProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
-  const { send } = useWebSocket();
+  const { send, isConnected } = useWebSocket();
   const { settings } = useSettings();
 
   const [sessions, setSessions] = useState<SessionTab[]>([]);
@@ -71,6 +72,22 @@ export const SessionProvider: React.FC<{ children: React.ReactNode }> = ({ child
   // Per-session cooldown for the error bubble: same snippet won't re-trigger
   // within ERROR_BUBBLE_COOLDOWN_MS to avoid a storm of repeated popups
   const lastErrorPrompts = useRef<Map<string, { snippet: string; ts: number }>>(new Map());
+  // Last-known pty dimensions per session, updated by TerminalView's
+  // ResizeObserver. Kept in a ref (not state) so a resize doesn't re-render
+  // the whole tree; consulted by the reconnect effect below to re-issue
+  // `term:init` with the CURRENT frontend geometry rather than the default
+  // 120x35, so the fresh backend pty starts at the right size.
+  const termSizesRef = useRef<Map<string, { cols: number; rows: number }>>(new Map());
+  // Mirror of `sessions` for the reconnect effect so it can depend only on
+  // `isConnected` (session-list churn would otherwise retrigger the effect).
+  const sessionsRef = useRef(sessions);
+  sessionsRef.current = sessions;
+  // Edge detector for `isConnected`. `hadDisconnectRef` distinguishes a real
+  // reconnect (backend restart, network drop) from the very first handshake
+  // — the latter must NOT re-init because `createSession` already emitted
+  // `term:init` (which the WebSocket outbox buffers and flushes on open).
+  const prevConnectedRef = useRef(isConnected);
+  const hadDisconnectRef = useRef(false);
 
   // Fetch host assets from server
   const refreshHosts = useCallback(async () => {
@@ -152,6 +169,7 @@ export const SessionProvider: React.FC<{ children: React.ReactNode }> = ({ child
       send({ type: 'term:close', sessionId });
       terminalBuffers.current.delete(sessionId);
       lastErrorPrompts.current.delete(sessionId);
+      termSizesRef.current.delete(sessionId);
 
       setSessions(prev => {
         const filtered = prev.filter(s => s.id !== sessionId);
@@ -200,6 +218,50 @@ export const SessionProvider: React.FC<{ children: React.ReactNode }> = ({ child
   const updateSessionCwd = useCallback((sessionId: string, cwd: string) => {
     setSessions(prev => prev.map(s => (s.id === sessionId ? { ...s, cwd } : s)));
   }, []);
+
+  /**
+   * Record the frontend's current pty geometry for a session. Called by
+   * TerminalView's ResizeObserver on every fit; kept in a ref so it does not
+   * trigger re-renders. Consumed by the reconnect effect below.
+   */
+  const updateSessionTermSize = useCallback((sessionId: string, cols: number, rows: number) => {
+    termSizesRef.current.set(sessionId, { cols, rows });
+  }, []);
+
+  /**
+   * Backend-restart self-healing. When the WebSocket drops and later
+   * reconnects, the backend has no memory of our existing sessions (its pty
+   * map lives in process memory), so any keystroke would be met with
+   * "session not found". Detect the true → false → true edge and re-emit
+   * `term:init` for every live session, using the last-known geometry so the
+   * fresh pty matches what the user sees.
+   *
+   * Skips the very first false → true transition because `createSession`
+   * already sent `term:init` for the initial tab (buffered in the WebSocket
+   * outbox and flushed on open).
+   */
+  useEffect(() => {
+    const prev = prevConnectedRef.current;
+    prevConnectedRef.current = isConnected;
+
+    if (prev && !isConnected) {
+      hadDisconnectRef.current = true;
+      return;
+    }
+    if (!prev && isConnected && hadDisconnectRef.current) {
+      hadDisconnectRef.current = false;
+      for (const s of sessionsRef.current) {
+        const size = termSizesRef.current.get(s.id);
+        send({
+          type: 'term:init',
+          sessionId: s.id,
+          hostId: s.hostId,
+          cols: size?.cols ?? 120,
+          rows: size?.rows ?? 35
+        });
+      }
+    }
+  }, [isConnected, send]);
 
   const appendTerminalContext = useCallback((sessionId: string, chunk: string) => {
     let lines = terminalBuffers.current.get(sessionId) || [];
@@ -364,6 +426,7 @@ export const SessionProvider: React.FC<{ children: React.ReactNode }> = ({ child
         toggleAgent,
         setAgentWidth,
         updateSessionCwd,
+        updateSessionTermSize,
         appendTerminalContext,
         clearUnreadError,
         executeCommandWithGuardrail,

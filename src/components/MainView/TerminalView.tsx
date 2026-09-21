@@ -31,7 +31,8 @@ export const TerminalView: React.FC<TerminalViewProps> = ({ sessionId, isVisible
     toggleAgent,
     setIsSidebarCollapsed,
     setIsHostModalOpen,
-    closeSession
+    closeSession,
+    updateSessionTermSize
   } = useSession();
   const { settings } = useSettings();
 
@@ -51,7 +52,8 @@ export const TerminalView: React.FC<TerminalViewProps> = ({ sessionId, isVisible
     toggleAgent,
     setIsSidebarCollapsed,
     setIsHostModalOpen,
-    closeSession
+    closeSession,
+    updateSessionTermSize
   });
   ctxRef.current = {
     settings,
@@ -63,7 +65,8 @@ export const TerminalView: React.FC<TerminalViewProps> = ({ sessionId, isVisible
     toggleAgent,
     setIsSidebarCollapsed,
     setIsHostModalOpen,
-    closeSession
+    closeSession,
+    updateSessionTermSize
   };
 
   useEffect(() => {
@@ -108,6 +111,9 @@ export const TerminalView: React.FC<TerminalViewProps> = ({ sessionId, isVisible
 
     term.open(terminalRef.current);
     fitAddon.fit();
+    // Record the initial geometry so a backend restart before the first
+    // ResizeObserver tick can still re-init the pty at the correct size.
+    ctx.updateSessionTermSize(sessionId, term.cols, term.rows);
 
     xtermInstance.current = term;
     fitAddonRef.current = fitAddon;
@@ -167,6 +173,7 @@ export const TerminalView: React.FC<TerminalViewProps> = ({ sessionId, isVisible
         try {
           fitAddon.fit();
           ctxRef.current.resizeTerm(sessionId, term.cols, term.rows);
+          ctxRef.current.updateSessionTermSize(sessionId, term.cols, term.rows);
         } catch {
           // Ignore fit errors during transitions
         }
