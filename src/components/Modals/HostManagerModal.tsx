@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import { useSession } from '../../context/SessionContext';
 import { HostAsset } from '../../types';
-import { Server, Plus, Trash2, Edit, X, Play, ShieldCheck, Search } from 'lucide-react';
+import { Server, Plus, Trash2, Edit, X, Play, ShieldCheck, Search, Monitor } from 'lucide-react';
 
 export const HostManagerModal: React.FC = () => {
   const { isHostModalOpen, setIsHostModalOpen, hosts, createSession, saveHost, deleteHost } =
@@ -56,6 +56,21 @@ export const HostManagerModal: React.FC = () => {
 
   const handleSubmitSave = async (e: React.FormEvent) => {
     e.preventDefault();
+    if (form.authType === 'local') {
+      if (!form.name) {
+        alert('请填写本机终端的别名');
+        return;
+      }
+      await saveHost({
+        ...form,
+        host: 'localhost',
+        port: 0,
+        username: 'local',
+        initialDir: form.initialDir || '~'
+      });
+      setIsEditing(false);
+      return;
+    }
     if (!form.name || !form.host || !form.username) {
       alert('请填写完整的名称、主机 IP 与登录用户名');
       return;
@@ -150,6 +165,12 @@ export const HostManagerModal: React.FC = () => {
                         仿真沙盒
                       </span>
                     )}
+                    {host.authType === 'local' && (
+                      <span className="flex items-center gap-0.5 text-[10px] bg-blue-950 text-blue-400 border border-blue-800 px-1 py-0.2 rounded">
+                        <Monitor size={10} className="inline" />
+                        本机直连
+                      </span>
+                    )}
                   </div>
                   <span className="text-[10px] bg-orca-surface text-orca-muted border border-orca-border px-1.5 py-0.5 rounded">
                     {host.group || '默认'}
@@ -158,10 +179,12 @@ export const HostManagerModal: React.FC = () => {
 
                 <div className="font-mono text-xs text-orca-muted space-y-0.5">
                   <div className="text-orca-text">
-                    {host.username}@{host.host}:{host.port}
+                    {host.authType === 'local'
+                      ? `${host.username}@localhost`
+                      : `${host.username}@${host.host}:${host.port}`}
                   </div>
                   <div className="text-[11px] text-orca-muted truncate">
-                    初始路径: {host.initialDir || '/root'}
+                    初始路径: {host.initialDir || '~'}
                   </div>
                 </div>
               </div>
@@ -176,7 +199,7 @@ export const HostManagerModal: React.FC = () => {
                   >
                     <Edit size={13} />
                   </button>
-                  {host.id !== 'mock-local-demo' && (
+                  {host.id !== 'local-shell' && host.id !== 'mock-local-demo' && (
                     <button
                       onClick={() => {
                         if (confirm(`确定删除主机 ${host.name} 吗？`)) {
@@ -243,26 +266,32 @@ export const HostManagerModal: React.FC = () => {
                 </div>
 
                 <div className="grid grid-cols-3 gap-2">
-                  <div className="col-span-2">
-                    <label className="text-orca-muted block mb-1">主机 IP / 域名</label>
-                    <input
-                      type="text"
-                      value={form.host || ''}
-                      onChange={e => setForm({ ...form, host: e.target.value })}
-                      placeholder="192.168.1.10"
-                      className="w-full bg-orca-bg border border-orca-border text-white px-2.5 py-1.5 rounded outline-none focus:border-orca-accent font-mono"
-                      required
-                    />
-                  </div>
-                  <div>
-                    <label className="text-orca-muted block mb-1">端口</label>
-                    <input
-                      type="number"
-                      value={form.port || 22}
-                      onChange={e => setForm({ ...form, port: parseInt(e.target.value, 10) || 22 })}
-                      className="w-full bg-orca-bg border border-orca-border text-white px-2.5 py-1.5 rounded outline-none focus:border-orca-accent font-mono"
-                    />
-                  </div>
+                  {form.authType !== 'local' && (
+                    <>
+                      <div className="col-span-2">
+                        <label className="text-orca-muted block mb-1">主机 IP / 域名</label>
+                        <input
+                          type="text"
+                          value={form.host || ''}
+                          onChange={e => setForm({ ...form, host: e.target.value })}
+                          placeholder="192.168.1.10"
+                          className="w-full bg-orca-bg border border-orca-border text-white px-2.5 py-1.5 rounded outline-none focus:border-orca-accent font-mono"
+                          required
+                        />
+                      </div>
+                      <div>
+                        <label className="text-orca-muted block mb-1">端口</label>
+                        <input
+                          type="number"
+                          value={form.port || 22}
+                          onChange={e =>
+                            setForm({ ...form, port: parseInt(e.target.value, 10) || 22 })
+                          }
+                          className="w-full bg-orca-bg border border-orca-border text-white px-2.5 py-1.5 rounded outline-none focus:border-orca-accent font-mono"
+                        />
+                      </div>
+                    </>
+                  )}
                 </div>
 
                 <div>
@@ -273,7 +302,8 @@ export const HostManagerModal: React.FC = () => {
                     onChange={e => setForm({ ...form, username: e.target.value })}
                     placeholder="root"
                     className="w-full bg-orca-bg border border-orca-border text-white px-2.5 py-1.5 rounded outline-none focus:border-orca-accent font-mono"
-                    required
+                    required={form.authType !== 'local'}
+                    disabled={form.authType === 'local'}
                   />
                 </div>
 
@@ -289,6 +319,7 @@ export const HostManagerModal: React.FC = () => {
                     <option value="password">密码认证 (Password)</option>
                     <option value="privateKey">私钥认证 (Private Key)</option>
                     <option value="mock">仿真沙盒 (Mock Sandbox)</option>
+                    <option value="local">本机终端 (Local Shell)</option>
                   </select>
                 </div>
 
@@ -321,12 +352,20 @@ export const HostManagerModal: React.FC = () => {
                 )}
 
                 <div>
-                  <label className="text-orca-muted block mb-1">连接后默认初始目录</label>
+                  <label className="text-orca-muted block mb-1">
+                    {form.authType === 'local'
+                      ? '启动目录（默认 ~ 用户主目录）'
+                      : '连接后默认初始目录'}
+                  </label>
                   <input
                     type="text"
                     value={form.initialDir || ''}
                     onChange={e => setForm({ ...form, initialDir: e.target.value })}
-                    placeholder="/etc/nginx 或 /var/log"
+                    placeholder={
+                      form.authType === 'local'
+                        ? '~ 或 C:/Users/username'
+                        : '/etc/nginx 或 /var/log'
+                    }
                     className="w-full bg-orca-bg border border-orca-border text-white px-2.5 py-1.5 rounded outline-none focus:border-orca-accent font-mono"
                   />
                 </div>

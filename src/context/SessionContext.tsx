@@ -41,6 +41,7 @@ interface SessionContextType {
   toggleMode: (targetMode?: 'shell' | 'agent') => void;
   toggleAgent: (forceState?: boolean) => void;
   setAgentWidth: (sessionId: string, width: number) => void;
+  updateSessionTitle: (sessionId: string, newTitle: string) => void;
   updateSessionCwd: (sessionId: string, cwd: string) => void;
   updateSessionTermSize: (sessionId: string, cols: number, rows: number) => void;
   appendTerminalContext: (sessionId: string, chunk: string) => void;
@@ -105,14 +106,14 @@ export const SessionProvider: React.FC<{ children: React.ReactNode }> = ({ child
     }
 
     const defaultHost: HostAsset = {
-      id: 'mock-local-demo',
-      name: 'Demo-Linux (内置仿真沙盒)',
-      group: '开发/演示',
-      host: '127.0.0.1',
-      port: 22,
-      username: 'root',
-      authType: 'mock',
-      initialDir: '/etc/nginx',
+      id: 'local-shell',
+      name: '本机终端 (Local Shell)',
+      group: '本地',
+      host: 'localhost',
+      port: 0,
+      username: 'local',
+      authType: 'local',
+      initialDir: '~',
       createdAt: Date.now()
     };
     setHosts([defaultHost]);
@@ -134,7 +135,7 @@ export const SessionProvider: React.FC<{ children: React.ReactNode }> = ({ child
         mode: 'shell',
         isAgentOpen: false,
         agentWidth: 460,
-        cwd: host.initialDir || '/etc/nginx',
+        cwd: host.initialDir || '~',
         terminalContext: '',
         unreadError: null
       };
@@ -157,10 +158,15 @@ export const SessionProvider: React.FC<{ children: React.ReactNode }> = ({ child
     [send]
   );
 
-  // Auto-create default session if none exists once hosts are loaded
+  const hasAutoCreatedRef = useRef(false);
+
+  // Auto-create default session once on initial load if hosts are available
   useEffect(() => {
-    if (sessions.length === 0 && hosts.length > 0) {
-      createSession(hosts[0]);
+    if (!hasAutoCreatedRef.current && hosts.length > 0) {
+      hasAutoCreatedRef.current = true;
+      if (sessions.length === 0) {
+        createSession(hosts[0]);
+      }
     }
   }, [hosts, sessions.length, createSession]);
 
@@ -213,6 +219,12 @@ export const SessionProvider: React.FC<{ children: React.ReactNode }> = ({ child
 
   const setAgentWidth = useCallback((sessionId: string, width: number) => {
     setSessions(prev => prev.map(s => (s.id === sessionId ? { ...s, agentWidth: width } : s)));
+  }, []);
+
+  const updateSessionTitle = useCallback((sessionId: string, newTitle: string) => {
+    setSessions(prev =>
+      prev.map(s => (s.id === sessionId ? { ...s, title: newTitle } : s))
+    );
   }, []);
 
   const updateSessionCwd = useCallback((sessionId: string, cwd: string) => {
@@ -425,6 +437,7 @@ export const SessionProvider: React.FC<{ children: React.ReactNode }> = ({ child
         toggleMode,
         toggleAgent,
         setAgentWidth,
+        updateSessionTitle,
         updateSessionCwd,
         updateSessionTermSize,
         appendTerminalContext,

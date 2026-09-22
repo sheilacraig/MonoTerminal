@@ -7,6 +7,8 @@
   "scripts": {
     "dev": "vite",
     "build": "tsc && vite build",
+    "build:server": "esbuild server/index.ts --bundle --platform=node --target=node20 --format=cjs --outfile=dist-server/index.cjs --external:ssh2 --external:cpu-features --external:node-pty",
+    "build:all": "npm run build && npm run build:server",
     "server": "tsx server/index.ts",
     "start": "tsx server/index.ts",
     "test": "vitest run",
@@ -15,7 +17,11 @@
     "format": "prettier --write \"src/**/*.{ts,tsx,css}\" \"server/**/*.ts\" \"shared/**/*.ts\" \"tests/**/*.ts\"",
     "format:check": "prettier --check \"src/**/*.{ts,tsx,css}\" \"server/**/*.ts\" \"shared/**/*.ts\" \"tests/**/*.ts\"",
     "typecheck": "tsc --noEmit",
-    "electron": "electron ."
+    "electron": "electron .",
+    "electron:dev": "cross-env NODE_ENV=development electron .",
+    "pack:win": "npm run build:all && electron-builder --win --dir",
+    "dist:win": "npm run build:all && electron-builder --win portable",
+    "dist:installer": "npm run build:all && electron-builder --win nsis"
   },
   "keywords": [
     "terminal",
@@ -35,6 +41,7 @@
     "express": "^4.21.2",
     "highlight.js": "^11.12.0",
     "lucide-react": "^1.16.0",
+    "node-pty": "github:microsoft/node-pty#main",
     "react": "^18.3.1",
     "react-dom": "^18.3.1",
     "react-markdown": "^10.1.0",
@@ -55,6 +62,10 @@
     "@vitejs/plugin-react": "^4.3.4",
     "@vitest/coverage-v8": "^2.1.9",
     "autoprefixer": "^10.4.20",
+    "cross-env": "^10.1.0",
+    "electron": "^44.4.3",
+    "electron-builder": "^26.15.3",
+    "esbuild": "^0.28.2",
     "eslint": "^10.11.0",
     "eslint-config-prettier": "^10.1.8",
     "eslint-plugin-react-hooks": "^7.1.1",
@@ -67,5 +78,51 @@
     "typescript-eslint": "^8.70.0",
     "vite": "^6.0.7",
     "vitest": "^2.1.8"
+  },
+  "build": {
+    "appId": "com.monoterminal.app",
+    "productName": "MonoTerminal",
+    "electronDist": "node_modules/electron/dist",
+    "npmRebuild": false,
+    "asar": true,
+    "asarUnpack": [
+      "dist/**/*",
+      "dist-server/**/*"
+    ],
+    "directories": {
+      "output": "release"
+    },
+    "files": [
+      "dist/**/*",
+      "dist-server/**/*",
+      "electron/**/*",
+      "package.json"
+    ],
+    "extraResources": [
+      {
+        "from": "node_modules/ssh2",
+        "to": "node_modules/ssh2"
+      },
+      {
+        "from": "node_modules/node-pty",
+        "to": "node_modules/node-pty"
+      }
+    ],
+    "win": {
+      "target": [
+        {
+          "target": "portable",
+          "arch": [
+            "x64"
+          ]
+        }
+      ]
+    },
+    "nsis": {
+      "oneClick": false,
+      "allowToChangeInstallationDirectory": true,
+      "createDesktopShortcut": true,
+      "createStartMenuShortcut": true
+    }
   }
 }

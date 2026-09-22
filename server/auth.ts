@@ -63,7 +63,13 @@ export function isAllowedOrigin(origin: unknown, allowedPorts: number[]): boolea
   if (origin === undefined || origin === null || origin === '') return true;
   if (typeof origin !== 'string') return false;
   for (const p of allowedPorts) {
-    if (origin === `http://localhost:${p}` || origin === `http://127.0.0.1:${p}`) return true;
+    if (
+      origin === `http://localhost:${p}` ||
+      origin === `http://127.0.0.1:${p}` ||
+      origin === `http://[::1]:${p}`
+    ) {
+      return true;
+    }
   }
   return false;
 }

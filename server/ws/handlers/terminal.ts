@@ -15,6 +15,36 @@ export const handleTermInit: WsHandler<TermInitMessage> = async (msg, conn, deps
 
   conn.clientSessions.add(sessionId);
 
+  if (host.authType === 'local') {
+    try {
+      const session = deps.localPtyManager.createSession(
+        sessionId,
+        msg.cols,
+        msg.rows,
+        host.initialDir
+      );
+      session.events.on('data', (data: string) => {
+        conn.send({ type: 'term:data', sessionId, data });
+      });
+      session.events.on('exit', () => {
+        conn.send({ type: 'term:close', sessionId });
+      });
+      conn.send({
+        type: 'term:ready',
+        sessionId,
+        hostName: host.name,
+        cwd: session.initialCwd
+      });
+    } catch (err) {
+      conn.send({
+        type: 'term:error',
+        sessionId,
+        message: `本机终端启动失败: ${errorMessage(err)}`
+      });
+    }
+    return;
+  }
+
   if (host.authType === 'mock') {
     let sessionObj = deps.mockSessions.get(sessionId);
     if (!sessionObj) {
@@ -89,6 +119,10 @@ export const handleTermInit: WsHandler<TermInitMessage> = async (msg, conn, deps
 };
 
 export const handleTermInput: WsHandler<TermInputMessage> = (msg, _conn, deps) => {
+  if (deps.localPtyManager.has(msg.sessionId)) {
+    deps.localPtyManager.write(msg.sessionId, msg.data);
+    return;
+  }
   const mockObj = deps.mockSessions.get(msg.sessionId);
   if (mockObj) {
     mockObj.term.write(msg.data);
@@ -98,6 +132,10 @@ export const handleTermInput: WsHandler<TermInputMessage> = (msg, _conn, deps) =
 };
 
 export const handleTermResize: WsHandler<TermResizeMessage> = (msg, _conn, deps) => {
+  if (deps.localPtyManager.has(msg.sessionId)) {
+    deps.localPtyManager.resize(msg.sessionId, msg.cols, msg.rows);
+    return;
+  }
   const mockObj = deps.mockSessions.get(msg.sessionId);
   if (mockObj) {
     mockObj.term.resize(msg.cols, msg.rows);
@@ -107,6 +145,7 @@ export const handleTermResize: WsHandler<TermResizeMessage> = (msg, _conn, deps)
 };
 
 export const handleTermClose: WsHandler<TermCloseMessage> = (msg, conn, deps) => {
+  deps.localPtyManager.closeSession(msg.sessionId);
   deps.mockSessions.delete(msg.sessionId);
   deps.sshManager.closeSession(msg.sessionId);
   conn.clientSessions.delete(msg.sessionId);

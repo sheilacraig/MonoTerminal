@@ -6,6 +6,8 @@ node_modules/
 
 # Production / Build output
 dist/
+dist-server/
+release/
 build/
 out/
 

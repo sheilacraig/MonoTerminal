@@ -15,14 +15,17 @@ export const FileEditorModal: React.FC<FileEditorModalProps> = ({
   onClose
 }) => {
   const [content, setContent] = useState(initialContent);
+  const [savedContent, setSavedContent] = useState(initialContent);
   const [isSaving, setIsSaving] = useState(false);
   const [isSaved, setIsSaved] = useState(false);
-  const isDirty = content !== initialContent;
+  const lineNumbersRef = React.useRef<HTMLDivElement>(null);
+  const isDirty = content !== savedContent;
 
   const handleSave = useCallback(async () => {
     setIsSaving(true);
     try {
       await onSave(content);
+      setSavedContent(content);
       setIsSaved(true);
       setTimeout(() => setIsSaved(false), 2000);
     } finally {
@@ -95,7 +98,10 @@ export const FileEditorModal: React.FC<FileEditorModalProps> = ({
         {/* Editor Body */}
         <div className="flex-1 flex overflow-hidden bg-[#0a0d12]">
           {/* Line Numbers */}
-          <div className="w-12 bg-orca-surface/40 text-orca-muted font-mono text-xs text-right pr-3 pt-3 select-none border-r border-orca-border/50">
+          <div
+            ref={lineNumbersRef}
+            className="w-12 bg-orca-surface/40 text-orca-muted font-mono text-xs text-right pr-3 pt-3 select-none border-r border-orca-border/50 overflow-hidden"
+          >
             {lines.map((_, i) => (
               <div key={i} className="leading-5 h-5 text-[11px] opacity-60">
                 {i + 1}
@@ -107,6 +113,11 @@ export const FileEditorModal: React.FC<FileEditorModalProps> = ({
           <textarea
             value={content}
             onChange={e => setContent(e.target.value)}
+            onScroll={e => {
+              if (lineNumbersRef.current) {
+                lineNumbersRef.current.scrollTop = e.currentTarget.scrollTop;
+              }
+            }}
             className="flex-1 bg-transparent text-orca-text font-mono text-xs p-3 leading-5 outline-none resize-none focus:ring-0 overflow-auto whitespace-pre"
             spellCheck={false}
             autoFocus

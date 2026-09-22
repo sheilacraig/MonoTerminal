@@ -204,6 +204,33 @@ export const TerminalView: React.FC<TerminalViewProps> = ({ sessionId, isVisible
     }
   }, [isVisible]);
 
+  // Dynamically apply terminal appearance settings without recreating terminal instance
+  useEffect(() => {
+    const term = xtermInstance.current;
+    if (!term) return;
+    if (settings.terminal.fontSize) {
+      term.options.fontSize = settings.terminal.fontSize;
+    }
+    if (settings.terminal.fontFamily) {
+      term.options.fontFamily = settings.terminal.fontFamily;
+    }
+    if (settings.terminal.cursorBlink !== undefined) {
+      term.options.cursorBlink = settings.terminal.cursorBlink;
+    }
+    if (settings.terminal.scrollback) {
+      term.options.scrollback = settings.terminal.scrollback;
+    }
+    try {
+      fitAddonRef.current?.fit();
+      if (terminalRef.current) {
+        ctxRef.current.resizeTerm(sessionId, term.cols, term.rows);
+        ctxRef.current.updateSessionTermSize(sessionId, term.cols, term.rows);
+      }
+    } catch {
+      // Ignore fit errors
+    }
+  }, [settings.terminal, sessionId]);
+
   const hasUnreadError =
     isVisible && activeSession?.id === sessionId && Boolean(activeSession.unreadError);
 

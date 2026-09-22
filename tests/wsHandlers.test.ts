@@ -61,15 +61,38 @@ function makeDeps() {
   const aiService = { streamChat: vi.fn() };
   const mockSessions = new Map<string, MockSessionEntry>();
   const demoHost = {
-    id: 'mock-local-demo',
-    name: 'Demo Linux',
-    group: '演示',
-    host: '127.0.0.1',
-    port: 22,
-    username: 'root',
-    authType: 'mock',
-    initialDir: '/etc/nginx',
+    id: 'local-shell',
+    name: '本机终端 (Local Shell)',
+    group: '本地',
+    host: 'localhost',
+    port: 0,
+    username: 'local',
+    authType: 'local',
+    initialDir: '~',
     createdAt: 0
+  };
+  const localPtySession = {
+    pty: { write: vi.fn(), resize: vi.fn(), kill: vi.fn() },
+    events: new EventEmitter(),
+    initialCwd: 'C:\\Users\\test',
+    shellCommand: 'pwsh.exe'
+  };
+  const localPtyManager = {
+    createSession: vi.fn(() => localPtySession),
+    getSession: vi.fn(() => localPtySession),
+    has: vi.fn((sid: string) => sid === 'local-s1'),
+    write: vi.fn(),
+    resize: vi.fn(),
+    closeSession: vi.fn()
+  };
+  const localFsManager = {
+    list: vi.fn(() => [{ name: 'file.txt', isDirectory: false }] as unknown[]),
+    readFile: vi.fn(() => 'content'),
+    writeFile: vi.fn(),
+    delete: vi.fn(),
+    rename: vi.fn(),
+    chmod: vi.fn(),
+    mkdir: vi.fn()
   };
 
   const deps = {
@@ -78,10 +101,23 @@ function makeDeps() {
     storage,
     mockSessions,
     demoHost,
-    createMockSession: vi.fn(() => ({ term, fs }))
+    createMockSession: vi.fn(() => ({ term, fs })),
+    localPtyManager,
+    localFsManager
   } as unknown as WsDependencies;
 
-  return { deps, term, fs, sshManager, storage, aiService, mockSessions };
+  return {
+    deps,
+    term,
+    fs,
+    sshManager,
+    storage,
+    aiService,
+    mockSessions,
+    localPtyManager,
+    localFsManager,
+    localPtySession
+  };
 }
 
 const realHost = {
@@ -93,6 +129,18 @@ const realHost = {
   username: 'root',
   authType: 'password',
   passwordEncrypted: 'enc',
+  createdAt: 0
+};
+
+const localHost = {
+  id: 'local-shell',
+  name: '本机终端 (Local Shell)',
+  group: '本地',
+  host: 'localhost',
+  port: 0,
+  username: 'local',
+  authType: 'local',
+  initialDir: 'C:\\Users\\test',
   createdAt: 0
 };
 
@@ -124,6 +172,35 @@ describe('ws handlers · terminal', () => {
     expect(sshManager.writeToShell).toHaveBeenCalledWith('real', 'pwd\r');
   });
 
+  it('term:input routes to the local pty when the session is local', () => {
+    const { conn } = makeConn();
+    const { deps, localPtyManager, sshManager } = makeDeps();
+    handleTermInput({ type: 'term:input', sessionId: 'local-s1', data: 'dir\r' }, conn, deps);
+    expect(localPtyManager.write).toHaveBeenCalledWith('local-s1', 'dir\r');
+    expect(sshManager.writeToShell).not.toHaveBeenCalled();
+  });
+
+  it('term:resize routes to the local pty when the session is local', () => {
+    const { conn } = makeConn();
+    const { deps, localPtyManager, sshManager } = makeDeps();
+    handleTermResize(
+      { type: 'term:resize', sessionId: 'local-s1', cols: 100, rows: 30 },
+      conn,
+      deps
+    );
+    expect(localPtyManager.resize).toHaveBeenCalledWith('local-s1', 100, 30);
+    expect(sshManager.resize).not.toHaveBeenCalled();
+  });
+
+  it('term:close also releases the local pty session', () => {
+    const { conn } = makeConn();
+    const { deps, localPtyManager } = makeDeps();
+    conn.clientSessions.add('local-s1');
+    handleTermClose({ type: 'term:close', sessionId: 'local-s1' }, conn, deps);
+    expect(localPtyManager.closeSession).toHaveBeenCalledWith('local-s1');
+    expect(conn.clientSessions.has('local-s1')).toBe(false);
+  });
+
   it('term:resize routes to mock or ssh', () => {
     const { conn } = makeConn();
     const { deps, term, fs, sshManager, mockSessions } = makeDeps();
@@ -147,9 +224,22 @@ describe('ws handlers · terminal', () => {
 
   it('term:init mock path creates a session and sends term:ready', async () => {
     const { conn, sent } = makeConn();
-    const { deps, term, mockSessions } = makeDeps();
+    const { deps, term, mockSessions, storage } = makeDeps();
+    storage.getHosts.mockReturnValue([
+      {
+        id: 'mock-local-demo',
+        name: 'Demo Linux',
+        group: '演示',
+        host: '127.0.0.1',
+        port: 22,
+        username: 'root',
+        authType: 'mock',
+        initialDir: '/etc/nginx',
+        createdAt: 0
+      }
+    ]);
     await handleTermInit(
-      { type: 'term:init', sessionId: 's1', hostId: 'unknown', cols: 80, rows: 24 },
+      { type: 'term:init', sessionId: 's1', hostId: 'mock-local-demo', cols: 80, rows: 24 },
       conn,
       deps
     );
@@ -176,6 +266,68 @@ describe('ws handlers · terminal', () => {
     expect(sshManager.createSession).not.toHaveBeenCalled();
     expect(sent[0]).toMatchObject({ type: 'term:error', sessionId: 's2' });
     expect((sent[0] as { message: string }).message).toContain('锁定');
+  });
+
+  it('term:init local path creates a pty and sends term:ready', async () => {
+    const { conn, sent } = makeConn();
+    const { deps, storage, localPtyManager, localPtySession } = makeDeps();
+    storage.getHosts.mockReturnValue([localHost]);
+    await handleTermInit(
+      { type: 'term:init', sessionId: 'local-s1', hostId: 'local-shell', cols: 80, rows: 24 },
+      conn,
+      deps
+    );
+    expect(localPtyManager.createSession).toHaveBeenCalledWith(
+      'local-s1',
+      80,
+      24,
+      'C:\\Users\\test'
+    );
+    expect(sent[0]).toMatchObject({
+      type: 'term:ready',
+      sessionId: 'local-s1',
+      hostName: '本机终端 (Local Shell)',
+      cwd: localPtySession.initialCwd
+    });
+  });
+
+  it('term:init local path reports term:error when the pty fails to spawn', async () => {
+    const { conn, sent } = makeConn();
+    const { deps, storage, localPtyManager } = makeDeps();
+    storage.getHosts.mockReturnValue([localHost]);
+    localPtyManager.createSession.mockImplementation(() => {
+      throw new Error('spawn failed');
+    });
+    await handleTermInit(
+      { type: 'term:init', sessionId: 'local-s1', hostId: 'local-shell', cols: 80, rows: 24 },
+      conn,
+      deps
+    );
+    expect(sent[0]).toMatchObject({ type: 'term:error', sessionId: 'local-s1' });
+    expect((sent[0] as { message: string }).message).toContain('本机终端启动失败');
+  });
+
+  it('term:init local pty data/exit events are forwarded to the connection', async () => {
+    const { conn, sent } = makeConn();
+    const { deps, storage, localPtySession } = makeDeps();
+    storage.getHosts.mockReturnValue([localHost]);
+    await handleTermInit(
+      { type: 'term:init', sessionId: 'local-s1', hostId: 'local-shell', cols: 80, rows: 24 },
+      conn,
+      deps
+    );
+    localPtySession.events.emit('data', 'hello');
+    localPtySession.events.emit('exit');
+    expect(sent).toEqual([
+      {
+        type: 'term:ready',
+        sessionId: 'local-s1',
+        hostName: '本机终端 (Local Shell)',
+        cwd: 'C:\\Users\\test'
+      },
+      { type: 'term:data', sessionId: 'local-s1', data: 'hello' },
+      { type: 'term:close', sessionId: 'local-s1' }
+    ]);
   });
 
   it('term:init real SSH path connects and sends term:ready', async () => {
@@ -225,6 +377,37 @@ describe('ws handlers · sftp', () => {
       requestId: 'r2',
       success: false,
       error: 'boom'
+    });
+  });
+
+  it('sftp:list uses the local fs when the session is local', async () => {
+    const { conn, sent } = makeConn();
+    const { deps, localFsManager } = makeDeps();
+    await handleSftpList(
+      { type: 'sftp:list', requestId: 'r1', sessionId: 'local-s1', dirPath: 'C:\\Users\\test' },
+      conn,
+      deps
+    );
+    expect(localFsManager.list).toHaveBeenCalledWith('C:\\Users\\test');
+    expect(sent[0]).toMatchObject({ type: 'sftp:response', requestId: 'r1', success: true });
+  });
+
+  it('sftp:list returns an error response when local listing throws', async () => {
+    const { conn, sent } = makeConn();
+    const { deps, localFsManager } = makeDeps();
+    localFsManager.list.mockImplementation(() => {
+      throw new Error('EACCES');
+    });
+    await handleSftpList(
+      { type: 'sftp:list', requestId: 'r1', sessionId: 'local-s1', dirPath: '/x' },
+      conn,
+      deps
+    );
+    expect(sent[0]).toMatchObject({
+      type: 'sftp:response',
+      requestId: 'r1',
+      success: false,
+      error: 'EACCES'
     });
   });
 

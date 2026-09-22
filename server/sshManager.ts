@@ -47,47 +47,56 @@ export class SshManager {
       client.on('ready', () => {
         instance.isAlive = true;
 
-        // Start shell
-        client.shell({ term: 'xterm-256color', cols: 120, rows: 35 }, (err, stream) => {
-          if (err) {
-            if (!isResolved) {
-              isResolved = true;
-              reject(err);
-            }
-            return;
-          }
+        const startShell = new Promise<ClientChannel>((resShell, rejShell) => {
+          client.shell({ term: 'xterm-256color', cols: 120, rows: 35 }, (err, stream) => {
+            if (err) return rejShell(err);
+            instance.channel = stream;
 
-          instance.channel = stream;
+            stream.on('data', (data: Buffer) => {
+              events.emit('data', data.toString('utf-8'));
+            });
 
-          stream.on('data', (data: Buffer) => {
-            events.emit('data', data.toString('utf-8'));
+            stream.on('close', () => {
+              events.emit('close');
+              this.closeSession(sessionId);
+            });
+
+            stream.stderr.on('data', (data: Buffer) => {
+              events.emit('data', data.toString('utf-8'));
+            });
+
+            resShell(stream);
           });
+        });
 
-          stream.on('close', () => {
-            events.emit('close');
-            this.closeSession(sessionId);
-          });
-
-          stream.stderr.on('data', (data: Buffer) => {
-            events.emit('data', data.toString('utf-8'));
-          });
-
-          // Also initialize SFTP subsystem
+        const startSftp = new Promise<void>(resSftp => {
           client.sftp((sftpErr, sftp) => {
             if (!sftpErr && sftp) {
               instance.sftp = sftp;
             }
+            resSftp();
           });
-
-          if (!isResolved) {
-            isResolved = true;
-            resolve(instance);
-          }
         });
+
+        Promise.all([startShell, startSftp])
+          .then(() => {
+            if (!isResolved) {
+              isResolved = true;
+              resolve(instance);
+            }
+          })
+          .catch(err => {
+            if (!isResolved) {
+              isResolved = true;
+              reject(err);
+            }
+          });
       });
 
       client.on('error', err => {
-        events.emit('error', err);
+        if (events.listenerCount('error') > 0) {
+          events.emit('error', err);
+        }
         if (!isResolved) {
           isResolved = true;
           reject(err);
@@ -209,6 +218,33 @@ export class SshManager {
     });
   }
 
+  private async rmdirRecursive(sftp: SFTPWrapper, dirPath: string): Promise<void> {
+    const list = await new Promise<{ filename: string; attrs: { mode: number } }[]>(
+      (resolve, reject) => {
+        sftp.readdir(dirPath, (err, entries) => (err ? reject(err) : resolve(entries)));
+      }
+    );
+
+    for (const item of list) {
+      if (item.filename === '.' || item.filename === '..') continue;
+      const fullPath = dirPath.endsWith('/')
+        ? `${dirPath}${item.filename}`
+        : `${dirPath}/${item.filename}`;
+      const isDir = (item.attrs.mode & 0o40000) === 0o40000;
+      if (isDir) {
+        await this.rmdirRecursive(sftp, fullPath);
+      } else {
+        await new Promise<void>((resolve, reject) => {
+          sftp.unlink(fullPath, err => (err ? reject(err) : resolve()));
+        });
+      }
+    }
+
+    await new Promise<void>((resolve, reject) => {
+      sftp.rmdir(dirPath, err => (err ? reject(err) : resolve()));
+    });
+  }
+
   public async sftpDelete(
     sessionId: string,
     targetPath: string,
@@ -217,13 +253,13 @@ export class SshManager {
     const session = this.sessions.get(sessionId);
     if (!session || !session.sftp) throw new Error('SFTP 未就绪');
 
-    return new Promise((resolve, reject) => {
-      if (isDirectory) {
-        session.sftp!.rmdir(targetPath, err => (err ? reject(err) : resolve()));
-      } else {
+    if (isDirectory) {
+      await this.rmdirRecursive(session.sftp, targetPath);
+    } else {
+      await new Promise<void>((resolve, reject) => {
         session.sftp!.unlink(targetPath, err => (err ? reject(err) : resolve()));
-      }
-    });
+      });
+    }
   }
 
   public async sftpChmod(sessionId: string, targetPath: string, mode: string): Promise<void> {

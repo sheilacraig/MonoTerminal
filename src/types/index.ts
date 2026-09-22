@@ -5,11 +5,13 @@ export interface HostAsset {
   host: string;
   port: number;
   username: string;
-  authType: 'password' | 'privateKey' | 'agent' | 'mock';
+  authType: 'password' | 'privateKey' | 'agent' | 'mock' | 'local';
   passwordEncrypted?: string;
+  hasPassword?: boolean;
   plainPassword?: string;
   privateKeyPath?: string;
   passphraseEncrypted?: string;
+  hasPassphrase?: boolean;
   plainPassphrase?: string;
   initialDir?: string;
   createdAt: number;

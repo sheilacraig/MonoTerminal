@@ -278,6 +278,37 @@ export const DANGEROUS_RULES: DangerousRule[] = [
     level: 'CRITICAL',
     ruleName: 'OVERWRITE_SYSTEM_AUTH_FILES',
     reason: '覆盖系统核心认证用户文件，将导致无法登录或权限彻底失效。'
+  },
+  {
+    pattern:
+      /\b(Remove-Item|ri)\b(?=.*-(?:Recurse|r)\b)(?=.*([a-zA-Z]:[\\/]|\b[a-zA-Z]:|\$env:(?:SystemRoot|windir|ProgramFiles)))/i,
+    level: 'CRITICAL',
+    ruleName: 'WIN_POWERSHELL_DELETE_ROOT',
+    reason: '试图使用 PowerShell 递归删除 Windows 磁盘根目录或关键系统目录。'
+  },
+  {
+    pattern: /\b(del|erase)\b(?=.*\/s\b)(?=.*([a-zA-Z]:[\\/]|\b[a-zA-Z]:|\\\*|\/\*))/i,
+    level: 'CRITICAL',
+    ruleName: 'WIN_CMD_DELETE_ROOT',
+    reason: '试图在 CMD 中批量静默删除 Windows 驱动器或根目录下的全部文件。'
+  },
+  {
+    pattern: /\b(rmdir|rd)\b(?=.*\/s\b)(?=.*([a-zA-Z]:[\\/]|\b[a-zA-Z]:))/i,
+    level: 'CRITICAL',
+    ruleName: 'WIN_CMD_RMDIR_ROOT',
+    reason: '试图在 CMD 中递归删除 Windows 驱动器根目录或关键目录。'
+  },
+  {
+    pattern: /\bformat\s+[a-zA-Z]:(?:\s|$)/i,
+    level: 'CRITICAL',
+    ruleName: 'WIN_FORMAT_DISK',
+    reason: '试图格式化 Windows 驱动器分区，将导致该磁盘上的数据全部丢失。'
+  },
+  {
+    pattern: /\b(Stop-Computer|Restart-Computer)\b(?=.*-Force\b)/i,
+    level: 'HIGH',
+    ruleName: 'WIN_FORCE_SHUTDOWN',
+    reason: '试图强行关闭或重启系统，可能导致未保存数据丢失或服务中断。'
   }
 ];
 

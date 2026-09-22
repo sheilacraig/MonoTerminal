@@ -4,6 +4,8 @@ import { localStorageManager, HostAsset } from '../storage';
 import { sshManager } from '../sshManager';
 import { MockFileSystem, MockTerminalSession } from '../mockServer';
 import { AIService } from '../aiService';
+import { LocalPtyManager } from '../localPtyManager';
+import { LocalFsManager } from '../localFsManager';
 import { errorMessage } from '../../shared/errors';
 import {
   WsInboundMessage,
@@ -11,6 +13,7 @@ import {
   validateWsInboundMessage
 } from '../../shared/wsProtocol';
 import { AuthContext, checkWsAuth } from '../auth';
+import os from 'os';
 import { dispatchWsMessage } from './handlers';
 import type { WsConnection, WsDependencies, MockSessionEntry } from './types';
 
@@ -23,14 +26,14 @@ function rawToText(raw: RawData): string {
 }
 
 const DEMO_HOST: HostAsset = {
-  id: 'mock-local-demo',
-  name: 'Demo Linux',
-  group: '演示',
-  host: '127.0.0.1',
-  port: 22,
-  username: 'root',
-  authType: 'mock',
-  initialDir: '/etc/nginx',
+  id: 'local-shell',
+  name: '本机终端 (Local Shell)',
+  group: '本地',
+  host: 'localhost',
+  port: 0,
+  username: os.userInfo().username || 'local',
+  authType: 'local',
+  initialDir: os.homedir(),
   createdAt: 0
 };
 
@@ -50,7 +53,9 @@ export function setupWsRouter(wss: WebSocketServer, aiService: AIService, auth: 
       const mockFs = new MockFileSystem();
       const term = new MockTerminalSession(sessionId, mockFs);
       return { term, fs: mockFs };
-    }
+    },
+    localPtyManager: new LocalPtyManager(),
+    localFsManager: new LocalFsManager()
   };
 
   wss.on('connection', (ws: WebSocket, req: IncomingMessage) => {
@@ -98,6 +103,7 @@ export function setupWsRouter(wss: WebSocketServer, aiService: AIService, auth: 
       for (const sid of clientSessions) {
         mockSessions.delete(sid);
         sshManager.closeSession(sid);
+        deps.localPtyManager.closeSession(sid);
       }
     });
   });

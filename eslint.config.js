@@ -6,7 +6,7 @@ import prettier from 'eslint-config-prettier';
 
 export default tseslint.config(
   {
-    ignores: ['dist/**', 'node_modules/**', '.npm-cache/**', 'electron/**']
+    ignores: ['dist/**', 'dist-server/**', 'release/**', 'node_modules/**', '.npm-cache/**', 'electron/**']
   },
 
   js.configs.recommended,

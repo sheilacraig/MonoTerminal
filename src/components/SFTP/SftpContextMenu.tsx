@@ -25,9 +25,18 @@ export const SftpContextMenu: React.FC<SftpContextMenuProps> = ({
   onDelete,
   onClose
 }) => {
+  const clampedX = Math.max(
+    10,
+    Math.min(x, (typeof window !== 'undefined' ? window.innerWidth : 1000) - 170)
+  );
+  const clampedY = Math.max(
+    10,
+    Math.min(y, (typeof window !== 'undefined' ? window.innerHeight : 800) - 200)
+  );
+
   return (
     <div
-      style={{ top: `${y}px`, left: `${x}px` }}
+      style={{ top: `${clampedY}px`, left: `${clampedX}px` }}
       className="fixed z-50 bg-orca-surface border border-orca-border rounded shadow-xl py-1 w-40 text-xs select-none animate-in fade-in zoom-in-95 duration-100"
       onClick={e => e.stopPropagation()}
     >

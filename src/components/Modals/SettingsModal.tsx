@@ -135,9 +135,16 @@ export const SettingsModal: React.FC = () => {
   if (!isSettingsModalOpen) return null;
 
   const handleProviderSelect = (p: AIProvider) => {
+    setProviders(prev =>
+      prev.map(item =>
+        item.id === selectedProvider.id
+          ? { ...selectedProvider, plainApiKey: plainKey || item.plainApiKey }
+          : item
+      )
+    );
     setSelectedProvider(p);
     setActiveProviderId(p.id);
-    setPlainKey('');
+    setPlainKey(p.plainApiKey || '');
   };
 
   const handleSaveAll = async () => {

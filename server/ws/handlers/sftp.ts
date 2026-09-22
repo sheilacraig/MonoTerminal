@@ -12,6 +12,15 @@ import type { WsHandler } from '../types';
 
 export const handleSftpList: WsHandler<SftpListMessage> = async (msg, conn, deps) => {
   const { requestId, sessionId } = msg;
+  if (deps.localPtyManager.has(sessionId)) {
+    try {
+      const files = deps.localFsManager.list(msg.dirPath);
+      conn.send({ type: 'sftp:response', requestId, success: true, data: files });
+    } catch (err) {
+      conn.send({ type: 'sftp:response', requestId, success: false, error: errorMessage(err) });
+    }
+    return;
+  }
   const mockObj = deps.mockSessions.get(sessionId);
   if (mockObj) {
     conn.send({
@@ -32,6 +41,15 @@ export const handleSftpList: WsHandler<SftpListMessage> = async (msg, conn, deps
 
 export const handleSftpRead: WsHandler<SftpReadMessage> = async (msg, conn, deps) => {
   const { requestId, sessionId } = msg;
+  if (deps.localPtyManager.has(sessionId)) {
+    try {
+      const content = deps.localFsManager.readFile(msg.filePath);
+      conn.send({ type: 'sftp:response', requestId, success: true, data: content });
+    } catch (err) {
+      conn.send({ type: 'sftp:response', requestId, success: false, error: errorMessage(err) });
+    }
+    return;
+  }
   const mockObj = deps.mockSessions.get(sessionId);
   if (mockObj) {
     try {
@@ -52,6 +70,15 @@ export const handleSftpRead: WsHandler<SftpReadMessage> = async (msg, conn, deps
 
 export const handleSftpWrite: WsHandler<SftpWriteMessage> = async (msg, conn, deps) => {
   const { requestId, sessionId } = msg;
+  if (deps.localPtyManager.has(sessionId)) {
+    try {
+      deps.localFsManager.writeFile(msg.filePath, msg.content);
+      conn.send({ type: 'sftp:response', requestId, success: true });
+    } catch (err) {
+      conn.send({ type: 'sftp:response', requestId, success: false, error: errorMessage(err) });
+    }
+    return;
+  }
   const mockObj = deps.mockSessions.get(sessionId);
   if (mockObj) {
     mockObj.fs.writeFile(msg.filePath, msg.content);
@@ -68,6 +95,15 @@ export const handleSftpWrite: WsHandler<SftpWriteMessage> = async (msg, conn, de
 
 export const handleSftpDelete: WsHandler<SftpDeleteMessage> = async (msg, conn, deps) => {
   const { requestId, sessionId } = msg;
+  if (deps.localPtyManager.has(sessionId)) {
+    try {
+      deps.localFsManager.delete(msg.targetPath, msg.isDirectory);
+      conn.send({ type: 'sftp:response', requestId, success: true });
+    } catch (err) {
+      conn.send({ type: 'sftp:response', requestId, success: false, error: errorMessage(err) });
+    }
+    return;
+  }
   const mockObj = deps.mockSessions.get(sessionId);
   if (mockObj) {
     mockObj.fs.delete(msg.targetPath);
@@ -84,6 +120,15 @@ export const handleSftpDelete: WsHandler<SftpDeleteMessage> = async (msg, conn, 
 
 export const handleSftpRename: WsHandler<SftpRenameMessage> = async (msg, conn, deps) => {
   const { requestId, sessionId } = msg;
+  if (deps.localPtyManager.has(sessionId)) {
+    try {
+      deps.localFsManager.rename(msg.oldPath, msg.newPath);
+      conn.send({ type: 'sftp:response', requestId, success: true });
+    } catch (err) {
+      conn.send({ type: 'sftp:response', requestId, success: false, error: errorMessage(err) });
+    }
+    return;
+  }
   const mockObj = deps.mockSessions.get(sessionId);
   if (mockObj) {
     mockObj.fs.rename(msg.oldPath, msg.newPath);
@@ -100,6 +145,15 @@ export const handleSftpRename: WsHandler<SftpRenameMessage> = async (msg, conn, 
 
 export const handleSftpChmod: WsHandler<SftpChmodMessage> = async (msg, conn, deps) => {
   const { requestId, sessionId } = msg;
+  if (deps.localPtyManager.has(sessionId)) {
+    try {
+      deps.localFsManager.chmod(msg.targetPath, msg.mode);
+      conn.send({ type: 'sftp:response', requestId, success: true });
+    } catch (err) {
+      conn.send({ type: 'sftp:response', requestId, success: false, error: errorMessage(err) });
+    }
+    return;
+  }
   const mockObj = deps.mockSessions.get(sessionId);
   if (mockObj) {
     mockObj.fs.chmod(msg.targetPath, msg.mode);
@@ -116,6 +170,15 @@ export const handleSftpChmod: WsHandler<SftpChmodMessage> = async (msg, conn, de
 
 export const handleSftpMkdir: WsHandler<SftpMkdirMessage> = async (msg, conn, deps) => {
   const { requestId, sessionId } = msg;
+  if (deps.localPtyManager.has(sessionId)) {
+    try {
+      deps.localFsManager.mkdir(msg.dirPath);
+      conn.send({ type: 'sftp:response', requestId, success: true });
+    } catch (err) {
+      conn.send({ type: 'sftp:response', requestId, success: false, error: errorMessage(err) });
+    }
+    return;
+  }
   const mockObj = deps.mockSessions.get(sessionId);
   if (mockObj) {
     mockObj.fs.mkdir(msg.dirPath);

@@ -3,6 +3,8 @@ import { FileItem } from '../types';
 import { useSession } from '../context/SessionContext';
 import { useWebSocket } from '../context/WebSocketContext';
 
+import { normalizePath, getParentPath } from '../utils/pathUtils';
+
 export function useSftp() {
   const { activeSession } = useSession();
   const { requestSftp } = useWebSocket();
@@ -15,7 +17,9 @@ export function useSftp() {
   const activeSessionId = activeSession?.id;
   const activeSessionCwd = activeSession?.cwd;
 
-  const [currentPath, setCurrentPath] = useState<string>('/etc/nginx');
+  const [currentPath, setCurrentPath] = useState<string>(
+    activeSessionCwd ? normalizePath(activeSessionCwd) : '/etc/nginx'
+  );
   const [files, setFiles] = useState<FileItem[]>([]);
   const [loading, setLoading] = useState(false);
 
@@ -24,8 +28,11 @@ export function useSftp() {
   // dependency array only listed `activeSession?.id`, so cd-driven updates
   // never propagated to the SFTP sidebar.
   useEffect(() => {
-    if (activeSessionCwd && activeSessionCwd !== currentPath) {
-      setCurrentPath(activeSessionCwd);
+    if (activeSessionCwd) {
+      const normalized = normalizePath(activeSessionCwd);
+      if (normalized !== currentPath) {
+        setCurrentPath(normalized);
+      }
     }
   }, [activeSessionId, activeSessionCwd, currentPath]);
 
@@ -57,9 +64,8 @@ export function useSftp() {
 
   // Navigate up
   const goUp = useCallback(() => {
-    const parent = currentPath.substring(0, currentPath.lastIndexOf('/')) || '/';
-    setCurrentPath(parent);
-  }, [currentPath]);
+    setCurrentPath(prev => getParentPath(prev));
+  }, []);
 
   // Read file
   const readFile = useCallback(

@@ -3,6 +3,8 @@ import type { AIService } from '../aiService';
 import type { SshManager } from '../sshManager';
 import type { LocalStorageManager, HostAsset } from '../storage';
 import type { MockFileSystem, MockTerminalSession } from '../mockServer';
+import type { LocalPtyManagerApi } from '../localPtyManager';
+import type { LocalFsManagerApi } from '../localFsManager';
 
 /** One active mock terminal session (virtual FS + terminal emulator). */
 export interface MockSessionEntry {
@@ -24,6 +26,10 @@ export interface WsDependencies {
   demoHost: HostAsset;
   /** Factory for creating a fresh mock terminal session. */
   createMockSession: (sessionId: string) => MockSessionEntry;
+  /** Native local PTY sessions (authType === 'local'). */
+  localPtyManager: LocalPtyManagerApi;
+  /** Local filesystem operations for local sessions (SFTP protocol mapping). */
+  localFsManager: LocalFsManagerApi;
 }
 
 /** Per-connection state and outbound helper handed to each handler. */

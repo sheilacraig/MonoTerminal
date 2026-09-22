@@ -49,20 +49,22 @@ export const MainWorkspace: React.FC = () => {
         </div>
         <h2 className="text-base font-semibold text-white mb-2">暂无活跃会话</h2>
         <p className="text-xs text-orca-muted max-w-sm text-center mb-6">
-          MonoTerminal 是 100% 免登录、本地优先的下一代 AI
-          运维终端。您可以连接远程服务器或体验内置仿真沙盒。
+          MonoTerminal 是 100% 免登录、本地优先的下一代 AI 运维终端。您可以直连本机
+          Shell、连接远程服务器或体验内置仿真沙盒。
         </p>
 
         <div className="flex items-center space-x-3">
           <button
             onClick={() => {
-              if (hosts.length > 0) createSession(hosts[0]);
+              const local = hosts.find(h => h.authType === 'local');
+              if (local) createSession(local);
+              else if (hosts.length > 0) createSession(hosts[0]);
               else setIsHostModalOpen(true);
             }}
             className="flex items-center space-x-1.5 px-4 py-2 bg-orca-accent hover:bg-blue-600 text-white text-xs rounded-lg font-medium shadow transition-colors"
           >
             <Plus size={14} />
-            <span>快速连接沙盒 (Demo)</span>
+            <span>新建本机终端</span>
           </button>
 
           <button

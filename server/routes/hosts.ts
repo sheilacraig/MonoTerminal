@@ -18,7 +18,15 @@ interface HostPayload extends Partial<HostAsset> {
 // GET /api/hosts
 hostsRouter.get('/', (req, res) => {
   const hosts = localStorageManager.getHosts();
-  res.json({ success: true, data: hosts });
+  const sanitized = hosts.map(h => {
+    const { passwordEncrypted, passphraseEncrypted, ...rest } = h;
+    return {
+      ...rest,
+      hasPassword: Boolean(passwordEncrypted),
+      hasPassphrase: Boolean(passphraseEncrypted)
+    };
+  });
+  res.json({ success: true, data: sanitized });
 });
 
 // POST /api/hosts
@@ -52,7 +60,12 @@ hostsRouter.post('/', (req, res) => {
   const hosts = localStorageManager.getHosts();
   const index = hosts.findIndex(h => h.id === hostData.id);
   if (index >= 0) {
-    hosts[index] = { ...hosts[index], ...hostData } as HostAsset;
+    hosts[index] = {
+      ...hosts[index],
+      ...hostData,
+      passwordEncrypted: hostData.passwordEncrypted ?? hosts[index].passwordEncrypted,
+      passphraseEncrypted: hostData.passphraseEncrypted ?? hosts[index].passphraseEncrypted
+    } as HostAsset;
   } else {
     hosts.push(hostData as HostAsset);
   }

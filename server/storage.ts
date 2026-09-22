@@ -10,10 +10,12 @@ export interface HostAsset {
   host: string;
   port: number;
   username: string;
-  authType: 'password' | 'privateKey' | 'agent' | 'mock';
+  authType: 'password' | 'privateKey' | 'agent' | 'mock' | 'local';
   passwordEncrypted?: string;
+  hasPassword?: boolean;
   privateKeyPath?: string;
   passphraseEncrypted?: string;
+  hasPassphrase?: boolean;
   initialDir?: string;
   createdAt: number;
   lastConnectedAt?: number;
@@ -332,18 +334,41 @@ export class LocalStorageManager {
     if (!fs.existsSync(hostsPath)) {
       const defaultHosts: HostAsset[] = [
         {
-          id: 'mock-local-demo',
-          name: 'Demo-Linux (内置仿真沙盒)',
-          group: '开发/演示',
-          host: '127.0.0.1',
-          port: 22,
-          username: 'root',
-          authType: 'mock',
-          initialDir: '/etc/nginx',
+          id: 'local-shell',
+          name: '本机终端 (Local Shell)',
+          group: '本地',
+          host: 'localhost',
+          port: 0,
+          username: os.userInfo().username || 'local',
+          authType: 'local',
+          initialDir: os.homedir(),
           createdAt: Date.now()
         }
       ];
       fs.writeFileSync(hostsPath, JSON.stringify(defaultHosts, null, 2), 'utf8');
+    } else {
+      // Existing installs created before the local-shell feature keep their
+      // stored host list; prepend the local terminal asset so the default
+      // first tab connects to the real local shell instead of the old mock.
+      try {
+        const hosts: HostAsset[] = JSON.parse(fs.readFileSync(hostsPath, 'utf8'));
+        if (Array.isArray(hosts) && !hosts.some(h => h.authType === 'local')) {
+          hosts.unshift({
+            id: 'local-shell',
+            name: '本机终端 (Local Shell)',
+            group: '本地',
+            host: 'localhost',
+            port: 0,
+            username: os.userInfo().username || 'local',
+            authType: 'local',
+            initialDir: os.homedir(),
+            createdAt: Date.now()
+          });
+          fs.writeFileSync(hostsPath, JSON.stringify(hosts, null, 2), 'utf8');
+        }
+      } catch (e) {
+        console.error('Failed to migrate hosts.json for local-shell', e);
+      }
     }
 
     const settingsPath = path.join(this.dataDir, 'settings.json');

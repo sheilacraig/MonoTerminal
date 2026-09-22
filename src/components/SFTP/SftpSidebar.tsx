@@ -3,6 +3,7 @@ import { useSession } from '../../context/SessionContext';
 import { useSftp } from '../../hooks/useSftp';
 import { FileItem } from '../../types';
 import { errorMessage } from '../../../shared/errors';
+import { joinPath, getParentPath, isRootPath } from '../../utils/pathUtils';
 import { FileTreeItem } from './FileTreeItem';
 import { SftpContextMenu } from './SftpContextMenu';
 import { FileEditorModal } from './FileEditorModal';
@@ -110,8 +111,8 @@ export const SftpSidebar: React.FC = () => {
   const handleRename = async (file: FileItem) => {
     const newName = prompt('输入新的文件名:', file.name);
     if (!newName || newName === file.name) return;
-    const parent = file.path.substring(0, file.path.lastIndexOf('/'));
-    const newPath = `${parent}/${newName}`;
+    const parent = getParentPath(file.path);
+    const newPath = joinPath(parent, newName);
     try {
       await renameItem(file.path, newPath);
     } catch (err) {
@@ -122,7 +123,7 @@ export const SftpSidebar: React.FC = () => {
   const handleNewFile = async () => {
     const name = prompt('输入新文件名 (例如 default.conf):');
     if (!name) return;
-    const filePath = currentPath === '/' ? `/${name}` : `${currentPath}/${name}`;
+    const filePath = joinPath(currentPath, name);
     try {
       await writeFile(filePath, '# New file created with MonoTerminal\n');
     } catch (err) {
@@ -133,7 +134,7 @@ export const SftpSidebar: React.FC = () => {
   const handleNewFolder = async () => {
     const name = prompt('输入新目录名:');
     if (!name) return;
-    const dirPath = currentPath === '/' ? `/${name}` : `${currentPath}/${name}`;
+    const dirPath = joinPath(currentPath, name);
     try {
       await makeDirectory(dirPath);
     } catch (err) {
@@ -144,14 +145,21 @@ export const SftpSidebar: React.FC = () => {
   const handleUpload = () => {
     const input = document.createElement('input');
     input.type = 'file';
-    input.onchange = async () => {
+    input.onchange = () => {
       const file = input.files?.[0];
       if (!file) return;
       const reader = new FileReader();
       reader.onload = async () => {
-        const content = reader.result as string;
-        const targetPath = currentPath === '/' ? `/${file.name}` : `${currentPath}/${file.name}`;
-        await writeFile(targetPath, content);
+        try {
+          const content = reader.result as string;
+          const targetPath = joinPath(currentPath, file.name);
+          await writeFile(targetPath, content);
+        } catch (err) {
+          alert(`上传失败: ${errorMessage(err)}`);
+        }
+      };
+      reader.onerror = () => {
+        alert('读取上传文件失败');
       };
       reader.readAsText(file);
     };
@@ -232,7 +240,7 @@ export const SftpSidebar: React.FC = () => {
       <div className="p-1.5 bg-orca-bg/50 border-b border-orca-border flex items-center space-x-1 text-xs">
         <button
           onClick={goUp}
-          disabled={currentPath === '/'}
+          disabled={isRootPath(currentPath)}
           className="p-1 text-orca-muted hover:text-white disabled:opacity-30 rounded hover:bg-orca-card"
           title="回退上一级"
         >

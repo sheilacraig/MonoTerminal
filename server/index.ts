@@ -63,7 +63,12 @@ app.use('/api/security', securityRouter);
 setupWsRouter(wss, aiService, authContext);
 
 // Serve frontend in production
-const distPath = path.resolve(process.cwd(), 'dist');
+const distCandidates = [
+  path.resolve(process.cwd(), 'dist'),
+  path.resolve(process.cwd(), '../dist'),
+  typeof __dirname !== 'undefined' ? path.resolve(__dirname, '../dist') : ''
+].filter(Boolean);
+const distPath = distCandidates.find((p) => fs.existsSync(p)) || distCandidates[0];
 if (fs.existsSync(distPath)) {
   app.use(express.static(distPath));
   app.get('*', (req, res) => {

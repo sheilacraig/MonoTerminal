@@ -1,6 +1,8 @@
 import React, { useState } from 'react';
 import { X, Shield } from 'lucide-react';
 
+import { errorMessage } from '../../../shared/errors';
+
 interface ChmodModalProps {
   filePath: string;
   currentMode: string;
@@ -14,7 +16,9 @@ export const ChmodModal: React.FC<ChmodModalProps> = ({
   onConfirm,
   onClose
 }) => {
-  const [mode, setMode] = useState(currentMode || '0644');
+  const [mode, setMode] = useState(
+    /^[0-7]{3,4}$/.test(currentMode) ? currentMode : '0644'
+  );
   const [isLoading, setIsLoading] = useState(false);
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -27,6 +31,8 @@ export const ChmodModal: React.FC<ChmodModalProps> = ({
     try {
       await onConfirm(mode);
       onClose();
+    } catch (err) {
+      alert(`修改权限失败: ${errorMessage(err)}`);
     } finally {
       setIsLoading(false);
     }

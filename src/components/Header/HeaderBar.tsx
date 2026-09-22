@@ -19,7 +19,8 @@ export const HeaderBar: React.FC<HeaderBarProps> = ({ onOpenLanding }) => {
     setIsSnippetModalOpen,
     hosts,
     createSession,
-    toggleAgent
+    toggleAgent,
+    updateSessionTitle
   } = useSession();
 
   const [editingTabId, setEditingTabId] = useState<string | null>(null);
@@ -32,8 +33,9 @@ export const HeaderBar: React.FC<HeaderBarProps> = ({ onOpenLanding }) => {
   };
 
   const handleSaveRename = (tab: SessionTab) => {
-    if (editingTitle.trim()) {
-      tab.title = editingTitle.trim();
+    const trimmed = editingTitle.trim();
+    if (trimmed) {
+      updateSessionTitle(tab.id, trimmed);
     }
     setEditingTabId(null);
   };

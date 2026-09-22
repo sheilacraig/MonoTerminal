@@ -20,7 +20,18 @@ describe('Guardrail Security Engine', () => {
       'iptables -F',
       'iptables --flush',
       'ufw reset',
-      'cat /dev/null > /etc/passwd'
+      'cat /dev/null > /etc/passwd',
+      'Remove-Item -Recurse -Force C:\\',
+      'Remove-Item C:\\ -Recurse -Force',
+      'ri -r -fo C:\\',
+      'del /s /q C:\\*.*',
+      'del /f /s C:\\*',
+      'rd /s /q C:\\',
+      'rmdir /s C:\\',
+      'format C: /fs:ntfs',
+      'format D:',
+      'Stop-Computer -Force',
+      'Restart-Computer -Force'
     ];
 
     for (const cmd of dangerousCommands) {
