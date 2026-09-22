@@ -7,7 +7,7 @@
   "scripts": {
     "dev": "vite",
     "build": "tsc && vite build",
-    "build:server": "esbuild server/index.ts --bundle --platform=node --target=node20 --format=cjs --outfile=dist-server/index.cjs --external:ssh2 --external:cpu-features --external:node-pty",
+    "build:server": "esbuild server/index.ts --bundle --platform=node --target=node20 --format=cjs --outfile=dist-server/index.cjs --external:cpu-features --external:node-pty",
     "build:all": "npm run build && npm run build:server",
     "server": "tsx server/index.ts",
     "start": "tsx server/index.ts",
@@ -99,10 +99,6 @@
       "package.json"
     ],
     "extraResources": [
-      {
-        "from": "node_modules/ssh2",
-        "to": "node_modules/ssh2"
-      },
       {
         "from": "node_modules/node-pty",
         "to": "node_modules/node-pty"

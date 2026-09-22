@@ -62,8 +62,9 @@ app.use('/api/security', securityRouter);
 // WebSocket RPC Router (handshake enforces the same auth boundary)
 setupWsRouter(wss, aiService, authContext);
 
-// Serve frontend in production
 const distCandidates = [
+  process.env.RESOURCES_PATH ? path.join(process.env.RESOURCES_PATH, 'app.asar.unpacked/dist') : '',
+  process.env.RESOURCES_PATH ? path.join(process.env.RESOURCES_PATH, 'dist') : '',
   path.resolve(process.cwd(), 'dist'),
   path.resolve(process.cwd(), '../dist'),
   typeof __dirname !== 'undefined' ? path.resolve(__dirname, '../dist') : ''
