@@ -3,6 +3,7 @@ import { ChatMessage } from '../types';
 import { generateId } from '../../shared/id';
 import { useSession } from './SessionContext';
 import { useWebSocket } from './WebSocketContext';
+import { cleanCommandForExecution } from '../utils/commandCleaner';
 
 /**
  * Per-session AI chat state, hosted above the `AgentView` mount boundary.
@@ -228,7 +229,9 @@ export const AgentChatProvider: React.FC<{ children: React.ReactNode }> = ({ chi
     (cmd: string) => {
       if (!activeSession) return;
       const sid = activeSession.id;
-      executeCommandWithGuardrail(cmd, () => sendTermInput(sid, `${cmd}\r`));
+      const clean = cleanCommandForExecution(cmd) || cmd.trim();
+      if (!clean) return;
+      executeCommandWithGuardrail(clean, () => sendTermInput(sid, `${clean}\r`));
     },
     [activeSession, executeCommandWithGuardrail, sendTermInput]
   );
@@ -237,7 +240,9 @@ export const AgentChatProvider: React.FC<{ children: React.ReactNode }> = ({ chi
     (cmd: string) => {
       if (!activeSession) return;
       const sid = activeSession.id;
-      executeCommandWithGuardrail(cmd, () => sendTermInput(sid, cmd));
+      const clean = cleanCommandForExecution(cmd) || cmd.trim();
+      if (!clean) return;
+      executeCommandWithGuardrail(clean, () => sendTermInput(sid, clean));
     },
     [activeSession, executeCommandWithGuardrail, sendTermInput]
   );
@@ -245,9 +250,8 @@ export const AgentChatProvider: React.FC<{ children: React.ReactNode }> = ({ chi
   const explainCommand = useCallback(
     (cmd: string) => {
       if (!activeSessionId) return;
-      const lines = cmd.split('\n').filter(l => l.trim() && !l.trim().startsWith('#'));
-      const cleanCmd = lines[0] || cmd;
-      const parts = cleanCmd.split(/\s+/);
+      const clean = cleanCommandForExecution(cmd) || cmd.trim();
+      const parts = clean.split(/\s+/);
       const mainBin = parts[0];
       const flags = parts.slice(1);
 
