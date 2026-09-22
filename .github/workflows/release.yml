@@ -26,27 +26,36 @@ jobs:
         uses: actions/setup-node@v4
         with:
           node-version: 20
-          cache: 'npm'
 
       - name: Install Dependencies
         run: npm ci
 
-      - name: Ensure Electron binary is ready
-        run: node node_modules/electron/install.js
+      - name: Ensure native binaries are ready
+        run: |
+          node node_modules/electron/install.js
+          npx esbuild --version
 
-      - name: Build App & Executables
+      - name: Build Frontend & Backend
+        run: |
+          npm run build
+          npm run build:server
+
+      - name: Verify Build Artifacts
         shell: pwsh
         run: |
-          npm run build:all
           if (-not (Test-Path "dist-server/index.cjs")) {
-            Write-Error "dist-server/index.cjs was not built!"
+            Write-Error "dist-server/index.cjs was not found!"
             exit 1
           }
           if (-not (Test-Path "dist/index.html")) {
-            Write-Error "dist/index.html was not built!"
+            Write-Error "dist/index.html was not found!"
             exit 1
           }
-          npx electron-builder --win
+          Write-Host "Build artifacts verified successfully:"
+          Get-Item dist-server/index.cjs, dist/index.html | Select-Object FullName, Length | Format-Table
+
+      - name: Package Windows Executables
+        run: npx electron-builder --win
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
