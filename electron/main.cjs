@@ -29,22 +29,17 @@ if (!gotTheLock) {
       return;
     }
 
-    // 生产环境中，优先检查 app.asar.unpacked 下的后端脚本，兼容未 unpack 的路径
-    const unpackedServerPath = path.join(
-      process.resourcesPath || '',
-      'app.asar.unpacked/dist-server/index.cjs'
-    );
-    const asarServerPath = path.join(__dirname, '../dist-server/index.cjs');
+    // 生产环境中，优先检查 resources 目录下的后端脚本（由 extraResources 原样部署）
+    const candidates = [
+      path.join(process.resourcesPath || '', 'dist-server/index.cjs'),
+      path.join(process.resourcesPath || '', 'app.asar.unpacked/dist-server/index.cjs'),
+      path.join(__dirname, '../dist-server/index.cjs')
+    ];
     const serverPath =
-      app.isPackaged && fs.existsSync(unpackedServerPath)
-        ? unpackedServerPath
-        : asarServerPath;
+      candidates.find((p) => fs.existsSync(p)) || candidates[0];
 
-    const unpackedCwd = path.join(process.resourcesPath || '', 'app.asar.unpacked');
     const serverCwd = app.isPackaged
-      ? fs.existsSync(unpackedCwd)
-        ? unpackedCwd
-        : process.resourcesPath || path.join(__dirname, '..')
+      ? (process.resourcesPath || path.join(__dirname, '..'))
       : path.join(__dirname, '..');
 
     const extraNodeModules = path.join(process.resourcesPath || '', 'node_modules');
@@ -52,6 +47,7 @@ if (!gotTheLock) {
     const nodePaths = [
       extraNodeModules,
       unpackedNodeModules,
+      path.join(serverCwd, 'node_modules'),
       process.env.NODE_PATH
     ]
       .filter(Boolean)

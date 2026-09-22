@@ -101,6 +101,14 @@
     ],
     "extraResources": [
       {
+        "from": "dist",
+        "to": "dist"
+      },
+      {
+        "from": "dist-server",
+        "to": "dist-server"
+      },
+      {
         "from": "node_modules/node-pty",
         "to": "node_modules/node-pty"
       }
