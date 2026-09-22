@@ -29,25 +29,36 @@ if (!gotTheLock) {
       return;
     }
 
-    // 生产环境中，优先检查 resources 目录下的后端脚本（由 extraResources 原样部署）
+    // 生产环境中，优先检查 resources 目录或 app.asar.unpacked 下的后端脚本
     const candidates = [
-      path.join(process.resourcesPath || '', 'dist-server/index.cjs'),
-      path.join(process.resourcesPath || '', 'app.asar.unpacked/dist-server/index.cjs'),
-      path.join(__dirname, '../dist-server/index.cjs')
+      path.join(process.resourcesPath || '', 'dist-server', 'index.cjs'),
+      path.join(process.resourcesPath || '', 'app.asar.unpacked', 'dist-server', 'index.cjs'),
+      path.join(app.getAppPath(), '..', 'dist-server', 'index.cjs'),
+      path.join(app.getAppPath(), 'dist-server', 'index.cjs'),
+      path.join(__dirname, '..', 'dist-server', 'index.cjs')
     ];
-    const serverPath =
-      candidates.find((p) => fs.existsSync(p)) || candidates[0];
+    const serverPath = candidates.find((p) => fs.existsSync(p));
+    if (!serverPath) {
+      const errMsg = `[MonoTerminal] 致命错误: 未找到后台服务脚本 dist-server/index.cjs\n` +
+        `已检查路径:\n${candidates.map((c) => `  - ${c}`).join('\n')}\n` +
+        `resourcesPath: ${process.resourcesPath}\n` +
+        `appPath: ${app.getAppPath()}`;
+      console.error(errMsg);
+      lastServerError = errMsg;
+      return;
+    }
 
     const serverCwd = app.isPackaged
-      ? (process.resourcesPath || path.join(__dirname, '..'))
+      ? (process.resourcesPath || path.dirname(path.dirname(serverPath)))
       : path.join(__dirname, '..');
 
     const extraNodeModules = path.join(process.resourcesPath || '', 'node_modules');
-    const unpackedNodeModules = path.join(process.resourcesPath || '', 'app.asar.unpacked/node_modules');
+    const unpackedNodeModules = path.join(process.resourcesPath || '', 'app.asar.unpacked', 'node_modules');
     const nodePaths = [
       extraNodeModules,
       unpackedNodeModules,
       path.join(serverCwd, 'node_modules'),
+      path.join(path.dirname(serverPath), '..', 'node_modules'),
       process.env.NODE_PATH
     ]
       .filter(Boolean)

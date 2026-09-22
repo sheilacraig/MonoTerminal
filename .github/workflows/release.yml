@@ -35,20 +35,37 @@ jobs:
         run: node node_modules/electron/install.js
 
       - name: Build App & Executables
+        shell: pwsh
         run: |
           npm run build:all
-          npx electron-builder --win portable nsis
+          if (-not (Test-Path "dist-server/index.cjs")) {
+            Write-Error "dist-server/index.cjs was not built!"
+            exit 1
+          }
+          if (-not (Test-Path "dist/index.html")) {
+            Write-Error "dist/index.html was not built!"
+            exit 1
+          }
+          npx electron-builder --win
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
       - name: Publish GitHub Release
-        uses: softprops/action-gh-release@v2
+        shell: pwsh
         if: startsWith(github.ref, 'refs/tags/')
-        with:
-          name: MonoTerminal ${{ github.ref_name }}
-          files: release/*.exe
-          generate_release_notes: true
-          draft: false
-          prerelease: false
         env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          $tag = "${{ github.ref_name }}"
+          $exeFiles = Get-ChildItem -Path release -Filter "MonoTerminal*.exe" | ForEach-Object { $_.FullName }
+          Write-Host "Found executable files to publish:"
+          $exeFiles | ForEach-Object { Write-Host " - $_" }
+
+          $null = gh release view $tag 2>$null
+          if ($LASTEXITCODE -ne 0) {
+            Write-Host "Creating Release $tag..."
+            gh release create $tag $exeFiles --title "MonoTerminal $tag" --generate-notes
+          } else {
+            Write-Host "Release $tag already exists. Uploading assets with --clobber..."
+            gh release upload $tag $exeFiles --clobber
+          }
