@@ -26,6 +26,7 @@ jobs:
         uses: actions/setup-node@v4
         with:
           node-version: 22
+          cache: 'npm'
 
       - name: Install Dependencies
         run: npm ci
@@ -36,11 +37,31 @@ jobs:
           node node_modules/electron/install.js
           npx esbuild --version
 
-      - name: Build Frontend & Backend
+      - name: Build Frontend
         shell: bash
         run: |
-          npm run build
-          npm run build:server
+          set +e
+          npm run build 2>&1 | tee front.log
+          if [ ${PIPESTATUS[0]} -ne 0 ]; then
+            echo "### ❌ Frontend Build Failed" >> $GITHUB_STEP_SUMMARY
+            echo '```' >> $GITHUB_STEP_SUMMARY
+            cat front.log >> $GITHUB_STEP_SUMMARY
+            echo '```' >> $GITHUB_STEP_SUMMARY
+            exit 1
+          fi
+
+      - name: Build Backend Server
+        shell: bash
+        run: |
+          set +e
+          npm run build:server 2>&1 | tee server.log
+          if [ ${PIPESTATUS[0]} -ne 0 ]; then
+            echo "### ❌ Backend Build Failed" >> $GITHUB_STEP_SUMMARY
+            echo '```' >> $GITHUB_STEP_SUMMARY
+            cat server.log >> $GITHUB_STEP_SUMMARY
+            echo '```' >> $GITHUB_STEP_SUMMARY
+            exit 1
+          fi
 
       - name: Verify Build Artifacts
         shell: pwsh
