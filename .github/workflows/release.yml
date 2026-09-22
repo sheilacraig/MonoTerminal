@@ -31,9 +31,6 @@ jobs:
           node-version: 20
           cache: 'npm'
 
-      - name: Configure node-gyp
-        run: npm config set msvs_version 2022 --global
-
       - name: Install Dependencies
         run: npm ci
 
