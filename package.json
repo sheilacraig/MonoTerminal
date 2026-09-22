@@ -82,6 +82,7 @@
   "build": {
     "appId": "com.monoterminal.app",
     "productName": "MonoTerminal",
+    "artifactName": "${productName}-${version}.${ext}",
     "electronDist": "node_modules/electron/dist",
     "npmRebuild": false,
     "asar": true,
@@ -115,6 +116,7 @@
       ]
     },
     "nsis": {
+      "artifactName": "${productName}-Setup-${version}.${ext}",
       "oneClick": false,
       "allowToChangeInstallationDirectory": true,
       "createDesktopShortcut": true,
