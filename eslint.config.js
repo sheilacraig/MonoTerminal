@@ -6,7 +6,15 @@ import prettier from 'eslint-config-prettier';
 
 export default tseslint.config(
   {
-    ignores: ['dist/**', 'dist-server/**', 'release/**', 'node_modules/**', '.npm-cache/**', 'electron/**']
+    ignores: [
+      'dist/**',
+      'dist-server/**',
+      'release/**',
+      'release-*/**',
+      'node_modules/**',
+      '.npm-cache/**',
+      'electron/**'
+    ]
   },
 
   js.configs.recommended,
@@ -25,9 +33,9 @@ export default tseslint.config(
     }
   },
 
-  // Node-side code (backend, build configs, tests)
+  // Node-side code (backend, build configs, tests, maintenance scripts)
   {
-    files: ['server/**/*.ts', 'tests/**/*.ts', '*.config.ts'],
+    files: ['server/**/*.ts', 'tests/**/*.ts', '*.config.ts', 'scripts/**/*.mjs'],
     languageOptions: {
       globals: { ...globals.node }
     }

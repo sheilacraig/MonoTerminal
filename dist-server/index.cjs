@@ -1295,8 +1295,8 @@ var require_node = __commonJS({
           break;
         case "PIPE":
         case "TCP":
-          var net = require("net");
-          stream2 = new net.Socket({
+          var net2 = require("net");
+          stream2 = new net2.Socket({
             fd: fd2,
             readable: false,
             writable: true
@@ -17740,8 +17740,8 @@ var require_node2 = __commonJS({
           break;
         case "PIPE":
         case "TCP":
-          var net = require("net");
-          stream2 = new net.Socket({
+          var net2 = require("net");
+          stream2 = new net2.Socket({
             fd: fd2,
             readable: false,
             writable: true
@@ -18459,8 +18459,8 @@ var require_node3 = __commonJS({
           break;
         case "PIPE":
         case "TCP":
-          var net = require("net");
-          stream2 = new net.Socket({
+          var net2 = require("net");
+          stream2 = new net2.Socket({
             fd: fd2,
             readable: false,
             writable: true
@@ -19299,14 +19299,14 @@ var require_init = __commonJS({
   "node_modules/express/lib/middleware/init.js"(exports2) {
     "use strict";
     var setPrototypeOf = require_setprototypeof();
-    exports2.init = function(app2) {
+    exports2.init = function(app) {
       return function expressInit(req, res, next) {
-        if (app2.enabled("x-powered-by")) res.setHeader("X-Powered-By", "Express");
+        if (app.enabled("x-powered-by")) res.setHeader("X-Powered-By", "Express");
         req.res = res;
         res.req = req;
         req.next = next;
-        setPrototypeOf(req, app2.request);
-        setPrototypeOf(res, app2.response);
+        setPrototypeOf(req, app.request);
+        setPrototypeOf(res, app.response);
         res.locals = res.locals || /* @__PURE__ */ Object.create(null);
         next();
       };
@@ -20025,8 +20025,8 @@ var require_node4 = __commonJS({
           break;
         case "PIPE":
         case "TCP":
-          var net = require("net");
-          stream2 = new net.Socket({
+          var net2 = require("net");
+          stream2 = new net2.Socket({
             fd: fd2,
             readable: false,
             writable: true
@@ -21989,15 +21989,15 @@ var require_application = __commonJS({
     var setPrototypeOf = require_setprototypeof();
     var hasOwnProperty = Object.prototype.hasOwnProperty;
     var slice = Array.prototype.slice;
-    var app2 = exports2 = module2.exports = {};
+    var app = exports2 = module2.exports = {};
     var trustProxyDefaultSymbol = "@@symbol:trust_proxy_default";
-    app2.init = function init() {
+    app.init = function init() {
       this.cache = {};
       this.engines = {};
       this.settings = {};
       this.defaultConfiguration();
     };
-    app2.defaultConfiguration = function defaultConfiguration() {
+    app.defaultConfiguration = function defaultConfiguration() {
       var env = process.env.NODE_ENV || "development";
       this.enable("x-powered-by");
       this.set("etag", "weak");
@@ -22035,7 +22035,7 @@ var require_application = __commonJS({
         }
       });
     };
-    app2.lazyrouter = function lazyrouter() {
+    app.lazyrouter = function lazyrouter() {
       if (!this._router) {
         this._router = new Router5({
           caseSensitive: this.enabled("case sensitive routing"),
@@ -22045,7 +22045,7 @@ var require_application = __commonJS({
         this._router.use(middleware.init(this));
       }
     };
-    app2.handle = function handle(req, res, callback) {
+    app.handle = function handle(req, res, callback) {
       var router = this._router;
       var done = callback || finalhandler(req, res, {
         env: this.get("env"),
@@ -22058,7 +22058,7 @@ var require_application = __commonJS({
       }
       router.handle(req, res, done);
     };
-    app2.use = function use(fn) {
+    app.use = function use(fn) {
       var offset = 0;
       var path5 = "/";
       if (typeof fn !== "function") {
@@ -22096,11 +22096,11 @@ var require_application = __commonJS({
       }, this);
       return this;
     };
-    app2.route = function route(path5) {
+    app.route = function route(path5) {
       this.lazyrouter();
       return this._router.route(path5);
     };
-    app2.engine = function engine(ext, fn) {
+    app.engine = function engine(ext, fn) {
       if (typeof fn !== "function") {
         throw new Error("callback function required");
       }
@@ -22108,7 +22108,7 @@ var require_application = __commonJS({
       this.engines[extension2] = fn;
       return this;
     };
-    app2.param = function param(name, fn) {
+    app.param = function param(name, fn) {
       this.lazyrouter();
       if (Array.isArray(name)) {
         for (var i = 0; i < name.length; i++) {
@@ -22119,7 +22119,7 @@ var require_application = __commonJS({
       this._router.param(name, fn);
       return this;
     };
-    app2.set = function set(setting, val) {
+    app.set = function set(setting, val) {
       if (arguments.length === 1) {
         var settings = this.settings;
         while (settings && settings !== Object.prototype) {
@@ -22149,23 +22149,23 @@ var require_application = __commonJS({
       }
       return this;
     };
-    app2.path = function path5() {
+    app.path = function path5() {
       return this.parent ? this.parent.path() + this.mountpath : "";
     };
-    app2.enabled = function enabled(setting) {
+    app.enabled = function enabled(setting) {
       return Boolean(this.set(setting));
     };
-    app2.disabled = function disabled(setting) {
+    app.disabled = function disabled(setting) {
       return !this.set(setting);
     };
-    app2.enable = function enable(setting) {
+    app.enable = function enable(setting) {
       return this.set(setting, true);
     };
-    app2.disable = function disable(setting) {
+    app.disable = function disable(setting) {
       return this.set(setting, false);
     };
     methods.forEach(function(method) {
-      app2[method] = function(path5) {
+      app[method] = function(path5) {
         if (method === "get" && arguments.length === 1) {
           return this.set(path5);
         }
@@ -22175,7 +22175,7 @@ var require_application = __commonJS({
         return this;
       };
     });
-    app2.all = function all(path5) {
+    app.all = function all(path5) {
       this.lazyrouter();
       var route = this._router.route(path5);
       var args = slice.call(arguments, 1);
@@ -22184,8 +22184,8 @@ var require_application = __commonJS({
       }
       return this;
     };
-    app2.del = deprecate.function(app2.delete, "app.del: Use app.delete instead");
-    app2.render = function render(name, options, callback) {
+    app.del = deprecate.function(app.delete, "app.del: Use app.delete instead");
+    app.render = function render(name, options, callback) {
       var cache = this.cache;
       var done = callback;
       var engines = this.engines;
@@ -22226,9 +22226,9 @@ var require_application = __commonJS({
       }
       tryRender(view, renderOptions, done);
     };
-    app2.listen = function listen() {
-      var server2 = http2.createServer(this);
-      return server2.listen.apply(server2, arguments);
+    app.listen = function listen() {
+      var server = http2.createServer(this);
+      return server.listen.apply(server, arguments);
     };
     function logerror(err) {
       if (this.get("env") !== "test") console.error(err.stack || err.toString());
@@ -23293,7 +23293,7 @@ var require_response = __commonJS({
       var encoding;
       var req = this.req;
       var type;
-      var app2 = this.app;
+      var app = this.app;
       if (arguments.length === 2) {
         if (typeof arguments[0] !== "number" && typeof arguments[1] === "number") {
           deprecate("res.send(body, status): Use res.status(status).send(body) instead");
@@ -23340,7 +23340,7 @@ var require_response = __commonJS({
           this.set("Content-Type", setCharset(type, "utf-8"));
         }
       }
-      var etagFn = app2.get("etag fn");
+      var etagFn = app.get("etag fn");
       var generateETag = !this.get("ETag") && typeof etagFn === "function";
       var len;
       if (chunk !== void 0) {
@@ -23392,10 +23392,10 @@ var require_response = __commonJS({
           val = arguments[1];
         }
       }
-      var app2 = this.app;
-      var escape2 = app2.get("json escape");
-      var replacer = app2.get("json replacer");
-      var spaces = app2.get("json spaces");
+      var app = this.app;
+      var escape2 = app.get("json escape");
+      var replacer = app.get("json replacer");
+      var spaces = app.get("json spaces");
       var body = stringify(val, replacer, spaces, escape2);
       if (!this.get("Content-Type")) {
         this.set("Content-Type", "application/json");
@@ -23414,12 +23414,12 @@ var require_response = __commonJS({
           val = arguments[1];
         }
       }
-      var app2 = this.app;
-      var escape2 = app2.get("json escape");
-      var replacer = app2.get("json replacer");
-      var spaces = app2.get("json spaces");
+      var app = this.app;
+      var escape2 = app.get("json escape");
+      var replacer = app.get("json replacer");
+      var spaces = app.get("json spaces");
       var body = stringify(val, replacer, spaces, escape2);
-      var callback = this.req.query[app2.get("jsonp callback name")];
+      var callback = this.req.query[app.get("jsonp callback name")];
       if (!this.get("Content-Type")) {
         this.set("X-Content-Type-Options", "nosniff");
         this.set("Content-Type", "application/json");
@@ -23684,7 +23684,7 @@ var require_response = __commonJS({
       return this;
     };
     res.render = function render(view, options, callback) {
-      var app2 = this.req.app;
+      var app = this.req.app;
       var done = callback;
       var opts = options || {};
       var req = this.req;
@@ -23698,7 +23698,7 @@ var require_response = __commonJS({
         if (err) return req.next(err);
         self2.send(str);
       };
-      app2.render(view, opts, done);
+      app.render(view, opts, done);
     };
     function sendfile(res2, file, options, callback) {
       var done = false;
@@ -23906,19 +23906,19 @@ var require_express = __commonJS({
     var res = require_response();
     exports2 = module2.exports = createApplication;
     function createApplication() {
-      var app2 = function(req2, res2, next) {
-        app2.handle(req2, res2, next);
+      var app = function(req2, res2, next) {
+        app.handle(req2, res2, next);
       };
-      mixin(app2, EventEmitter4.prototype, false);
-      mixin(app2, proto, false);
-      app2.request = Object.create(req, {
-        app: { configurable: true, enumerable: true, writable: true, value: app2 }
+      mixin(app, EventEmitter4.prototype, false);
+      mixin(app, proto, false);
+      app.request = Object.create(req, {
+        app: { configurable: true, enumerable: true, writable: true, value: app }
       });
-      app2.response = Object.create(res, {
-        app: { configurable: true, enumerable: true, writable: true, value: app2 }
+      app.response = Object.create(res, {
+        app: { configurable: true, enumerable: true, writable: true, value: app }
       });
-      app2.init();
-      return app2;
+      app.init();
+      return app;
     }
     exports2.application = proto;
     exports2.request = req;
@@ -26206,7 +26206,7 @@ var require_websocket = __commonJS({
     var EventEmitter4 = require("events");
     var https = require("https");
     var http2 = require("http");
-    var net = require("net");
+    var net2 = require("net");
     var tls = require("tls");
     var { randomBytes, createHash } = require("crypto");
     var { Duplex, Readable } = require("stream");
@@ -26950,12 +26950,12 @@ var require_websocket = __commonJS({
     }
     function netConnect(options) {
       options.path = options.socketPath;
-      return net.connect(options);
+      return net2.connect(options);
     }
     function tlsConnect(options) {
       options.path = void 0;
       if (!options.servername && options.servername !== "") {
-        options.servername = net.isIP(options.host) ? "" : options.host;
+        options.servername = net2.isIP(options.host) ? "" : options.host;
       }
       return tls.connect(options);
     }
@@ -27410,10 +27410,10 @@ var require_websocket_server = __commonJS({
             process.nextTick(emitClose, this);
           }
         } else {
-          const server2 = this._server;
+          const server = this._server;
           this._removeListeners();
           this._removeListeners = this._server = null;
-          server2.close(() => {
+          server.close(() => {
             emitClose(this);
           });
         }
@@ -27598,17 +27598,17 @@ var require_websocket_server = __commonJS({
       }
     };
     module2.exports = WebSocketServer3;
-    function addListeners(server2, map) {
-      for (const event of Object.keys(map)) server2.on(event, map[event]);
+    function addListeners(server, map) {
+      for (const event of Object.keys(map)) server.on(event, map[event]);
       return function removeListeners() {
         for (const event of Object.keys(map)) {
-          server2.removeListener(event, map[event]);
+          server.removeListener(event, map[event]);
         }
       };
     }
-    function emitClose(server2) {
-      server2._state = CLOSED;
-      server2.emit("close");
+    function emitClose(server) {
+      server._state = CLOSED;
+      server.emit("close");
     }
     function socketOnError() {
       this.destroy();
@@ -27627,11 +27627,11 @@ var require_websocket_server = __commonJS({
 ` + Object.keys(headers).map((h) => `${h}: ${headers[h]}`).join("\r\n") + "\r\n\r\n" + message
       );
     }
-    function abortHandshakeOrEmitwsClientError(server2, req, socket, code, message, headers) {
-      if (server2.listenerCount("wsClientError")) {
+    function abortHandshakeOrEmitwsClientError(server, req, socket, code, message, headers) {
+      if (server.listenerCount("wsClientError")) {
         const err = new Error(message);
         Error.captureStackTrace(err, abortHandshakeOrEmitwsClientError);
-        server2.emit("wsClientError", err, socket, req);
+        server.emit("wsClientError", err, socket, req);
       } else {
         abortHandshake(socket, code, message, headers);
       }
@@ -44007,8 +44007,8 @@ var require_Channel = __commonJS({
         };
         super(streamOpts);
         this.allowHalfOpen = streamOpts.allowHalfOpen;
-        const server2 = !!(opts && opts.server);
-        this.server = server2;
+        const server = !!(opts && opts.server);
+        this.server = server;
         this.type = info.type;
         this.subtype = void 0;
         this.incoming = info.incoming;
@@ -44023,7 +44023,7 @@ var require_Channel = __commonJS({
           desc: void 0
         };
         this.stdin = this.stdout = this;
-        if (server2)
+        if (server)
           this.stderr = new ServerStderr(this);
         else
           this.stderr = new ClientStderr(this, streamOpts);
@@ -46655,7 +46655,7 @@ var require_server = __commonJS({
     Server.KEEPALIVE_CLIENT_INTERVAL = 15e3;
     Server.KEEPALIVE_CLIENT_COUNT_MAX = 3;
     var Client2 = class extends EventEmitter4 {
-      constructor(socket, hostKeys, ident, offer, debug, server2, srvCfg) {
+      constructor(socket, hostKeys, ident, offer, debug, server, srvCfg) {
         super();
         let exchanges = 0;
         let acceptedAuthSvc = false;
@@ -46730,7 +46730,7 @@ var require_server = __commonJS({
               port: socket.remotePort,
               header
             };
-            if (!server2.emit("connection", this, info)) {
+            if (!server.emit("connection", this, info)) {
               proto.disconnect(DISCONNECT_REASON.BY_APPLICATION);
               socket.end();
               return;
@@ -47972,6 +47972,7 @@ var require_lib5 = __commonJS({
 // server/index.ts
 var import_express5 = __toESM(require_express2(), 1);
 var import_http = __toESM(require("http"), 1);
+var import_net = __toESM(require("net"), 1);
 
 // node_modules/ws/wrapper.mjs
 var import_stream = __toESM(require_stream(), 1);
@@ -49850,17 +49851,26 @@ var LocalPtyManager = class {
     const shell = detectDefaultShell();
     const resolvedCwd = expandHome(cwd);
     const initialCwd = resolvedCwd && import_fs2.default.existsSync(resolvedCwd) ? resolvedCwd : import_os2.default.homedir();
-    const pty = (0, import_node_pty.spawn)(shell.command, shell.args, {
-      name: "xterm-256color",
-      cols: Math.max(1, cols),
-      rows: Math.max(1, rows),
-      cwd: initialCwd,
-      env: {
-        ...process.env,
-        TERM: "xterm-256color",
-        COLORTERM: "truecolor"
-      }
-    });
+    let pty;
+    try {
+      pty = (0, import_node_pty.spawn)(shell.command, shell.args, {
+        name: "xterm-256color",
+        cols: Math.max(1, cols),
+        rows: Math.max(1, rows),
+        cwd: initialCwd,
+        env: {
+          ...process.env,
+          TERM: "xterm-256color",
+          COLORTERM: "truecolor"
+        }
+      });
+    } catch (err) {
+      const reason = err instanceof Error ? err.message : String(err);
+      throw new Error(
+        `\u7EC8\u7AEF\u7EC4\u4EF6 (node-pty) \u521D\u59CB\u5316\u5931\u8D25\uFF1A${reason}\u3002\u8BF7\u5148\u6267\u884C npm rebuild node-pty \u540E\u91CD\u8BD5\uFF1B\u82E5\u4ECD\u5931\u8D25\uFF0C\u53EF\u6539\u7528\u300C\u65B0\u5EFA SSH \u4E3B\u673A\u300D\u8FDE\u63A5\u8FDC\u7A0B\u670D\u52A1\u5668\u3002`,
+        { cause: err }
+      );
+    }
     const events = new import_events3.EventEmitter();
     const session = {
       pty,
@@ -50638,10 +50648,10 @@ var DEMO_HOST = {
   initialDir: import_os4.default.homedir(),
   createdAt: 0
 };
-function setupWsRouter(wss2, aiService2, auth) {
+function setupWsRouter(wss, aiService, auth) {
   const mockSessions = /* @__PURE__ */ new Map();
   const deps = {
-    aiService: aiService2,
+    aiService,
     sshManager,
     storage: localStorageManager,
     mockSessions,
@@ -50654,7 +50664,7 @@ function setupWsRouter(wss2, aiService2, auth) {
     localPtyManager: new LocalPtyManager(),
     localFsManager: new LocalFsManager()
   };
-  wss2.on("connection", (ws, req) => {
+  wss.on("connection", (ws, req) => {
     if (!checkWsAuth(req, auth)) {
       ws.close(4401, "unauthorized");
       return;
@@ -50699,54 +50709,113 @@ function setupWsRouter(wss2, aiService2, auth) {
 }
 
 // server/index.ts
-var PORT = parseInt(process.env.PORT || "3001", 10);
+var PREFERRED_PORT = parseInt(process.env.PORT || "3001", 10);
 var DEV_PORTS = [5173];
-var ALLOWED_PORTS = [PORT, ...DEV_PORTS];
-var app = (0, import_express5.default)();
-app.use(
-  (0, import_cors.default)({
-    origin: (origin, cb) => {
-      cb(null, isAllowedOrigin(origin, ALLOWED_PORTS));
-    },
-    credentials: false
-  })
-);
-app.use(import_express5.default.json());
-var authContext = {
-  token: generateAuthToken(),
-  allowedPorts: ALLOWED_PORTS
-};
-try {
-  import_fs5.default.writeFileSync(import_path4.default.join(localStorageManager.getDataDir(), "server_token"), authContext.token, {
-    mode: 384
-  });
-} catch {
-}
-app.use(createAuthMiddleware(authContext));
-var server = import_http.default.createServer(app);
-var wss = new import_websocket_server.default({ server, path: "/ws" });
-var aiService = new AIService(localStorageManager);
-app.use("/api/hosts", hostsRouter);
-app.use("/api/settings", settingsRouter);
-app.use("/api/guardrail", guardrailRouter);
-app.use("/api/security", securityRouter);
-setupWsRouter(wss, aiService, authContext);
-var distCandidates = [
-  process.env.RESOURCES_PATH ? import_path4.default.join(process.env.RESOURCES_PATH, "app.asar.unpacked/dist") : "",
-  process.env.RESOURCES_PATH ? import_path4.default.join(process.env.RESOURCES_PATH, "dist") : "",
-  import_path4.default.resolve(process.cwd(), "dist"),
-  import_path4.default.resolve(process.cwd(), "../dist"),
-  typeof __dirname !== "undefined" ? import_path4.default.resolve(__dirname, "../dist") : ""
-].filter(Boolean);
-var distPath = distCandidates.find((p) => import_fs5.default.existsSync(p)) || distCandidates[0];
-if (import_fs5.default.existsSync(distPath)) {
-  app.use(import_express5.default.static(distPath));
-  app.get("*", (req, res) => {
-    res.sendFile(import_path4.default.join(distPath, "index.html"));
+var PORT_PROBE_RANGE = 20;
+function isPortFree(port) {
+  return new Promise((resolve) => {
+    const probe = import_net.default.createServer();
+    probe.once("error", () => resolve(false));
+    probe.once("listening", () => {
+      probe.close(() => resolve(true));
+    });
+    probe.listen(port);
   });
 }
-server.listen(PORT, () => {
-  console.log(`\x1B[32m[MonoTerminal Server]\x1B[0m \u540E\u7AEF\u670D\u52A1\u5DF2\u5C31\u7EEA: http://localhost:${PORT}`);
+async function resolvePort(preferred) {
+  if (await isPortFree(preferred)) return preferred;
+  for (let offset = 1; offset <= PORT_PROBE_RANGE; offset++) {
+    const candidate = preferred + offset;
+    if (candidate <= 65535 && await isPortFree(candidate)) {
+      console.warn(
+        `\x1B[33m[MonoTerminal Server]\x1B[0m \u7AEF\u53E3 ${preferred} \u5DF2\u88AB\u5360\u7528\uFF0C\u81EA\u52A8\u5207\u6362\u5230 ${candidate}`
+      );
+      return candidate;
+    }
+  }
+  throw new Error(
+    `\u7AEF\u53E3 ${preferred}~${preferred + PORT_PROBE_RANGE} \u5747\u88AB\u5360\u7528\u3002\u8BF7\u5173\u95ED\u5360\u7528\u7AEF\u53E3\u7684\u7A0B\u5E8F\uFF0C\u6216\u6307\u5B9A\u5176\u4ED6\u7AEF\u53E3\u540E\u91CD\u8BD5\uFF1APORT=4000 npm start`
+  );
+}
+function resolveDistPath() {
+  const candidates = [
+    process.env.RESOURCES_PATH ? import_path4.default.join(process.env.RESOURCES_PATH, "app.asar.unpacked/dist") : "",
+    process.env.RESOURCES_PATH ? import_path4.default.join(process.env.RESOURCES_PATH, "dist") : "",
+    import_path4.default.resolve(process.cwd(), "dist"),
+    import_path4.default.resolve(process.cwd(), "../dist"),
+    typeof __dirname !== "undefined" ? import_path4.default.resolve(__dirname, "../dist") : ""
+  ].filter(Boolean);
+  return candidates.find((p) => import_fs5.default.existsSync(p)) || candidates[0];
+}
+async function main() {
+  const PORT = await resolvePort(PREFERRED_PORT);
+  const ALLOWED_PORTS = [PORT, ...DEV_PORTS];
+  const app = (0, import_express5.default)();
+  app.use(
+    (0, import_cors.default)({
+      origin: (origin, cb) => {
+        cb(null, isAllowedOrigin(origin, ALLOWED_PORTS));
+      },
+      credentials: false
+    })
+  );
+  app.use(import_express5.default.json());
+  const authContext = {
+    token: generateAuthToken(),
+    allowedPorts: ALLOWED_PORTS
+  };
+  try {
+    import_fs5.default.writeFileSync(import_path4.default.join(localStorageManager.getDataDir(), "server_token"), authContext.token, {
+      mode: 384
+    });
+  } catch {
+  }
+  app.use(createAuthMiddleware(authContext));
+  const server = import_http.default.createServer(app);
+  const wss = new import_websocket_server.default({ server, path: "/ws" });
+  const aiService = new AIService(localStorageManager);
+  app.use("/api/hosts", hostsRouter);
+  app.use("/api/settings", settingsRouter);
+  app.use("/api/guardrail", guardrailRouter);
+  app.use("/api/security", securityRouter);
+  setupWsRouter(wss, aiService, authContext);
+  const distPath = resolveDistPath();
+  if (import_fs5.default.existsSync(distPath)) {
+    app.use(import_express5.default.static(distPath));
+    app.get("*", (req, res) => {
+      res.sendFile(import_path4.default.join(distPath, "index.html"));
+    });
+  } else {
+    console.warn(
+      `\x1B[33m[MonoTerminal Server]\x1B[0m \u672A\u627E\u5230\u524D\u7AEF\u6784\u5EFA\u4EA7\u7269 dist/\uFF08\u67E5\u627E\u8DEF\u5F84\uFF1A${distPath}\uFF09\u3002
+  \u5F53\u524D\u4EC5\u63D0\u4F9B API\uFF0C\u6D4F\u89C8\u5668\u6253\u5F00\u4F1A\u663E\u793A 404\u3002\u8BF7\u5148\u6267\u884C \x1B[36mnpm run build\x1B[0m\uFF0C\u6216\u76F4\u63A5\u4F7F\u7528 \x1B[36mnpm run serve\x1B[0m\uFF08\u81EA\u52A8\u6784\u5EFA\u5E76\u542F\u52A8\uFF09\u3002`
+    );
+  }
+  server.on("error", (err) => {
+    if (err.code === "EADDRINUSE") {
+      console.error(
+        `\x1B[31m[MonoTerminal Server]\x1B[0m \u7AEF\u53E3 ${PORT} \u5DF2\u88AB\u5360\u7528\uFF0C\u670D\u52A1\u542F\u52A8\u5931\u8D25\u3002
+  \u8BF7\u5173\u95ED\u5360\u7528\u8BE5\u7AEF\u53E3\u7684\u7A0B\u5E8F\uFF0C\u6216\u6362\u4E00\u4E2A\u7AEF\u53E3\u542F\u52A8\uFF1APORT=4000 npm start`
+      );
+    } else if (err.code === "EACCES") {
+      console.error(
+        `\x1B[31m[MonoTerminal Server]\x1B[0m \u6CA1\u6709\u6743\u9650\u76D1\u542C\u7AEF\u53E3 ${PORT}\uFF0C\u8BF7\u6539\u7528 1024 \u4EE5\u4E0A\u7684\u7AEF\u53E3\u3002`
+      );
+    } else {
+      console.error(`\x1B[31m[MonoTerminal Server]\x1B[0m \u670D\u52A1\u542F\u52A8\u5931\u8D25\uFF1A${err.message}`);
+    }
+    process.exit(1);
+  });
+  server.listen(PORT, () => {
+    console.log(`\x1B[32m[MonoTerminal Server]\x1B[0m \u540E\u7AEF\u670D\u52A1\u5DF2\u5C31\u7EEA: http://localhost:${PORT}`);
+    console.log(`MONOTERMINAL_READY port=${PORT}`);
+  });
+}
+main().catch((err) => {
+  console.error(
+    `\x1B[31m[MonoTerminal Server]\x1B[0m \u542F\u52A8\u5931\u8D25\uFF1A${err instanceof Error ? err.message : String(err)}`
+  );
+  process.exit(1);
 });
 /*! Bundled license information:
 

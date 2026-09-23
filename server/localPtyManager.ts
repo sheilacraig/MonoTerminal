@@ -121,17 +121,29 @@ export class LocalPtyManager implements LocalPtyManagerApi {
     const resolvedCwd = expandHome(cwd);
     const initialCwd = resolvedCwd && fs.existsSync(resolvedCwd) ? resolvedCwd : os.homedir();
 
-    const pty = spawn(shell.command, shell.args, {
-      name: 'xterm-256color',
-      cols: Math.max(1, cols),
-      rows: Math.max(1, rows),
-      cwd: initialCwd,
-      env: {
-        ...process.env,
-        TERM: 'xterm-256color',
-        COLORTERM: 'truecolor'
-      } as Record<string, string>
-    });
+    let pty: IPty;
+    try {
+      pty = spawn(shell.command, shell.args, {
+        name: 'xterm-256color',
+        cols: Math.max(1, cols),
+        rows: Math.max(1, rows),
+        cwd: initialCwd,
+        env: {
+          ...process.env,
+          TERM: 'xterm-256color',
+          COLORTERM: 'truecolor'
+        } as Record<string, string>
+      });
+    } catch (err) {
+      // node-pty 原生模块缺失 / 与本机 Node 版本不匹配时给出可执行的修复建议，
+      // 而不是把一句原生报错直接抛给用户。
+      const reason = err instanceof Error ? err.message : String(err);
+      throw new Error(
+        `终端组件 (node-pty) 初始化失败：${reason}。` +
+          `请先执行 npm rebuild node-pty 后重试；若仍失败，可改用「新建 SSH 主机」连接远程服务器。`,
+        { cause: err }
+      );
+    }
 
     const events = new EventEmitter();
     const session: LocalPtySession = {

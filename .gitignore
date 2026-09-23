@@ -7,6 +7,7 @@ node_modules/
 # Production / Build output
 dist/
 release/
+release-*/
 build/
 out/
 
@@ -35,6 +36,9 @@ lerna-debug.log*
 *.njsproj
 *.sln
 *.sw?
+
+# Agent local workspace (memory, local skills)
+.workbuddy/
 
 # OS generated files
 .DS_Store

@@ -4,6 +4,10 @@ const { fork } = require('child_process');
 const http = require('http');
 const fs = require('fs');
 
+// 本地优先工具：强制绕过系统代理。否则开着全局代理（Clash/V2Ray 等）的机器上，
+// 渲染进程对 127.0.0.1 的请求可能被代理拦截，表现为「后台服务启动超时」。
+app.commandLine.appendSwitch('no-proxy-server');
+
 // 单实例锁：防止重复启动多个进程导致端口冲突和黑屏
 const gotTheLock = app.requestSingleInstanceLock();
 if (!gotTheLock) {
@@ -12,7 +16,23 @@ if (!gotTheLock) {
   let mainWindow = null;
   let serverProcess = null;
   let lastServerError = '';
-  const SERVER_PORT = 3001;
+  /** 首选端口；若被占用，后端会自动向前探测并通过 READY 行回报真实端口 */
+  const PREFERRED_PORT = 3001;
+  let serverPort = PREFERRED_PORT;
+
+  // 诊断日志：出问题时让用户直接把该文件发回来
+  const LOG_DIR = path.join(app.getPath('userData'), 'logs');
+  const LOG_FILE = path.join(LOG_DIR, 'main.log');
+  function log(message) {
+    const line = `[${new Date().toISOString()}] ${message}`;
+    try {
+      fs.mkdirSync(LOG_DIR, { recursive: true });
+      fs.appendFileSync(LOG_FILE, line + '\n', 'utf8');
+    } catch {
+      // 日志写入失败不应影响启动
+    }
+    console.log(line);
+  }
 
   app.on('second-instance', () => {
     if (mainWindow) {
@@ -43,7 +63,7 @@ if (!gotTheLock) {
         `已检查路径:\n${candidates.map((c) => `  - ${c}`).join('\n')}\n` +
         `resourcesPath: ${process.resourcesPath}\n` +
         `appPath: ${app.getAppPath()}`;
-      console.error(errMsg);
+      log(errMsg);
       lastServerError = errMsg;
       return;
     }
@@ -68,7 +88,7 @@ if (!gotTheLock) {
       cwd: serverCwd,
       env: {
         ...process.env,
-        PORT: SERVER_PORT.toString(),
+        PORT: PREFERRED_PORT.toString(),
         NODE_ENV: 'production',
         // 关键配置：让打包后的 Electron 可执行文件以标准 Node 进程模式运行后台脚本
         ELECTRON_RUN_AS_NODE: '1',
@@ -79,34 +99,44 @@ if (!gotTheLock) {
     });
 
     serverProcess.stdout?.on('data', (chunk) => {
-      console.log(`[MonoTerminal Server] ${chunk}`);
+      const text = chunk.toString();
+      // 后端可能在首选端口被占用时自动换端口，以 READY 行为准
+      const match = /MONOTERMINAL_READY\s+port=(\d+)/.exec(text);
+      if (match) {
+        const port = Number(match[1]);
+        if (port && port !== serverPort) {
+          log(`[MonoTerminal Server] 实际监听端口: ${port}`);
+          serverPort = port;
+        }
+      }
+      log(`[MonoTerminal Server] ${text.trimEnd()}`);
     });
 
     serverProcess.stderr?.on('data', (chunk) => {
       const msg = chunk.toString();
-      console.error(`[MonoTerminal Server Error] ${msg}`);
+      log(`[MonoTerminal Server Error] ${msg.trimEnd()}`);
       lastServerError = (lastServerError + msg).slice(-4000);
     });
 
     serverProcess.on('exit', (code, signal) => {
       if (code !== 0 && code !== null) {
-        console.error(`[MonoTerminal Server] Exited unexpectedly with code ${code}, signal ${signal}`);
+        log(`[MonoTerminal Server] Exited unexpectedly with code ${code}, signal ${signal}`);
       }
     });
 
     serverProcess.on('error', (err) => {
-      console.error('[MonoTerminal] Failed to start internal server:', err);
+      log(`[MonoTerminal] Failed to start internal server: ${err.message}`);
       lastServerError = `${lastServerError}\n${err.message}`.slice(-4000);
     });
   }
 
   // 轮询检查后端服务是否就绪（/api/auth/bootstrap 无需 token 即可返回 200）
-  function waitForServer(onReady, onFailed, maxRetries = 60) {
+  function waitForServer(onReady, onFailed, maxRetries = 150) {
     let attempts = 0;
     let finished = false;
     const interval = setInterval(() => {
       attempts++;
-      const req = http.get(`http://127.0.0.1:${SERVER_PORT}/api/auth/bootstrap`, (res) => {
+      const req = http.get(`http://127.0.0.1:${serverPort}/api/auth/bootstrap`, (res) => {
         res.resume();
         if (!finished && res.statusCode && res.statusCode >= 200 && res.statusCode < 500) {
           finished = true;
@@ -116,7 +146,9 @@ if (!gotTheLock) {
       });
 
       req.on('error', () => {
-        if (!finished && attempts >= maxRetries) {
+        // 后端进程已经退出：不必再等满超时，立刻报错
+        const dead = serverProcess && serverProcess.exitCode !== null;
+        if (!finished && (attempts >= maxRetries || dead)) {
           finished = true;
           clearInterval(interval);
           if (onFailed) {
@@ -146,10 +178,10 @@ if (!gotTheLock) {
     });
 
     const devUrl = 'http://localhost:5173';
-    const prodUrl = `http://127.0.0.1:${SERVER_PORT}`;
+    const prodUrl = () => `http://127.0.0.1:${serverPort}`;
 
     if (process.env.NODE_ENV === 'development') {
-      mainWindow.loadURL(devUrl).catch(() => mainWindow.loadURL(prodUrl));
+      mainWindow.loadURL(devUrl).catch(() => mainWindow.loadURL(prodUrl()));
     } else {
       // 先显示优雅的暗黑加载状态，避免出现纯黑无响应窗口
       mainWindow.loadURL(`data:text/html;charset=utf-8,${encodeURIComponent(`
@@ -196,11 +228,12 @@ if (!gotTheLock) {
       waitForServer(
         () => {
           if (mainWindow && !mainWindow.isDestroyed()) {
-            mainWindow.loadURL(prodUrl);
+            mainWindow.loadURL(prodUrl());
           }
         },
         () => {
           if (!mainWindow || mainWindow.isDestroyed()) return;
+          log(`[MonoTerminal] 后台服务启动超时，端口 ${serverPort}`);
           const errorHtml = `
             <!DOCTYPE html>
             <html>
@@ -216,7 +249,8 @@ if (!gotTheLock) {
                   margin: 0;
                 }
                 h2 { color: #f85149; margin-top: 0; font-size: 20px; }
-                p { color: #8b949e; line-height: 1.6; font-size: 14px; }
+                p, li { color: #8b949e; line-height: 1.7; font-size: 14px; }
+                code { color: #79c0ff; font-family: Consolas, "Courier New", monospace; }
                 pre {
                   background: #161b22;
                   border: 1px solid #30363d;
@@ -246,8 +280,13 @@ if (!gotTheLock) {
             </head>
             <body>
               <h2>MonoTerminal 后台服务启动超时</h2>
-              <p>应用未能连接到内部服务端口 (127.0.0.1:${SERVER_PORT})。可能原因：服务启动异常或端口冲突。</p>
-              ${lastServerError ? `<pre>${lastServerError.replace(/</g, '&lt;').replace(/>/g, '&gt;')}</pre>` : '<p style="color:#6e7681;">（未捕获到内部错误输出）</p>'}
+              <p>应用未能连接到内部服务端口 (127.0.0.1:${serverPort})。可按以下顺序排查：</p>
+              <ol>
+                <li>是否有安全软件（360 / 火绒 / 联想电脑管家等）拦截了本程序，加入信任后重启应用；</li>
+                <li>端口 ${serverPort} 是否被其他程序长期占用，关闭占用程序后重试；</li>
+                <li>完整诊断日志：<code>${LOG_FILE}</code>。</li>
+              </ol>
+              ${lastServerError ? `<pre>${lastServerError.replace(/</g, '&lt;').replace(/>/g, '&gt;')}</pre>` : '<p style="color:#6e7681;">（未捕获到内部错误输出，请把上面的日志文件发给开发者）</p>'}
               <button onclick="location.reload()">重新连接</button>
             </body>
             </html>

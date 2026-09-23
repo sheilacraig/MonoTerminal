@@ -1,16 +1,23 @@
 {
   "name": "monoterminal",
-  "version": "1.0.1",
+  "version": "1.0.2",
   "description": "Zero-Auth, Local-First, 2-Column AI-Native Terminal & SFTP Client",
   "main": "electron/main.cjs",
   "type": "module",
+  "engines": {
+    "node": ">=20.0.0"
+  },
   "scripts": {
     "dev": "vite",
     "build": "tsc && vite build",
-    "build:server": "esbuild server/index.ts --bundle --platform=node --target=node20 --format=cjs --outfile=dist-server/index.cjs --external:cpu-features --external:node-pty",
+    "build:server": "esbuild server/index.ts --bundle --platform=node --target=node20 --format=cjs --outfile=dist-server/index.cjs --external:cpu-features --external:node-pty --external:\"*.node\"",
     "build:all": "npm run build && npm run build:server",
+    "serve": "npm run build:all && node dist-server/index.cjs",
     "server": "tsx server/index.ts",
-    "start": "tsx server/index.ts",
+    "start": "node dist-server/index.cjs",
+    "doctor": "node scripts/doctor.mjs",
+    "clean:stage": "node scripts/clean-staging.mjs",
+    "verify:packaged": "node scripts/verify-packaged.mjs",
     "test": "vitest run",
     "lint": "eslint .",
     "lint:fix": "eslint . --fix",
@@ -19,9 +26,10 @@
     "typecheck": "tsc --noEmit",
     "electron": "electron .",
     "electron:dev": "cross-env NODE_ENV=development electron .",
-    "pack:win": "npm run build:all && electron-builder --win --dir",
-    "dist:win": "npm run build:all && electron-builder --win portable",
-    "dist:installer": "npm run build:all && electron-builder --win nsis"
+    "pack:win": "npm run clean:stage && npm run build:all && electron-builder --win --dir",
+    "dist:win": "npm run clean:stage && npm run build:all && electron-builder --win portable",
+    "dist:installer": "npm run clean:stage && npm run build:all && electron-builder --win nsis",
+    "dist:all": "npm run clean:stage && npm run build:all && electron-builder --win"
   },
   "keywords": [
     "terminal",

@@ -62,7 +62,8 @@ MonoTerminal 将这三件事整合到了同一个界面中：
 ## 🚀 快速上手
 
 ### 环境要求
-- Node.js 18+ 或 20+
+- **Node.js 20 及以上**（推荐 22 LTS，`node -v` 查看版本）
+- Windows / macOS / Linux 均可，命令统一在**项目根目录**执行
 
 ### 1. 安装依赖
 ```bash
@@ -71,19 +72,30 @@ cd MonoTerminal
 npm install
 ```
 
+> [!TIP]
+> 仓库自带 `.npmrc`，已把 Electron 等二进制下载指向国内镜像。若 `npm install` 仍然卡住或报 `ECONNRESET / ETIMEDOUT`，多为网络问题，可换用镜像源重试：
+> `npm install --registry=https://registry.npmmirror.com`
+>
+> 只想在浏览器里用（不需要桌面客户端）时，可以跳过上百 MB 的 Electron 二进制下载：
+> - Windows CMD：`set ELECTRON_SKIP_BINARY_DOWNLOAD=1 && npm install`
+> - PowerShell：`$env:ELECTRON_SKIP_BINARY_DOWNLOAD="1"; npm install`
+> - macOS / Linux：`ELECTRON_SKIP_BINARY_DOWNLOAD=1 npm install`
+
 ### 2. 运行项目
 
-**方式 A：启动完整服务（推荐）**
+**方式 A：一条命令启动（推荐，自动构建 + 启动服务）**
 ```bash
-# 构建前端
-npm run build
-
-# 启动服务
-npm start
+npm run serve
 ```
-启动后在浏览器打开 `http://localhost:3001` 即可使用。
+启动后在浏览器打开 `http://localhost:3001` 即可使用（端口被占用时会自动顺延，终端里会提示实际端口）。
 
-**方式 B：开发模式（支持前端热更新）**
+**方式 B：分步执行（需要自己控制构建时机）**
+```bash
+npm run build   # 构建前端
+npm start       # 启动服务（读取已构建产物）
+```
+
+**方式 C：开发模式（支持前端热更新）**
 ```bash
 # 终端 1：启动后端服务 (端口 3001)
 npm run server
@@ -93,14 +105,34 @@ npm run dev
 ```
 打开 `http://localhost:5173` 进行开发调试。
 
-### 3. 运行测试
+### 3. 桌面客户端（Windows）
+- **直接使用**：下载 [Releases](https://github.com/sheilacraig/MonoTerminal/releases) 里的 `MonoTerminal-Setup-x.y.z.exe`（安装版）或 `MonoTerminal-x.y.z.exe`（免安装单文件），双击即可。
+- **自行打包**：见 [桌面端打包指南 (docs/PACKAGING.md)](docs/PACKAGING.md)。
+
+### 4. 遇到问题先自检
+```bash
+npm run doctor
+```
+会逐项检查 Node 版本、依赖、原生终端组件、构建产物、端口与数据目录，并给出可直接照做的修复建议。
+
+### 5. 运行测试
 ```bash
 npm test
 ```
 
-### 4. 打包桌面客户端
-项目支持通过 Electron 打包为 Windows 单文件可执行程序（`.exe`）或安装包，具体步骤请查看：  
-👉 [桌面端打包指南 (docs/PACKAGING.md)](docs/PACKAGING.md)
+---
+
+## 🆘 常见报错速查
+
+| 现象 | 原因 | 处理办法 |
+| :--- | :--- | :--- |
+| `因为在此系统上禁止运行脚本` | Windows PowerShell 默认执行策略为 Restricted | 改用 **CMD** 执行 npm 命令，或执行 `Set-ExecutionPolicy -Scope CurrentUser -ExecutionPolicy RemoteSigned` |
+| `npm install` 报 `ECONNRESET / ETIMEDOUT / RequestError` | 从 GitHub 拉取 Electron 二进制被网络阻断 | 项目自带 `.npmrc` 已指向国内镜像；仍失败时加 `--registry=https://registry.npmmirror.com`，或设置 `ELECTRON_SKIP_BINARY_DOWNLOAD=1` 跳过桌面端依赖 |
+| 启动后浏览器提示 `Cannot GET /` | 只启动了服务、没有构建前端 | 执行 `npm run build`，或直接用 `npm run serve` |
+| 端口 3001 被占用 | 其他程序占用了默认端口 | 后端会自动改用后续空闲端口（以终端输出为准）；也可显式指定：`PORT=4000 npm start` |
+| 桌面端提示「后台服务启动超时」 | 安全软件拦截、端口被长期占用、或残留进程 | 把 MonoTerminal 加入杀软信任；关闭占用 3001 的程序；日志见 `%APPDATA%\monoterminal\logs\main.log` |
+| 打包报 `EBUSY: resource busy or locked ... default_app.asar` | 上次打包被中断，或调试时运行过 `release\win-unpacked` 里的 exe，残留文件被锁定 | 打包脚本已内置清理；若仍失败，关闭正在运行的 MonoTerminal/杀软信任/暂停网盘同步后重试，或直接重启电脑 |
+| 从 VS Code 等编辑器的集成终端启动 exe 没反应/报 `bad option` | 这类宿主会在环境里注入 `ELECTRON_RUN_AS_NODE=1`，Electron 会被当成 Node 执行 | **双击图标启动**即可；或在启动前清除该环境变量（PowerShell：`Remove-Item Env:\ELECTRON_RUN_AS_NODE`） |
 
 ---
 
@@ -121,6 +153,7 @@ MonoTerminal/
 │   ├── guardrail.ts      # 高危命令拦截规则
 │   └── routes/           # REST API 路由
 ├── electron/             # Electron 桌面客户端外壳
+├── scripts/              # 维护脚本 (环境自检 doctor / 打包前清理 / 打包产物验证)
 ├── docs/                 # 项目文档 (打包指南等)
 └── tests/                # 单元测试与集成测试
 ```
