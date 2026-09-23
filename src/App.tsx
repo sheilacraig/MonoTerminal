@@ -12,6 +12,7 @@ import { SettingsModal } from './components/Modals/SettingsModal';
 import { SnippetModal } from './components/Modals/SnippetModal';
 import { DangerConfirmModal } from './components/Modals/DangerConfirmModal';
 import { LandingPage } from './components/Landing/LandingPage';
+import { ClipboardScopeBridge } from './components/ClipboardScopeBridge';
 
 const isStaticDemo =
   typeof window !== 'undefined' && window.location.hostname.includes('github.io');
@@ -33,6 +34,9 @@ const AppContent: React.FC<{ onOpenLanding: () => void }> = ({ onOpenLanding }) 
 
       {/* Bottom Status Bar (24px) */}
       <StatusBar />
+
+      {/* Select-to-copy / right-click-paste for the terminal and AI panel */}
+      <ClipboardScopeBridge />
 
       {/* Floating Modals */}
       <HostManagerModal />

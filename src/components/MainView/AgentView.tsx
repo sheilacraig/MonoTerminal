@@ -4,6 +4,7 @@ import { useSettings } from '../../context/SettingsContext';
 import { useAgentChat } from '../../hooks/useAgentChat';
 import { ThinkingAccordion } from './Agent/ThinkingAccordion';
 import { AgentInputBar } from './Agent/AgentInputBar';
+import { COPY_SCOPE_ATTR } from '../../utils/clipboard';
 import { Bot, User, Brain, X } from 'lucide-react';
 
 // react-markdown + highlight.js are heavy → split into an on-demand chunk so
@@ -55,7 +56,10 @@ export const AgentView: React.FC<AgentViewProps> = ({ isVisible }) => {
   };
 
   return (
-    <div className={`w-full h-full flex flex-col bg-[#0d1117] ${isVisible ? 'flex' : 'hidden'}`}>
+    <div
+      className={`w-full h-full flex flex-col bg-[#0d1117] select-text ${isVisible ? 'flex' : 'hidden'}`}
+      {...{ [COPY_SCOPE_ATTR]: 'agent' }}
+    >
       {/* Header Context Indicator */}
       <div className="h-7 bg-purple-950/20 border-b border-purple-900/30 px-3 flex items-center justify-between text-xs text-purple-300 select-none shrink-0">
         <div className="flex items-center space-x-2">

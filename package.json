@@ -18,6 +18,7 @@
     "doctor": "node scripts/doctor.mjs",
     "clean:stage": "node scripts/clean-staging.mjs",
     "verify:packaged": "node scripts/verify-packaged.mjs",
+    "verify:source": "node scripts/verify-source.mjs",
     "test": "vitest run",
     "lint": "eslint .",
     "lint:fix": "eslint . --fix",

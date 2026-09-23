@@ -81,6 +81,10 @@ export interface AppSettings {
     fontFamily: string;
     cursorBlink: boolean;
     scrollback: number;
+    /** Selecting text with the mouse copies it to the clipboard immediately. */
+    copyOnSelect?: boolean;
+    /** Right-click pastes clipboard content (terminal) / at the caret (AI input). */
+    rightClickPaste?: boolean;
   };
 }
 

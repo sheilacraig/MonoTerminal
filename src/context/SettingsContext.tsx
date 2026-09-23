@@ -54,7 +54,9 @@ const defaultSettings: AppSettings = {
     fontSize: 14,
     fontFamily: '"JetBrains Mono", Consolas, monospace',
     cursorBlink: true,
-    scrollback: 5000
+    scrollback: 5000,
+    copyOnSelect: true,
+    rightClickPaste: true
   }
 };
 

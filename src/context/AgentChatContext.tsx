@@ -4,6 +4,8 @@ import { generateId } from '../../shared/id';
 import { useSession } from './SessionContext';
 import { useWebSocket } from './WebSocketContext';
 import { cleanCommandForExecution } from '../utils/commandCleaner';
+import { isMultiLineBlock, requiresElevation } from '../utils/authPrompt';
+import { getAuthStore, setFallbackTerminalSender } from '../services/terminalAuth';
 
 /**
  * Per-session AI chat state, hosted above the `AgentView` mount boundary.
@@ -63,7 +65,13 @@ const EMPTY_STATE: ChatState = createEmptyState();
 const AgentChatContext = createContext<AgentChatContextType | null>(null);
 
 export const AgentChatProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
-  const { activeSession, activeSessionId, sessions, executeCommandWithGuardrail } = useSession();
+  const {
+    activeSession,
+    activeSessionId,
+    sessions,
+    hosts,
+    executeCommandWithGuardrail
+  } = useSession();
   const { streamAI, sendTermInput } = useWebSocket();
 
   const [store, setStore] = useState<Record<string, ChatState>>({});
@@ -74,6 +82,13 @@ export const AgentChatProvider: React.FC<{ children: React.ReactNode }> = ({ chi
   // Cancel handles returned by `streamAI`, keyed by sessionId — used by the
   // GC effect to abort streams belonging to closed tabs.
   const cancelersRef = useRef<Map<string, () => void>>(new Map());
+
+  // The auth panel may need to write to the pty before any TerminalView has
+  // bound itself (e.g. “run” clicked while the pane is still mounting).
+  useEffect(() => {
+    setFallbackTerminalSender(sendTermInput);
+    return () => setFallbackTerminalSender(null);
+  }, [sendTermInput]);
 
   const updateSession = useCallback((sid: string, updater: (s: ChatState) => ChatState) => {
     setStore(prev => {
@@ -225,15 +240,39 @@ export const AgentChatProvider: React.FC<{ children: React.ReactNode }> = ({ chi
     [activeSession, streamAI, updateSession]
   );
 
+  /**
+   * A multi-line block that needs sudo must not be written to the pty in one
+   * go: `commandCleaner` joins compound blocks (heredocs, scripts) with `\r`,
+   * so the password prompt appears and the very next line of the script is
+   * consumed as the password — three failed attempts later nothing has run.
+   * Those blocks go through an explicit `sudo -v` pre-flight instead.
+   */
+  const needsElevationPreflight = useCallback(
+    (sid: string, command: string) => {
+      if (!requiresElevation(command) || !isMultiLineBlock(command)) return false;
+      const session = sessions.find(s => s.id === sid);
+      const host = hosts.find(h => h.id === session?.hostId);
+      // Local (Windows) and mock sandbox shells have no sudo to elevate with.
+      return host ? host.authType !== 'local' && host.authType !== 'mock' : false;
+    },
+    [sessions, hosts]
+  );
+
   const runCommand = useCallback(
     (cmd: string) => {
       if (!activeSession) return;
       const sid = activeSession.id;
       const clean = cleanCommandForExecution(cmd) || cmd.trim();
       if (!clean) return;
+
+      if (needsElevationPreflight(sid, clean)) {
+        executeCommandWithGuardrail(clean, () => getAuthStore(sid).beginElevation(clean, 'run'));
+        return;
+      }
+
       executeCommandWithGuardrail(clean, () => sendTermInput(sid, `${clean}\r`));
     },
-    [activeSession, executeCommandWithGuardrail, sendTermInput]
+    [activeSession, needsElevationPreflight, executeCommandWithGuardrail, sendTermInput]
   );
 
   const fillCommand = useCallback(
@@ -242,9 +281,17 @@ export const AgentChatProvider: React.FC<{ children: React.ReactNode }> = ({ chi
       const sid = activeSession.id;
       const clean = cleanCommandForExecution(cmd) || cmd.trim();
       if (!clean) return;
+
+      // Parking a multi-line sudo block on the command line has the same flaw as
+      // running it: the following heredoc/script lines become the password.
+      if (needsElevationPreflight(sid, clean)) {
+        executeCommandWithGuardrail(clean, () => getAuthStore(sid).beginElevation(clean, 'fill'));
+        return;
+      }
+
       executeCommandWithGuardrail(clean, () => sendTermInput(sid, clean));
     },
-    [activeSession, executeCommandWithGuardrail, sendTermInput]
+    [activeSession, needsElevationPreflight, executeCommandWithGuardrail, sendTermInput]
   );
 
   const explainCommand = useCallback(

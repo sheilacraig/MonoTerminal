@@ -1,5 +1,6 @@
 import React, { useRef, useEffect } from 'react';
 import { Send } from 'lucide-react';
+import { AGENT_INPUT_ATTR } from '../../../utils/clipboard';
 
 interface AgentInputBarProps {
   input: string;
@@ -36,6 +37,7 @@ export const AgentInputBar: React.FC<AgentInputBarProps> = ({
       <div className="relative rounded-lg bg-orca-bg border border-orca-border focus-within:border-orca-accent shadow-inner transition-colors">
         <textarea
           ref={textareaRef}
+          {...{ [AGENT_INPUT_ATTR]: 'true' }}
           value={input}
           onChange={e => onChange(e.target.value)}
           onKeyDown={handleKeyDown}

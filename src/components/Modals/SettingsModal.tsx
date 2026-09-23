@@ -624,6 +624,43 @@ export const SettingsModal: React.FC = () => {
                     />
                   </div>
                 </div>
+
+                <h4 className="font-semibold text-white pt-1">剪贴板与交互</h4>
+                <div className="space-y-3">
+                  <label className="flex items-center justify-between p-3 rounded-lg bg-orca-card/40 border border-orca-border cursor-pointer">
+                    <div>
+                      <div className="font-medium text-white">选中即复制</div>
+                      <div className="text-[11px] text-orca-muted">
+                        鼠标选中终端输出或 AI 回复的文字后自动写入系统剪贴板，无需按 Ctrl+C
+                      </div>
+                    </div>
+                    <input
+                      type="checkbox"
+                      checked={terminalConfig.copyOnSelect !== false}
+                      onChange={e =>
+                        setTerminalConfig({ ...terminalConfig, copyOnSelect: e.target.checked })
+                      }
+                      className="w-4 h-4 accent-orca-accent"
+                    />
+                  </label>
+
+                  <label className="flex items-center justify-between p-3 rounded-lg bg-orca-card/40 border border-orca-border cursor-pointer">
+                    <div>
+                      <div className="font-medium text-white">右键粘贴</div>
+                      <div className="text-[11px] text-orca-muted">
+                        在终端右键即粘贴到命令行；在 AI 面板右键即粘贴到提问框光标处（Ctrl+V / Ctrl+Shift+V 同样可用）
+                      </div>
+                    </div>
+                    <input
+                      type="checkbox"
+                      checked={terminalConfig.rightClickPaste !== false}
+                      onChange={e =>
+                        setTerminalConfig({ ...terminalConfig, rightClickPaste: e.target.checked })
+                      }
+                      className="w-4 h-4 accent-orca-accent"
+                    />
+                  </label>
+                </div>
               </div>
             )}
           </div>
