@@ -80,7 +80,12 @@ jobs:
 
       - name: Package Windows Executables
         shell: bash
-        run: npx electron-builder --win
+        # --publish never 是必需的：CI 中一旦同时存在 tag 与 GH_TOKEN，
+        # electron-builder 会按默认策略（onTagOrDraft）自行创建 draft release
+        # 并上传产物，与下方「Publish GitHub Release」步骤形成两个发布者。
+        # 后果是产物被锁在草稿里、对外不可见（公众 API 查不到任何 Release），
+        # 还会出现同 tag 的重复草稿。发布动作统一交给 gh，故此处显式关闭。
+        run: npx electron-builder --win --publish never
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
@@ -89,19 +94,31 @@ jobs:
         if: startsWith(github.ref, 'refs/tags/')
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        # 注意：不要用 $ErrorActionPreference='Continue' 把 gh 的失败吞掉。
+        # 历史上这里一旦出错仍会报 succeed，造成「CI 全绿、Release 却是空的」。
+        # 因此每一步都显式检查 $LASTEXITCODE 并在失败时 throw，末尾再兜底校验草稿状态。
         run: |
           $PSNativeCommandUseErrorActionPreference = $false
-          $ErrorActionPreference = 'Continue'
           $tag = "${{ github.ref_name }}"
           $exeFiles = Get-ChildItem -Path release -Filter "MonoTerminal*.exe" | ForEach-Object { $_.FullName }
-          Write-Host "Found executable files to publish:"
+          if (-not $exeFiles) { throw "release/ 下没有找到任何 MonoTerminal*.exe，打包步骤是否真的成功了？" }
+
+          Write-Host "将发布以下文件："
           $exeFiles | ForEach-Object { Write-Host " - $_" }
 
           $null = gh release view $tag 2>$null
           if ($LASTEXITCODE -ne 0) {
-            Write-Host "Creating Release $tag..."
+            Write-Host "创建 Release $tag ..."
             gh release create $tag $exeFiles --title "MonoTerminal $tag" --generate-notes
+            if ($LASTEXITCODE -ne 0) { throw "gh release create 失败 (exit=$LASTEXITCODE)" }
           } else {
-            Write-Host "Release $tag already exists. Uploading assets with --clobber..."
+            Write-Host "Release $tag 已存在，覆盖上传资产 ..."
             gh release upload $tag $exeFiles --clobber
+            if ($LASTEXITCODE -ne 0) { throw "gh release upload 失败 (exit=$LASTEXITCODE)" }
           }
+
+          # 兜底校验：必须能查到该 Release，且不是草稿（草稿对外不可见）
+          $json = gh release view $tag --json isDraft,assets | ConvertFrom-Json
+          if ($LASTEXITCODE -ne 0) { throw "无法读取 Release $tag" }
+          if ($json.isDraft) { throw "Release $tag 仍是 draft，对外不可见，发布未生效！" }
+          Write-Host "发布完成：$($json.assets.Count) 个资产，已对外可见。"
