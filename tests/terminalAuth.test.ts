@@ -43,12 +43,12 @@ describe('TerminalAuthStore — elevation pre-flight', () => {
 
     expect(sent[1]).toBe('hunter2\r');
 
-    // Nothing more until the verification window elapses…
-    vi.advanceTimersByTime(1000);
+    // Nothing more until the verification window elapses (3200ms)…
+    vi.advanceTimersByTime(2000);
     expect(sent).toHaveLength(2);
 
     // …then the untouched block goes out in a single write.
-    vi.advanceTimersByTime(600);
+    vi.advanceTimersByTime(1300);
     expect(sent[2]).toBe(`${BLOCK}\r`);
     expect(store.getSnapshot().visible).toBe(false);
   });
@@ -76,7 +76,7 @@ describe('TerminalAuthStore — elevation pre-flight', () => {
     expect(store.getSnapshot().phase).toBe('collect');
 
     store.submit('right');
-    vi.advanceTimersByTime(2000);
+    vi.advanceTimersByTime(3500);
     expect(sent[sent.length - 1]).toBe(`${BLOCK}\r`);
   });
 
@@ -97,20 +97,26 @@ describe('TerminalAuthStore — elevation pre-flight', () => {
     expect(store.getSnapshot().phase).toBe('error');
   });
 
-  it('drops a parked block on cancel', () => {
+  it('drops a parked block on cancel and triggers refocus', () => {
+    let refocused = false;
+    store.bindOnFlush(() => {
+      refocused = true;
+    });
+
     store.beginElevation(BLOCK);
     store.cancel();
     vi.advanceTimersByTime(10000);
 
     expect(sent).toEqual(['sudo -v\r']);
     expect(store.getSnapshot().visible).toBe(false);
+    expect(refocused).toBe(true);
   });
 
   it('fills the block without a trailing newline in `fill` mode', () => {
     store.beginElevation(BLOCK, 'fill');
     store.noteOutput('[sudo] password for whh: ');
     store.submit('hunter2');
-    vi.advanceTimersByTime(2000);
+    vi.advanceTimersByTime(3500);
 
     expect(sent[sent.length - 1]).toBe(BLOCK);
     expect(sent[sent.length - 1].endsWith('\r')).toBe(false);

@@ -355,7 +355,15 @@ export class LocalStorageManager {
       // stored host list; prepend the local terminal asset so the default
       // first tab connects to the real local shell instead of the old mock.
       try {
-        const hosts: HostAsset[] = JSON.parse(fs.readFileSync(hostsPath, 'utf8'));
+        let hosts: HostAsset[] = JSON.parse(fs.readFileSync(hostsPath, 'utf8'));
+        let modified = false;
+
+        // Strip legacy mock-local-demo if present
+        if (Array.isArray(hosts) && hosts.some(h => h.id === 'mock-local-demo')) {
+          hosts = hosts.filter(h => h.id !== 'mock-local-demo');
+          modified = true;
+        }
+
         if (Array.isArray(hosts) && !hosts.some(h => h.authType === 'local')) {
           hosts.unshift({
             id: 'local-shell',
@@ -368,10 +376,14 @@ export class LocalStorageManager {
             initialDir: os.homedir(),
             createdAt: Date.now()
           });
+          modified = true;
+        }
+
+        if (modified) {
           fs.writeFileSync(hostsPath, JSON.stringify(hosts, null, 2), 'utf8');
         }
       } catch (e) {
-        console.error('Failed to migrate hosts.json for local-shell', e);
+        console.error('Failed to migrate hosts.json', e);
       }
     }
 

@@ -58,6 +58,11 @@ describe('detectAuthPrompt', () => {
   it('ignores stale mentions of the word password', () => {
     expect(detectAuthPrompt('Password: accepted\nroot@host:~# ')).toBeNull();
   });
+
+  it('never mistakes fatal sudo errors (e.g. terminal required) for a password prompt', () => {
+    expect(detectAuthPrompt('sudo: a terminal is required to read the password')).toBeNull();
+    expect(detectAuthPrompt('sudo: a password is required')).toBeNull();
+  });
 });
 
 describe('detectAuthFailure', () => {

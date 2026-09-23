@@ -199,7 +199,7 @@ export const HostManagerModal: React.FC = () => {
                   >
                     <Edit size={13} />
                   </button>
-                  {host.id !== 'local-shell' && host.id !== 'mock-local-demo' && (
+                  {host.id !== 'local-shell' && (
                     <button
                       onClick={() => {
                         if (confirm(`确定删除主机 ${host.name} 吗？`)) {

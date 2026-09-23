@@ -58,16 +58,6 @@ const PROMPT_RULES: { re: RegExp; match: AuthPromptMatch }[] = [
     }
   },
   {
-    // Emitted when ssh2 hands sudo a channel without a usable tty.
-    re: /sudo:\s*(?:a\s+)?(?:password|terminal)\s+is\s+required[^\n]*[:：]?\s*$/i,
-    match: {
-      kind: 'sudo',
-      label: 'sudo 需要密码',
-      requiresPassword: true,
-      hint: PASSWORD_HINT
-    }
-  },
-  {
     re: /(?:^|\n)\s*(?:password|passwd)\s*[:：]\s*$/i,
     match: {
       kind: 'passwd',

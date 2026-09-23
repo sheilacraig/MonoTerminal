@@ -250,10 +250,22 @@ export const AgentChatProvider: React.FC<{ children: React.ReactNode }> = ({ chi
   const needsElevationPreflight = useCallback(
     (sid: string, command: string) => {
       if (!requiresElevation(command) || !isMultiLineBlock(command)) return false;
+
+      // `beginElevation` explicitly dispatches `sudo -v`, so preflight is only
+      // meaningful when the compound block actually contains `sudo`.
+      const withoutStrings = command.replace(/'[^']*'/g, "''").replace(/"[^"]*"/g, '""');
+      if (!/(?:^|[\n\r;&|(`]|\s)sudo\s+/.test(withoutStrings)) return false;
+
       const session = sessions.find(s => s.id === sid);
       const host = hosts.find(h => h.id === session?.hostId);
+      if (!host) return false;
+
+      // The root user already has full privileges; running sudo -v would be a no-op
+      // but cause a 2.6s artificial delay waiting for the timeout.
+      if (host.username === 'root') return false;
+
       // Local (Windows) and mock sandbox shells have no sudo to elevate with.
-      return host ? host.authType !== 'local' && host.authType !== 'mock' : false;
+      return host.authType !== 'local' && host.authType !== 'mock';
     },
     [sessions, hosts]
   );

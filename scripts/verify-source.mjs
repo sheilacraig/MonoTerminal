@@ -167,6 +167,7 @@ try {
   } catch {
     /* ignore */
   }
+  await new Promise((resolve) => setTimeout(resolve, 300));
 }
 
 const failed = results.filter((r) => !r.pass).length;

@@ -115,6 +115,9 @@ jobs:
             Write-Host "Release $tag 已存在，覆盖上传资产 ..."
             gh release upload $tag $exeFiles --clobber
             if ($LASTEXITCODE -ne 0) { throw "gh release upload 失败 (exit=$LASTEXITCODE)" }
+            # 若已有 Release 处于草稿状态，转正为正式发布对外可见
+            gh release edit $tag --draft=false
+            if ($LASTEXITCODE -ne 0) { throw "gh release edit --draft=false 失败 (exit=$LASTEXITCODE)" }
           }
 
           # 兜底校验：必须能查到该 Release，且不是草稿（草稿对外不可见）

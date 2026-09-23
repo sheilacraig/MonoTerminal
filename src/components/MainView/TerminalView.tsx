@@ -15,7 +15,7 @@ import { checkCommandSafety } from '../../utils/guardrail';
 import { readClipboardText, writeClipboardText, COPY_SCOPE_ATTR } from '../../utils/clipboard';
 import { getAuthStore } from '../../services/terminalAuth';
 import { TerminalAuthBar } from './TerminalAuthBar';
-import { Zap, KeyRound } from 'lucide-react';
+import { Zap } from 'lucide-react';
 
 interface TerminalViewProps {
   sessionId: string;
@@ -41,7 +41,6 @@ export const TerminalView: React.FC<TerminalViewProps> = ({ sessionId, isVisible
   } = useSession();
   const { settings } = useSettings();
 
-  const authStore = getAuthStore(sessionId);
   const [pasteHint, setPasteHint] = useState<string | null>(null);
 
   // Transient feedback for the (rare) case where the clipboard read is blocked.
@@ -215,6 +214,14 @@ export const TerminalView: React.FC<TerminalViewProps> = ({ sessionId, isVisible
         return false;
       }
 
+      // Alt+P: manual entry for sensitive input (password / passphrase)
+      if (event.altKey && !event.ctrlKey && !event.metaKey && event.key.toLowerCase() === 'p') {
+        if (event.type === 'keydown') {
+          auth.openManual();
+        }
+        return false;
+      }
+
       return true;
     });
 
@@ -223,14 +230,16 @@ export const TerminalView: React.FC<TerminalViewProps> = ({ sessionId, isVisible
       ctxRef.current.sendTermInput(sessionId, data);
     });
 
-    // Select to copy — the DOM selection API cannot see into the xterm canvas,
-    // so xterm's own selection event is used instead.
-    const selectionSub = term.onSelectionChange(() => {
+    // Select to copy — only trigger on mouseup when the user finishes dragging,
+    // avoiding high-frequency clipboard writes on every cursor move.
+    const termContainer = terminalRef.current;
+    const handleMouseUp = () => {
       if (!copyOnSelectRef.current) return;
       const selection = term.getSelection();
       if (!selection.trim()) return;
       void writeClipboardText(selection);
-    });
+    };
+    termContainer.addEventListener('mouseup', handleMouseUp);
 
     // Receive data from server
     const unregisterData = ctx.registerTermHandler(sessionId, (data: string) => {
@@ -267,7 +276,7 @@ export const TerminalView: React.FC<TerminalViewProps> = ({ sessionId, isVisible
 
     return () => {
       dataSub.dispose();
-      selectionSub.dispose();
+      termContainer.removeEventListener('mouseup', handleMouseUp);
       unregisterData();
       unregisterAuth();
       unregisterError();
@@ -343,17 +352,6 @@ export const TerminalView: React.FC<TerminalViewProps> = ({ sessionId, isVisible
       }}
     >
       <div ref={terminalRef} className="flex-1 w-full h-full overflow-hidden" />
-
-      {/* Manual entry point for secrets (su / ssh / passphrase, or when the
-          prompt scrolled out of view). */}
-      <button
-        onClick={() => authStore.openManual()}
-        className="absolute bottom-6 left-6 z-40 flex items-center space-x-1.5 px-2.5 py-1.5 rounded-lg bg-orca-card/90 hover:bg-orca-card border border-orca-border text-orca-muted hover:text-white shadow-lg backdrop-blur-md transition-colors"
-        title="手动输入敏感内容（sudo / su / ssh 密码、私钥口令）—— 输入不会回显"
-      >
-        <KeyRound size={13} className="text-orca-warning" />
-        <span className="text-[11px]">敏感输入</span>
-      </button>
 
       <TerminalAuthBar sessionId={sessionId} />
 

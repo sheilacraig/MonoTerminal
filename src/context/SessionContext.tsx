@@ -12,6 +12,7 @@ import {
 } from '../constants/shortcuts';
 import { generateId } from '../../shared/id';
 import { apiFetch } from '../utils/api';
+import { disposeAuthStore } from '../services/terminalAuth';
 
 interface DangerPromptData {
   command: string;
@@ -176,6 +177,7 @@ export const SessionProvider: React.FC<{ children: React.ReactNode }> = ({ child
       terminalBuffers.current.delete(sessionId);
       lastErrorPrompts.current.delete(sessionId);
       termSizesRef.current.delete(sessionId);
+      disposeAuthStore(sessionId);
 
       setSessions(prev => {
         const filtered = prev.filter(s => s.id !== sessionId);

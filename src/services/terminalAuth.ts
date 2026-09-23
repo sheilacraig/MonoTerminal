@@ -63,8 +63,8 @@ const EMPTY_STATE: TerminalAuthState = {
 
 /** How much recent output is kept for prompt matching. */
 const TAIL_LIMIT = 1200;
-/** Wait for a verdict after the password has been written to the pty. */
-const VERIFY_TIMEOUT_MS = 1500;
+/** Wait for a verdict after the password has been written to the pty (PAM delay is typically 2~3s on failure). */
+const VERIFY_TIMEOUT_MS = 3200;
 /** `sudo -v` with cached credentials prints nothing — proceed after this delay. */
 const NO_PROMPT_TIMEOUT_MS = 2600;
 
@@ -252,7 +252,11 @@ export class TerminalAuthStore {
     if (!this.state.pendingBlock && this.state.origin === 'manual') {
       // Nothing to resume — just close the bar and let the terminal take over.
       this.patch({ phase: 'verifying', error: null });
-      this.verifyTimer = setTimeout(() => this.reset(), VERIFY_TIMEOUT_MS);
+      this.verifyTimer = setTimeout(() => {
+        this.verifyTimer = null;
+        this.reset();
+        this.onFlush?.();
+      }, VERIFY_TIMEOUT_MS);
       return;
     }
 
@@ -267,6 +271,7 @@ export class TerminalAuthStore {
   public cancel(): void {
     this.clearTimers();
     this.reset();
+    this.onFlush?.();
   }
 
   /** Escape hatch for sessions where the block no longer needs a password. */
@@ -279,9 +284,10 @@ export class TerminalAuthStore {
     const block = this.state.pendingBlock;
     const action = this.state.pendingAction;
     this.reset();
-    if (!block) return;
-    // `fill` deliberately omits the newline so the user reviews before running.
-    this.write(action === 'fill' ? block : `${block}\r`);
+    if (block) {
+      // `fill` deliberately omits the newline so the user reviews before running.
+      this.write(action === 'fill' ? block : `${block}\r`);
+    }
     this.onFlush?.();
   }
 

@@ -48224,7 +48224,12 @@ var LocalStorageManager = class {
       import_fs.default.writeFileSync(hostsPath, JSON.stringify(defaultHosts, null, 2), "utf8");
     } else {
       try {
-        const hosts = JSON.parse(import_fs.default.readFileSync(hostsPath, "utf8"));
+        let hosts = JSON.parse(import_fs.default.readFileSync(hostsPath, "utf8"));
+        let modified = false;
+        if (Array.isArray(hosts) && hosts.some((h) => h.id === "mock-local-demo")) {
+          hosts = hosts.filter((h) => h.id !== "mock-local-demo");
+          modified = true;
+        }
         if (Array.isArray(hosts) && !hosts.some((h) => h.authType === "local")) {
           hosts.unshift({
             id: "local-shell",
@@ -48237,10 +48242,13 @@ var LocalStorageManager = class {
             initialDir: import_os.default.homedir(),
             createdAt: Date.now()
           });
+          modified = true;
+        }
+        if (modified) {
           import_fs.default.writeFileSync(hostsPath, JSON.stringify(hosts, null, 2), "utf8");
         }
       } catch (e) {
-        console.error("Failed to migrate hosts.json for local-shell", e);
+        console.error("Failed to migrate hosts.json", e);
       }
     }
     const settingsPath = import_path.default.join(this.dataDir, "settings.json");
