@@ -1,2 +1,0 @@
-exists=True
-files=tsc-exit.txt, tsc-out.txt, vitest-exit.txt

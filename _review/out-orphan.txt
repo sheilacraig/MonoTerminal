@@ -1,7 +1,0 @@
-=== 进程树残留探针（模拟 Electron will-quit 只 kill 直接子进程） ===
-fork 的后端服务模拟进程 pid=54536
-node-pty spawn 的 shell: powershell.exe pid=25616
-kill 前检查: shell 存活=true, 服务存活=true
-kill 后: 服务存活=false, shell 存活=false
-3 秒后复查: shell 存活=false
->>> 结论：shell 随服务进程一起退出，无残留

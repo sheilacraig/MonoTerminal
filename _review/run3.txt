@@ -1,7 +1,0 @@
-=== 杩涚▼鏍戞畫鐣欐帰閽堬紙妯℃嫙 Electron will-quit 鍙?kill 鐩存帴瀛愯繘绋嬶級 ===
-fork 鐨勫悗绔湇鍔℃ā鎷熻繘绋?pid=54536
-node-pty spawn 鐨?shell: powershell.exe pid=25616
-kill 鍓嶆鏌? shell 瀛樻椿=true, 鏈嶅姟瀛樻椿=true
-kill 鍚? 鏈嶅姟瀛樻椿=false, shell 瀛樻椿=false
-3 绉掑悗澶嶆煡: shell 瀛樻椿=false
->>> 缁撹锛歴hell 闅忔湇鍔¤繘绋嬩竴璧烽€€鍑猴紝鏃犳畫鐣?

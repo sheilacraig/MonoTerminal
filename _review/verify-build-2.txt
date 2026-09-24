@@ -1,7 +1,0 @@
-dist-server: 主机未找到 = False
-dist-server: clearPassword = True
-dist-server: isHostsCorrupted = True
-dist-server: allowEmptyProviders = True
-dist-server: MAX_READ_SIZE(10MB) = True
-dist-frontend: bracketed[200~ = True
-dist-frontend: hasLoaded gate = False

@@ -1,4 +1,0 @@
-frontend: startsWith bracketed = True
-frontend: slice(6,-6) = True
-frontend: lowercase esc[200~ = False
-frontend: 尚未(原中文) = True
