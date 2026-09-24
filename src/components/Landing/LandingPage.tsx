@@ -49,7 +49,7 @@ export const LandingPage: React.FC<LandingPageProps> = ({ onEnterDemo }) => {
           <div className="flex items-center space-x-2">
             <span className="text-white font-bold text-lg tracking-tight">MonoTerminal</span>
             <span className="text-[10px] bg-[#21262d] text-[#58a6ff] border border-[#30363d] px-1.5 py-0.5 rounded font-mono font-medium">
-              v1.0
+              v1.0.3
             </span>
           </div>
         </div>
@@ -90,13 +90,15 @@ export const LandingPage: React.FC<LandingPageProps> = ({ onEnterDemo }) => {
             <span className="hidden sm:inline">GitHub</span>
           </a>
 
-          <button
-            onClick={onEnterDemo}
+          <a
+            href="https://github.com/sheilacraig/MonoTerminal/releases"
+            target="_blank"
+            rel="noreferrer"
             className="flex items-center space-x-1.5 text-xs font-semibold text-white bg-blue-600 hover:bg-blue-500 px-3.5 py-1.5 rounded-md shadow-md shadow-blue-600/30 transition-all hover:scale-105 active:scale-95"
           >
-            <Play size={13} fill="currentColor" />
-            <span>在线体验 Demo</span>
-          </button>
+            <Download size={13} />
+            <span>下载客户端</span>
+          </a>
         </div>
       </nav>
 
@@ -130,14 +132,16 @@ export const LandingPage: React.FC<LandingPageProps> = ({ onEnterDemo }) => {
 
         {/* Action Buttons */}
         <div className="flex flex-col sm:flex-row items-center justify-center gap-3.5 mb-16">
-          <button
-            onClick={onEnterDemo}
+          <a
+            href="https://github.com/sheilacraig/MonoTerminal/releases"
+            target="_blank"
+            rel="noreferrer"
             className="w-full sm:w-auto flex items-center justify-center space-x-2 text-sm font-semibold text-white bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-500 hover:to-indigo-500 px-6 py-3 rounded-lg shadow-xl shadow-blue-600/25 transition-all hover:scale-105 active:scale-95"
           >
-            <Play size={16} fill="currentColor" />
-            <span>立即在线体验 Demo (Web 版)</span>
+            <Download size={16} />
+            <span>下载 Windows 客户端 (.exe)</span>
             <ArrowRight size={16} />
-          </button>
+          </a>
 
           <a
             href="https://github.com/sheilacraig/MonoTerminal"
@@ -484,10 +488,12 @@ export const LandingPage: React.FC<LandingPageProps> = ({ onEnterDemo }) => {
             <div className="w-10 h-10 rounded-lg bg-teal-500/10 text-teal-400 flex items-center justify-center mb-4 group-hover:scale-110 transition-transform">
               <Zap size={20} />
             </div>
-            <h3 className="text-white font-semibold text-base mb-2">开箱即测的内置沙盒</h3>
+            <h3 className="text-white font-semibold text-base mb-2">
+              开箱即用本机终端 (Local Shell) 与沙盒
+            </h3>
             <p className="text-sm text-[#8b949e] leading-relaxed">
-              无需预先准备云服务器或复杂网络，内置仿真 Linux 运维沙盒与 Nginx
-              典型故障场景，打开即可立刻体验完整的排障闭环。
+              启动即用基于 node-pty 的原生本机终端与本地文件浏览，支持系统 PowerShell/CMD/Bash/Zsh
+              与 ANSI 全彩；同时内置 Linux 仿真运维沙盒，无需外部服务器即可直接上手。
             </p>
           </div>
         </div>
@@ -566,6 +572,16 @@ export const LandingPage: React.FC<LandingPageProps> = ({ onEnterDemo }) => {
           </div>
 
           <div className="bg-[#161b22] border border-[#30363d] p-4 rounded-lg">
+            <div className="text-sm font-bold text-amber-400 mb-1">Alt + P</div>
+            <div className="text-xs text-[#c9d1d9] font-sans font-medium mb-1">
+              Sudo 密码输入浮层
+            </div>
+            <div className="text-[11px] text-[#8b949e] font-sans">
+              手动唤起敏感凭据浮层，安全隔离提权输入
+            </div>
+          </div>
+
+          <div className="bg-[#161b22] border border-[#30363d] p-4 rounded-lg">
             <div className="text-sm font-bold text-red-400 mb-1">Alt + Y</div>
             <div className="text-xs text-[#c9d1d9] font-sans font-medium mb-1">
               高危命令强制确认
@@ -604,10 +620,12 @@ export const LandingPage: React.FC<LandingPageProps> = ({ onEnterDemo }) => {
               <div>cd MonoTerminal</div>
               <div>npm install</div>
               <div className="pt-2">
-                <span className="text-[#8b949e]"># 构建前端产物并启动服务</span>
+                <span className="text-[#8b949e]"># 构建前端与后端并启动服务</span>
               </div>
-              <div>npm run build</div>
-              <div>npm start</div>
+              <div>npm run serve</div>
+              <div className="text-[11px] text-[#8b949e] pt-1">
+                # 或分步：npm run build:all && npm start
+              </div>
             </div>
             <div className="text-[11px] text-[#8b949e] font-sans">
               启动后在浏览器访问{' '}
@@ -665,18 +683,20 @@ export const LandingPage: React.FC<LandingPageProps> = ({ onEnterDemo }) => {
             准备好升级你的终端排障体验了吗？
           </h2>
           <p className="text-sm text-[#8b949e] max-w-lg mx-auto mb-8">
-            无需安装任何云服务或数据库，100% 本地优先与加密。现在即可进入在线演示
-            Demo，或克隆到本地直接运行。
+            无需安装任何云服务或数据库，100% 本地优先与加密。直接下载 Windows
+            桌面客户端，或克隆到本地快速启动。
           </p>
 
           <div className="flex flex-col sm:flex-row items-center justify-center gap-3">
-            <button
-              onClick={onEnterDemo}
+            <a
+              href="https://github.com/sheilacraig/MonoTerminal/releases"
+              target="_blank"
+              rel="noreferrer"
               className="w-full sm:w-auto flex items-center justify-center space-x-2 text-sm font-semibold text-white bg-blue-600 hover:bg-blue-500 px-6 py-2.5 rounded-lg shadow-lg shadow-blue-600/30 transition-all hover:scale-105 active:scale-95"
             >
-              <Play size={15} fill="currentColor" />
-              <span>立即在线体验 Demo</span>
-            </button>
+              <Download size={15} />
+              <span>下载桌面客户端 (Releases)</span>
+            </a>
 
             <a
               href="https://github.com/sheilacraig/MonoTerminal"
@@ -717,9 +737,14 @@ export const LandingPage: React.FC<LandingPageProps> = ({ onEnterDemo }) => {
             >
               MIT License
             </a>
-            <button onClick={onEnterDemo} className="text-[#58a6ff] hover:underline font-medium">
-              在线 Demo
-            </button>
+            <a
+              href="https://github.com/sheilacraig/MonoTerminal/releases"
+              target="_blank"
+              rel="noreferrer"
+              className="text-[#58a6ff] hover:underline font-medium"
+            >
+              Releases 下载
+            </a>
           </div>
         </div>
       </footer>

@@ -1,10 +1,10 @@
 # MonoTerminal
 
-MonoTerminal 是一个集成了 **AI 运维助手** 与 **SFTP 文件管理** 的轻量级 SSH 终端工具。
+MonoTerminal 是一个集成了 **AI 运维助手** 与 **SFTP / 本地文件管理** 的轻量级终端工具。
 
-无需注册登录，没有云端依赖，所有凭据和配置均保存在本地并加密。无论是连真实服务器排查问题，还是借助 AI 快速生成与执行排障命令，开箱即可使用。
+无需注册登录，没有云端依赖，所有凭据和配置均保存在本地并通过 AES-256-GCM 加密存储。无论是直接打开**本机终端 (Local Shell)**日常操作，还是连接远程服务器排查问题，亦或借助 AI 快速生成与执行排障命令，开箱即可使用。
 
-👉 **[在线体验 Demo (GitHub Pages)](https://sheilacraig.github.io/MonoTerminal/)**
+👉 **[直接下载 Windows 桌面版 (GitHub Releases)](https://github.com/sheilacraig/MonoTerminal/releases)**
 
 ---
 
@@ -18,44 +18,62 @@ MonoTerminal 是一个集成了 **AI 运维助手** 与 **SFTP 文件管理** �
 MonoTerminal 将这三件事整合到了同一个界面中：
 - **终端报错时**：按快捷键一键把报错信息发给 AI 诊断；
 - **AI 给出命令后**：按回车即可直接在终端里执行，或者按 Tab 键填入终端编辑；
-- **需要修改文件时**：左侧自带 SFTP 文件树与在线编辑器，改完 `Ctrl + S` 直接保存同步回服务器。
+- **需要修改文件时**：左侧自带 SFTP / 本地文件树与在线编辑器，改完 `Ctrl + S` 直接保存同步回服务器或写回本地磁盘。
 
 ---
 
 ## ✨ 主要功能
 
-- **无需登录，本地优先**：没有账号系统、手机号或云端同步。服务器密码、私钥和 API Key 均在本地通过 AES-256-GCM 加密存储。
+- **无需登录，本地优先**：没有账号系统、手机号或云端同步。服务器密码、私钥和 API Key 均在本地通过机器派生密钥的 AES-256-GCM 硬件级加密存储。
+- **开箱即用本机终端 (Local Shell)**：
+  - 启动后默认进入本机终端，无需预先准备云服务器；
+  - 基于 `node-pty` 原生伪终端，Windows 下自动探测匹配 PowerShell 7 / PowerShell 5 / CMD，macOS/Linux 自动匹配 Bash / Zsh；
+  - 完整支持 ANSI 真彩与 Tab 补全，左侧文件树自动联动本机用户目录。
 - **双栏界面设计**：
-  - **左栏**：远程 SFTP 文件管理器，支持拖拽调整宽度、在线查看/编辑文件、修改文件权限（chmod）以及上传下载。按 `Ctrl + B` 可以快速收起。
-  - **主视窗**：基于 xterm.js 的全功能终端。按 `Ctrl + \` 可以在终端与 AI 对话界面之间无缝切换，后台会话不会中断。
+  - **左栏**：远程 SFTP / 本地文件管理器，支持拖拽调整宽度、在线查看/编辑文件、修改文件权限（chmod）以及上传下载。按 `Ctrl + B` 可以快速收起。
+  - **主视窗**：基于 xterm.js 的全功能终端。按 `Ctrl + \` 可以在终端与 AI 对话界面之间无缝切换，后台会话长连接不会中断。
+- **语义感知 Shell Integration (OSC 133 / OSC 7)**：
+  - 深度支持现代终端语义协议，实时监听命令执行生命周期、当前工作目录（CWD）与退出码；
+  - **100% 基于真实 Exit Code != 0 判定报错**，彻底告别传统正则表达式匹配带来的误报与漏报；
+  - 自动提取当前失败命令及其专属输出作为提问背景，排障上下文更精准，无协议环境平滑降级。
 - **终端与 AI 协同**：
   - 终端出现异常报错时，右下角会自动弹出提示；
   - 呼出 AI 时会自动提取终端最近的输出日志作为提问背景；
   - AI 给出的命令卡片支持 **回车直接运行**、**Tab 填入编辑** 或 **查看命令解释**。
+- **Sudo 提权安全防护与密码浮层**：
+  - 终端执行提权命令（如 `sudo`）时自动呼出专属密码输入浮层，也可按 `Alt + P` 手动随时呼出；
+  - 针对多行脚本和 heredoc 块，内置前置 `sudo -v` 探测验证，杜绝密码在终端明文回显或被后续脚本管道消费，消除 PAM 时延竞态风险。
+- **无感顺滑的剪贴板体验**：
+  - 终端鼠标划选文字**自动复制**至剪贴板（基于 mouseup 优化，拖选无卡顿）；
+  - 终端支持**鼠标右键一键粘贴**；原生 `Ctrl + V` 零权限直通；
+  - AI 诊断面板文字全域支持自由选中复制。
 - **多种模型灵活接入**：
-  - 支持 **Ollama 本地大模型** 直连（全离线环境可用）；
+  - 支持 **Ollama 本地大模型** 直连（全离线内网环境秒通）；
   - 支持填入自己的 API Key（DeepSeek、OpenAI、Claude、通义千问等）；
   - 未配置模型时，自带本地离线规则引擎提供基础诊断建议。
 - **高危命令安全防护**：
   - 内置危险命令检测，对 `rm -rf /`、`mkfs`、误写磁盘（`dd`）等破坏性指令进行拦截；
   - 拦截后需手动输入确认或按 `Alt + Y` 方可继续执行，降低手滑风险。
 - **自带免服务器沙盒**：
-  - 初次使用无需先配好外部服务器，项目内置了一套虚拟 Linux 环境（模拟了 Nginx 配置、服务报错和系统日志），可以直接体验完整的终端交互与 AI 诊断流程。
+  - 内置一套虚拟 Linux 运维沙盒（模拟了 Nginx 配置、服务报错和系统日志），脱离外部网络也能体验完整的排障全流程。
 
 ---
 
-## ⌨️ 常用快捷键
+## ⌨️ 常用快捷键与手势
 
-| 快捷键 | 作用场景 | 说明 |
+| 快捷键 / 手势 | 作用场景 | 说明 |
 | :--- | :--- | :--- |
-| **`Ctrl + \`** | 终端 / AI 界面 | 在终端与 AI 助手之间来回切换（切到 AI 时自动抓取最近日志） |
-| **`Ctrl + B`** | 全局 | 展开 / 收起左侧 SFTP 侧边栏 |
-| **`Ctrl + T`** | 全局 | 新建标签页 / 打开主机连接列表 |
-| **`Ctrl + W`** | 全局 | 关闭当前会话标签 |
+| **`Ctrl + \`** | 终端 / AI 界面 | 在终端与 AI 助手之间来回切换（切到 AI 时自动抓取最近上下文） |
+| **`Ctrl + B`** | 全局 | 展开 / 收起左侧 SFTP / 本地文件侧边栏 |
+| **`Ctrl + T`** | 全局 | 新建标签页 / 打开主机与终端连接列表 |
+| **`Ctrl + W`** | 全局 | 关闭当前会话标签并断开连接 |
 | **`Enter`** | 选中的 AI 命令卡片 | 直接在终端中执行该命令并自动切回终端 |
 | **`Tab`** | 选中的 AI 命令卡片 | 将命令填入终端输入行等待修改，不直接回车 |
-| **`Ctrl + S`** | SFTP 在线代码编辑器 | 保存当前文件并写回远程服务器 |
+| **`Ctrl + S`** | 在线代码编辑器 | 保存当前文件并写回远程服务器或本地磁盘 |
+| **`Alt + P`** | 终端界面 | 手动唤起敏感输入 / Sudo 密码输入浮层 |
 | **`Alt + Y`** | 高危命令拦截弹窗 | 确认放行并执行危险命令 |
+| **鼠标划选** | 终端界面 | 划选文字自动复制至系统剪贴板（可在设置中开启/关闭） |
+| **鼠标右键** | 终端界面 | 将系统剪贴板内容直接粘贴至终端光标处 |
 
 ---
 
@@ -83,7 +101,7 @@ npm install
 
 ### 2. 运行项目
 
-**方式 A：一条命令启动（推荐，自动构建 + 启动服务）**
+**方式 A：一条命令启动（推荐，自动构建前端与后端并启动服务）**
 ```bash
 npm run serve
 ```
@@ -91,13 +109,15 @@ npm run serve
 
 **方式 B：分步执行（需要自己控制构建时机）**
 ```bash
-npm run build   # 构建前端
-npm start       # 启动服务（读取已构建产物）
+npm run build:all   # 同时构建前端 (dist/) 与后端服务 (dist-server/)
+npm start           # 启动后端服务（读取已构建产物）
 ```
+> [!NOTE]
+> `npm run build` 仅编译前端代码；若需单独编译后端服务，请执行 `npm run build:server`。若只执行 `npm run build && npm start` 会因缺失后端产物报错。
 
 **方式 C：开发模式（支持前端热更新）**
 ```bash
-# 终端 1：启动后端服务 (端口 3001)
+# 终端 1：启动后端开发服务 (端口 3001)
 npm run server
 
 # 终端 2：启动前端开发服务器 (端口 5173，已配置接口代理)
@@ -106,19 +126,24 @@ npm run dev
 打开 `http://localhost:5173` 进行开发调试。
 
 ### 3. 桌面客户端（Windows）
-- **直接使用**：下载 [Releases](https://github.com/sheilacraig/MonoTerminal/releases) 里的 `MonoTerminal-Setup-x.y.z.exe`（安装版）或 `MonoTerminal-x.y.z.exe`（免安装单文件），双击即可。
-- **自行打包**：见 [桌面端打包指南 (docs/PACKAGING.md)](docs/PACKAGING.md)。
+- **直接使用**：前往 [Releases 页面](https://github.com/sheilacraig/MonoTerminal/releases) 下载 `MonoTerminal-Setup-x.y.z.exe`（安装版）或 `MonoTerminal-x.y.z.exe`（免安装便携版），双击即可运行。
+- **自行打包**：详见 [桌面端打包指南 (docs/PACKAGING.md)](docs/PACKAGING.md)。
 
 ### 4. 遇到问题先自检
 ```bash
+# 环境与组件诊断
 npm run doctor
+
+# 源码全链路自检（含端口探测、REST鉴权、Origin白名单与WS协议验证）
+npm run verify:source
 ```
-会逐项检查 Node 版本、依赖、原生终端组件、构建产物、端口与数据目录，并给出可直接照做的修复建议。
+会逐项检查 Node 版本、依赖、原生终端组件、前后端产物、端口可用性与数据目录，给出精准修复建议。
 
 ### 5. 运行测试
 ```bash
 npm test
 ```
+内置 140 项覆盖率完备的自动化单元与集成测试（涵盖 Guardrail 规则、Shell Integration 语义感知、TerminalAuth 提权状态机、AES 加密存储等核心逻辑）。
 
 ---
 
@@ -126,9 +151,10 @@ npm test
 
 | 现象 | 原因 | 处理办法 |
 | :--- | :--- | :--- |
-| `因为在此系统上禁止运行脚本` | Windows PowerShell 默认执行策略为 Restricted | 改用 **CMD** 执行 npm 命令，或执行 `Set-ExecutionPolicy -Scope CurrentUser -ExecutionPolicy RemoteSigned` |
+| `因为在此系统上禁止运行脚本` | Windows PowerShell 默认执行策略为 Restricted | 改用 **CMD** 执行 npm 命令，或在 PowerShell 执行 `Set-ExecutionPolicy -Scope CurrentUser -ExecutionPolicy RemoteSigned` |
 | `npm install` 报 `ECONNRESET / ETIMEDOUT / RequestError` | 从 GitHub 拉取 Electron 二进制被网络阻断 | 项目自带 `.npmrc` 已指向国内镜像；仍失败时加 `--registry=https://registry.npmmirror.com`，或设置 `ELECTRON_SKIP_BINARY_DOWNLOAD=1` 跳过桌面端依赖 |
-| 启动后浏览器提示 `Cannot GET /` | 只启动了服务、没有构建前端 | 执行 `npm run build`，或直接用 `npm run serve` |
+| `Cannot find module ... dist-server/index.cjs` | 分步执行时仅跑了 `npm run build`，遗漏了后端编译 | 执行 `npm run build:all`（或 `npm run build:server`），或直接使用 `npm run serve` |
+| 启动后浏览器提示 `Cannot GET /` | 只启动了后端服务、没有构建前端静态产物 | 执行 `npm run build` 或直接执行 `npm run serve` |
 | 端口 3001 被占用 | 其他程序占用了默认端口 | 后端会自动改用后续空闲端口（以终端输出为准）；也可显式指定：`PORT=4000 npm start` |
 | 桌面端提示「后台服务启动超时」 | 安全软件拦截、端口被长期占用、或残留进程 | 把 MonoTerminal 加入杀软信任；关闭占用 3001 的程序；日志见 `%APPDATA%\monoterminal\logs\main.log` |
 | 打包报 `EBUSY: resource busy or locked ... default_app.asar` | 上次打包被中断，或调试时运行过 `release\win-unpacked` 里的 exe，残留文件被锁定 | 打包脚本已内置清理；若仍失败，关闭正在运行的 MonoTerminal/杀软信任/暂停网盘同步后重试，或直接重启电脑 |
@@ -140,36 +166,45 @@ npm test
 
 ```
 MonoTerminal/
-├── src/                  # 前端界面 (React + Tailwind CSS + xterm.js)
-│   ├── components/       # 界面组件 (终端、AI 对话窗、SFTP 侧边栏、弹窗等)
-│   ├── context/          # 全局状态 (会话管理、设置、WebSocket 通信)
-│   └── utils/            # 报错检测与命令安全匹配工具
-├── shared/               # 前后端共享代码 (高危命令规则、ID 生成)
-├── server/               # 后端服务 (Node.js + Express + WebSocket)
-│   ├── sshManager.ts     # SSH2 连接池与 SFTP 管理
-│   ├── mockServer.ts     # 内置虚拟 Linux 沙盒
-│   ├── aiService.ts      # 大模型中继接口 (Ollama / DeepSeek / OpenAI 等)
-│   ├── storage.ts        # 本地 AES-256-GCM 加密存储
-│   ├── guardrail.ts      # 高危命令拦截规则
-│   └── routes/           # REST API 路由
-├── electron/             # Electron 桌面客户端外壳
-├── scripts/              # 维护脚本 (环境自检 doctor / 打包前清理 / 打包产物验证)
-├── docs/                 # 项目文档 (打包指南等)
-└── tests/                # 单元测试与集成测试
+├── src/                      # 前端界面 (React + Tailwind CSS + xterm.js)
+│   ├── components/           # 界面组件 (终端视图、AI 对话窗、SFTP/本地文件树、提权浮层等)
+│   ├── context/              # 全局状态 (会话管理、系统设置、WebSocket 通信、AI 状态)
+│   ├── services/             # 业务服务 (terminalAuth 提权状态机与敏感凭据管控)
+│   └── utils/                # 工具函数 (OSC 133/7 语义感知、剪贴板作用域、命令清洗)
+├── shared/                   # 前后端共享代码 (高危命令规则、ID 生成、WebSocket 协议定义)
+├── server/                   # 后端服务 (Node.js + Express + WebSocket)
+│   ├── localPtyManager.ts    # 本机伪终端管理器 (基于 node-pty)
+│   ├── localFsManager.ts     # 本机文件系统管理器 (Local FS 读写与原子保存)
+│   ├── sshManager.ts         # SSH2 连接池与 SFTP 管理
+│   ├── mockServer.ts         # 内置虚拟 Linux 沙盒
+│   ├── aiService.ts          # 大模型中继接口 (Ollama / DeepSeek / OpenAI 等)
+│   ├── storage.ts            # 本地 AES-256-GCM 硬件派生加密存储与配置持久化
+│   ├── guardrail.ts          # 高危命令拦截规则定义
+│   ├── auth.ts               # HTTP / WebSocket 安全与鉴权中间件
+│   ├── ws/                   # WebSocket 消息路由与分发处理 (term, sftp, ai)
+│   └── routes/               # REST API 路由 (hosts, settings, guardrail, security)
+├── electron/                 # Electron 桌面客户端外壳
+├── scripts/                  # 维护脚本 (环境诊断 doctor / 源码链路验证 / 打包产物校验)
+├── docs/                     # 项目文档 (打包指南等)
+└── tests/                    # 单元测试与集成测试 (覆盖率完备)
 ```
 
 ---
 
 ## 🏗️ 架构概览
 
-前端通过 REST（配置/主机管理）与 WebSocket（终端流、SFTP、AI 对话）两条通道与本地后端通信；所有请求先经过 `auth` 中间件的 Host/Origin 白名单与 Bearer Token 校验。高危命令规则、ID 生成与消息协议位于 `shared/`，前后端共用同一份定义，避免规则漂移。
+前端通过 REST（配置/主机管理）与 WebSocket（终端流、SFTP/本地文件、AI 对话）两条通道与本地后端通信；所有请求先经过 `auth` 中间件的 Host/Origin 白名单与 Bearer Token 校验。高危命令规则、ID 生成与消息协议位于 `shared/`，前后端共用同一份定义，避免规则漂移。
 
 ```mermaid
 flowchart TB
     subgraph Client["前端 · React + Vite"]
         UI["双栏界面<br/>TerminalView / SftpSidebar / AgentView"]
-        CTX["Context 层<br/>Session · Settings · WebSocket"]
+        AUTH_BAR["TerminalAuthBar<br/>Sudo 提权状态机 (Alt+P)"]
+        OSC["Shell Integration<br/>OSC 133/7 退出码感知"]
+        CTX["Context 层<br/>Session · Settings · WebSocket · Agent"]
         UI --> CTX
+        AUTH_BAR --> CTX
+        OSC --> CTX
     end
 
     subgraph Shared["shared · 前后端共享"]
@@ -182,12 +217,15 @@ flowchart TB
         AUTH["auth 中间件<br/>Host/Origin 白名单 + Bearer Token"]
         ROUTES["REST routes<br/>hosts / settings / guardrail / security"]
         WSR["wsRouter<br/>term / sftp / ai:chat"]
+        PTY["localPtyManager<br/>本机 PTY (node-pty)"]
+        LFS["localFsManager<br/>本机文件管理与原子写"]
         SSH["sshManager<br/>SSH2 连接池 + SFTP"]
         MOCK["mockServer<br/>虚拟 Linux 沙盒"]
         AI["aiService<br/>大模型中继 + ThinkTagParser"]
         STORE["storage<br/>AES-256-GCM 加密"]
     end
 
+    EXT_LOCAL["本机 Shell & 磁盘目录"]
     EXT_SSH["远程 SSH 服务器"]
     EXT_AI["AI 提供方<br/>Ollama / DeepSeek / OpenAI"]
 
@@ -196,9 +234,13 @@ flowchart TB
     AUTH --> ROUTES
     AUTH --> WSR
     ROUTES --> STORE
+    WSR --> PTY
+    WSR --> LFS
     WSR --> SSH
     WSR --> MOCK
     WSR --> AI
+    PTY --> EXT_LOCAL
+    LFS --> EXT_LOCAL
     SSH --> EXT_SSH
     AI --> EXT_AI
 
