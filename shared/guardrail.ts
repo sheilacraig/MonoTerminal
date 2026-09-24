@@ -63,10 +63,10 @@ const CRITICAL_ABSOLUTE_DIRS = [
   // cleanup and would trigger a false positive.
 ];
 
-/** Split a shell command line into segments on `&&`, `||`, `;`, and `|`. */
+/** Split a shell command line into segments on newlines, `&&`, `||`, `;`, and `|`. */
 function splitShellSegments(cmd: string): string[] {
   return cmd
-    .split(/&&|\|\||[;|]/)
+    .split(/[\r\n]+|&&|\|\||[;|]/)
     .map(s => s.trim())
     .filter(Boolean);
 }
@@ -77,6 +77,27 @@ function tokenize(segment: string): string[] {
     .split(/\s+/)
     .filter(Boolean)
     .map(t => t.replace(/^["']|["']$/g, ''));
+}
+
+/** Extract the primary command binary token and argument tokens after any escalators (sudo, etc.) */
+function extractCommandInvocation(segment: string): { binary: string; args: string[] } | null {
+  const tokens = tokenize(segment);
+  let i = 0;
+
+  // Skip any leading privilege escalator plus its own flags
+  while (i < tokens.length && PRIVILEGE_ESCALATORS.has(tokens[i].toLowerCase())) {
+    i++;
+    while (i < tokens.length && tokens[i].startsWith('-')) {
+      // `sudo -u <user>` / `sudo -C <fd>` take a value; skip it too
+      if (/^-[a-zA-Z]*[uC]$/.test(tokens[i]) && i + 1 < tokens.length) i++;
+      i++;
+    }
+  }
+  if (i >= tokens.length) return null;
+  return {
+    binary: tokens[i],
+    args: tokens.slice(i + 1)
+  };
 }
 
 /** True if the token looks like a filesystem root or first-level wildcard. */
@@ -122,21 +143,8 @@ interface RmInvocation {
  */
 function analyzeRmCommand(cmd: string): RmInvocation | null {
   for (const segment of splitShellSegments(cmd)) {
-    const tokens = tokenize(segment);
-    let i = 0;
-
-    // Skip any leading privilege escalator plus its own flags
-    while (i < tokens.length && PRIVILEGE_ESCALATORS.has(tokens[i].toLowerCase())) {
-      i++;
-      while (i < tokens.length && tokens[i].startsWith('-')) {
-        // `sudo -u <user>` / `sudo -C <fd>` take a value; skip it too
-        if (/^-[a-zA-Z]*[uC]$/.test(tokens[i]) && i + 1 < tokens.length) i++;
-        i++;
-      }
-    }
-    if (i >= tokens.length) continue;
-    // Only match the bare `rm` binary (not `rmdir`, `rmagick`, ...)
-    if (tokens[i] !== 'rm') continue;
+    const inv = extractCommandInvocation(segment);
+    if (!inv || inv.binary !== 'rm') continue;
 
     let recursive = false;
     let force = false;
@@ -144,8 +152,7 @@ function analyzeRmCommand(cmd: string): RmInvocation | null {
     const targets: string[] = [];
     let sawDoubleDash = false;
 
-    for (let j = i + 1; j < tokens.length; j++) {
-      const t = tokens[j];
+    for (const t of inv.args) {
       if (sawDoubleDash) {
         targets.push(t);
         continue;
@@ -193,6 +200,76 @@ function matchesRecursiveRootDelete(cmd: string): boolean {
   return info.targets.some(isRootLikePath);
 }
 
+/** True when the command executes mkfs with a recognised filesystem driver as the command binary. */
+const MKFS_FS_REGEX = /^mkfs\.(ext[234]|xfs|btrfs|vfat|fat(32)?|ntfs|exfat|cramfs|minix|msdos|f2fs|bfs|udf|jfs|reiserfs|nilfs2)$/i;
+
+function matchesFormatDisk(cmd: string): boolean {
+  for (const segment of splitShellSegments(cmd)) {
+    const inv = extractCommandInvocation(segment);
+    if (!inv) continue;
+    const bin = inv.binary.toLowerCase();
+    if (bin === 'mkfs' || MKFS_FS_REGEX.test(bin)) {
+      return true;
+    }
+  }
+  return false;
+}
+
+/** True when chmod (with or without -R on root, or with -R on critical system dirs) targets root/critical dirs with 777 or 000. */
+function matchesChmodRoot(cmd: string): boolean {
+  for (const segment of splitShellSegments(cmd)) {
+    const inv = extractCommandInvocation(segment);
+    if (!inv || inv.binary !== 'chmod') continue;
+    const hasRecursive = inv.args.some(
+      a => a === '--recursive' || /^-[a-zA-Z]*[rR][a-zA-Z]*$/.test(a)
+    );
+    const hasDangerMode = inv.args.some(
+      a => a === '777' || a === '000' || a === 'a+rwx' || a.toLowerCase() === 'u=rwx,g=rwx,o=rwx'
+    );
+    const targetsRoot = inv.args.some(isRootLikePath);
+    const targetsBareRoot = inv.args.some(a => {
+      const t = a.replace(/^["']|["']$/g, '').trim();
+      return t === '/' || t === '/*' || /^\/\*(\/|$)/.test(t);
+    });
+
+    if (hasDangerMode && (targetsBareRoot || (hasRecursive && targetsRoot))) {
+      return true;
+    }
+  }
+  return false;
+}
+
+/** True when dd directly overwrites raw block devices (of=/dev/sd*, etc.). */
+function matchesOverwriteRawDisk(cmd: string): boolean {
+  for (const segment of splitShellSegments(cmd)) {
+    const inv = extractCommandInvocation(segment);
+    if (!inv || inv.binary !== 'dd') continue;
+    const hasRawDiskTarget = inv.args.some(a =>
+      /^of=\/dev\/(sd[a-z]|nvme[0-9]n[0-9]|vd[a-z]|hd[a-z])/i.test(a)
+    );
+    if (hasRawDiskTarget) {
+      return true;
+    }
+  }
+  return false;
+}
+
+/** True when chown -R targets root or critical system directories. */
+function matchesChownRoot(cmd: string): boolean {
+  for (const segment of splitShellSegments(cmd)) {
+    const inv = extractCommandInvocation(segment);
+    if (!inv || inv.binary !== 'chown') continue;
+    const hasRecursive = inv.args.some(
+      a => a === '--recursive' || /^-[a-zA-Z]*[rR][a-zA-Z]*$/.test(a)
+    );
+    const targetsRoot = inv.args.some(isRootLikePath);
+    if (hasRecursive && targetsRoot) {
+      return true;
+    }
+  }
+  return false;
+}
+
 // ---------------------------------------------------------------------------
 // Rule set
 // ---------------------------------------------------------------------------
@@ -220,13 +297,13 @@ export const DANGEROUS_RULES: DangerousRule[] = [
     reason: '使用了 --no-preserve-root 参数解除了 rm 对根目录的内建保护，极度危险。'
   },
   {
-    pattern: /\bmkfs(\.[a-z0-9]+)?(?:\s+|$)/i,
+    match: matchesFormatDisk,
     level: 'CRITICAL',
     ruleName: 'FORMAT_DISK',
     reason: '试图格式化磁盘分区，会导致该磁盘上的全部数据丢失。'
   },
   {
-    pattern: /\bdd\s+.*of=\/dev\/(sd[a-z]|nvme[0-9]n[0-9]|vd[a-z]|hd[a-z])/i,
+    match: matchesOverwriteRawDisk,
     level: 'CRITICAL',
     ruleName: 'OVERWRITE_RAW_DISK',
     reason: '试图通过 dd 直接覆写物理或虚拟底层磁盘，会破坏分区表和系统。'
@@ -238,16 +315,16 @@ export const DANGEROUS_RULES: DangerousRule[] = [
     reason: '试图将重定向数据写入原始磁盘设备。'
   },
   {
-    pattern: /\bchmod\s+(-[a-zA-Z]*R[a-zA-Z]*\s+)?(777|000)\s+(\/|\/\*)(?:\s|$|;)/i,
+    match: matchesChmodRoot,
     level: 'CRITICAL',
     ruleName: 'CHMOD_ROOT_777',
-    reason: '全盘修改根目录权限为 777 或 000 会彻底破坏系统权限模型与 sudo 功能。'
+    reason: '全盘修改根目录或关键系统目录权限为 777 或 000 会彻底破坏系统权限模型与 sudo 功能。'
   },
   {
-    pattern: /\bchown\s+-[a-zA-Z]*R[a-zA-Z]*\s+.*\s+(\/|\/\*)(?:\s|$|;)/i,
+    match: matchesChownRoot,
     level: 'HIGH',
     ruleName: 'CHOWN_ROOT_RECURSIVE',
-    reason: '递归改变根目录所有者会导致系统关键程序权限异常。'
+    reason: '递归改变根目录或关键系统目录所有者会导致系统关键程序权限异常。'
   },
   {
     pattern: /(:(){:|:&};:|:\(\)\s*\{\s*:\|:&\s*\};:)/,

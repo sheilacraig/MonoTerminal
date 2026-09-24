@@ -11,6 +11,16 @@ interface ProviderPayload extends ProviderEntry {
   plainApiKey?: string;
 }
 
+/**
+ * Request payload for POST /api/settings.
+ * Note: allowEmptyProviders is a transient control flag; it is never persisted to disk.
+ * If a future UI allows explicitly clearing all AI providers, it must send allowEmptyProviders: true.
+ */
+export interface UpdateSettingsPayload extends Partial<AppSettings> {
+  /** If true, permits saving an empty providers array without triggering anti-wipe fallback. */
+  allowEmptyProviders?: boolean;
+}
+
 // GET /api/settings
 settingsRouter.get('/', (req, res) => {
   const settings = localStorageManager.getSettings();
@@ -19,7 +29,39 @@ settingsRouter.get('/', (req, res) => {
 
 // POST /api/settings
 settingsRouter.post('/', (req, res) => {
-  const settings = req.body as AppSettings;
+  const { allowEmptyProviders, ...incomingSettings } = req.body as UpdateSettingsPayload;
+  const current = localStorageManager.getSettings();
+
+  const settings: AppSettings = {
+    ...current,
+    ...incomingSettings,
+    ai: {
+      ...current.ai,
+      ...(incomingSettings.ai || {}),
+      providers: incomingSettings.ai?.providers ?? current.ai?.providers ?? []
+    },
+    shortcuts: {
+      ...current.shortcuts,
+      ...(incomingSettings.shortcuts || {})
+    },
+    guardrail: {
+      ...current.guardrail,
+      ...(incomingSettings.guardrail || {})
+    },
+    terminal: {
+      ...current.terminal,
+      ...(incomingSettings.terminal || {})
+    }
+  };
+
+  // Protect against silent wipe of providers
+  if (
+    current.ai?.providers?.length > 0 &&
+    (!incomingSettings.ai?.providers || incomingSettings.ai.providers.length === 0) &&
+    !allowEmptyProviders
+  ) {
+    settings.ai.providers = current.ai.providers;
+  }
 
   // Encrypt plaintext API keys — the transient field is stripped before persistence
   try {
@@ -38,6 +80,10 @@ settingsRouter.post('/', (req, res) => {
     throw err;
   }
 
-  localStorageManager.saveSettings(settings);
-  res.json({ success: true, data: settings });
+  try {
+    localStorageManager.saveSettings(settings);
+    res.json({ success: true, data: settings });
+  } catch (err) {
+    res.status(409).json({ success: false, error: errorMessage(err) });
+  }
 });

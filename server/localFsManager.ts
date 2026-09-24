@@ -46,8 +46,11 @@ export class LocalFsManager implements LocalFsManagerApi {
   public list(dirPath: string): LocalFileItem[] {
     const dir = expandHome(dirPath);
     const entries = fs.readdirSync(dir, { withFileTypes: true });
+    const MAX_DIR_ENTRIES = 2000;
+    const limitedEntries =
+      entries.length > MAX_DIR_ENTRIES ? entries.slice(0, MAX_DIR_ENTRIES) : entries;
     const items: LocalFileItem[] = [];
-    for (const entry of entries) {
+    for (const entry of limitedEntries) {
       const fullPath = path.join(dir, entry.name);
       try {
         const stats = fs.statSync(fullPath);
@@ -73,13 +76,24 @@ export class LocalFsManager implements LocalFsManagerApi {
   }
 
   public readFile(filePath: string): string {
-    return fs.readFileSync(expandHome(filePath), 'utf8');
+    const target = expandHome(filePath);
+    const stats = fs.statSync(target);
+    const MAX_READ_SIZE = 10 * 1024 * 1024; // 10MB
+    if (stats.size > MAX_READ_SIZE) {
+      throw new Error(
+        `文件过大 (${(stats.size / 1024 / 1024).toFixed(1)}MB)，在线编辑最大支持 10MB，请使用下载查看`
+      );
+    }
+    return fs.readFileSync(target, 'utf8');
   }
 
   public writeFile(filePath: string, content: string): void {
     const target = expandHome(filePath);
-    fs.mkdirSync(path.dirname(target), { recursive: true });
-    fs.writeFileSync(target, content, 'utf8');
+    const dir = path.dirname(target);
+    fs.mkdirSync(dir, { recursive: true });
+    const tmp = path.join(dir, `.${path.basename(target)}.${Date.now()}.${Math.random().toString(36).slice(2)}.tmp`);
+    fs.writeFileSync(tmp, content, 'utf8');
+    fs.renameSync(tmp, target);
   }
 
   public delete(targetPath: string, _isDirectory: boolean): void {

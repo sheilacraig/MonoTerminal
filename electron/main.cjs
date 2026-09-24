@@ -142,6 +142,14 @@ if (!gotTheLock) {
           finished = true;
           clearInterval(interval);
           onReady();
+        } else if (!finished && res.statusCode && res.statusCode >= 500 && attempts >= maxRetries) {
+          finished = true;
+          clearInterval(interval);
+          if (onFailed) {
+            onFailed();
+          } else {
+            onReady();
+          }
         }
       });
 

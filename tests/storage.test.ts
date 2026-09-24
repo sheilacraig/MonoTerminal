@@ -182,4 +182,83 @@ describe('LocalStorageManager & AES-256-GCM Encryption', () => {
     const restarted = new LocalStorageManager(tempDir);
     expect(restarted.unlock('first-pw-123')).toBe(true);
   });
+
+  it('should detect corruption and invalid schema in hosts.json and refuse to save', () => {
+    const hostsPath = path.join(tempDir, 'hosts.json');
+
+    // Case 1: Malformed JSON syntax
+    fs.writeFileSync(hostsPath, '{"broken": [json', 'utf8');
+    const result1 = storage.getHosts();
+    expect(result1).toEqual([]);
+    expect(storage.isHostsCorrupted()).toBe(true);
+    expect(() => storage.saveHosts([])).toThrow(/hosts\.json 文件损坏/);
+
+    // Verify original content was not overwritten
+    expect(fs.readFileSync(hostsPath, 'utf8')).toBe('{"broken": [json');
+
+    // Case 2: Valid JSON but wrong shape (not an array)
+    fs.writeFileSync(hostsPath, JSON.stringify({ not: 'an array', validJson: true }), 'utf8');
+    const result2 = storage.getHosts();
+    expect(result2).toEqual([]);
+    expect(storage.isHostsCorrupted()).toBe(true);
+    expect(() => storage.saveHosts([])).toThrow(/hosts\.json 文件损坏/);
+  });
+
+  it('should detect corruption and invalid schema in settings.json and refuse to save', () => {
+    const settingsPath = path.join(tempDir, 'settings.json');
+
+    // Case 1: Malformed JSON syntax
+    fs.writeFileSync(settingsPath, 'not json at all', 'utf8');
+    const result1 = storage.getSettings();
+    expect(result1).toBeDefined();
+    expect(storage.isSettingsCorrupted()).toBe(true);
+    expect(() => storage.saveSettings(result1)).toThrow(/settings\.json 文件损坏/);
+
+    // Case 2: Valid JSON but wrong shape (missing required sections)
+    fs.writeFileSync(settingsPath, JSON.stringify({ invalidShape: true }), 'utf8');
+    const result2 = storage.getSettings();
+    expect(result2).toBeDefined();
+    expect(storage.isSettingsCorrupted()).toBe(true);
+    expect(() => storage.saveSettings(result2)).toThrow(/settings\.json 文件损坏/);
+  });
+
+  it('should create .bak backup before overwriting and leave no tmp files', () => {
+    const hosts = storage.getHosts();
+    const initialCount = hosts.length;
+
+    hosts.push({
+      id: 'h-atom-1',
+      name: 'Atom1',
+      group: '测试',
+      host: '10.0.0.2',
+      port: 22,
+      username: 'u',
+      authType: 'mock',
+      createdAt: Date.now()
+    });
+    storage.saveHosts(hosts);
+
+    // Second save: hosts.json.bak must be generated with previous version
+    hosts.push({
+      id: 'h-atom-2',
+      name: 'Atom2',
+      group: '测试',
+      host: '10.0.0.3',
+      port: 22,
+      username: 'u',
+      authType: 'mock',
+      createdAt: Date.now()
+    });
+    storage.saveHosts(hosts);
+
+    const bakPath = path.join(tempDir, 'hosts.json.bak');
+    expect(fs.existsSync(bakPath)).toBe(true);
+    const bakContent: HostAsset[] = JSON.parse(fs.readFileSync(bakPath, 'utf8'));
+    expect(bakContent.length).toBe(initialCount + 1);
+
+    // Check no tmp files left
+    const files = fs.readdirSync(tempDir);
+    const tmpFiles = files.filter(f => f.endsWith('.tmp'));
+    expect(tmpFiles.length).toBe(0);
+  });
 });

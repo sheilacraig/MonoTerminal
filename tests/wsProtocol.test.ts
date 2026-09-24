@@ -135,7 +135,12 @@ describe('validateWsInboundMessage', () => {
       opsContext: {
         terminalSnippet: 'some output',
         bogusField: 'x',
-        commandHistory: ['ls', 42, null, 'pwd']
+        commandHistory: ['ls', 42, null, 'pwd'],
+        failedCommand: {
+          command: 'systemctl restart nginx',
+          exitCode: 1,
+          output: 'Job failed'
+        }
       }
     });
     expect(res.ok).toBe(true);
@@ -146,6 +151,11 @@ describe('validateWsInboundMessage', () => {
       ).toBeUndefined();
       // Non-string history entries are dropped, valid ones kept in order
       expect(res.msg.opsContext?.commandHistory).toEqual(['ls', 'pwd']);
+      expect(res.msg.opsContext?.failedCommand).toEqual({
+        command: 'systemctl restart nginx',
+        exitCode: 1,
+        output: 'Job failed'
+      });
     }
   });
 

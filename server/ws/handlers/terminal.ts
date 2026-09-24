@@ -11,7 +11,19 @@ import type { WsHandler } from '../types';
 export const handleTermInit: WsHandler<TermInitMessage> = async (msg, conn, deps) => {
   const { sessionId, hostId } = msg;
   const hosts = deps.storage.getHosts();
-  const host = hosts.find(h => h.id === hostId) || deps.demoHost;
+  let host = hosts.find(h => h.id === hostId);
+  if (!host && deps.demoHost && (hostId === 'local-shell' || hostId === deps.demoHost.id)) {
+    host = deps.demoHost;
+  }
+
+  if (!host) {
+    conn.send({
+      type: 'term:error',
+      sessionId,
+      message: `主机未找到 (hostId: "${hostId}")，请检查主机资产配置是否有效。`
+    });
+    return;
+  }
 
   conn.clientSessions.add(sessionId);
 
@@ -50,11 +62,18 @@ export const handleTermInit: WsHandler<TermInitMessage> = async (msg, conn, deps
     if (!sessionObj) {
       sessionObj = deps.createMockSession(sessionId);
       deps.mockSessions.set(sessionId, sessionObj);
-      sessionObj.term.on('data', (data: string) => {
-        conn.send({ type: 'term:data', sessionId, data });
-      });
       sessionObj.term.init();
     }
+    const onData = (data: string) => {
+      conn.send({ type: 'term:data', sessionId, data });
+    };
+    sessionObj.term.on('data', onData);
+    if (typeof conn.socket?.once === 'function') {
+      conn.socket.once('close', () => {
+        sessionObj?.term.off?.('data', onData);
+      });
+    }
+
     conn.send({
       type: 'term:ready',
       sessionId,

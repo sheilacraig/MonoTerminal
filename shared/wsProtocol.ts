@@ -25,6 +25,11 @@ export interface OpsContextPayload {
   currentUser?: string;
   osInfo?: string;
   commandHistory?: string[];
+  failedCommand?: {
+    command?: string;
+    exitCode: number;
+    output?: string;
+  };
 }
 
 /** Client-side callbacks for consuming a streamed AI response. */
@@ -281,6 +286,16 @@ function parseOpsContext(v: unknown): OpsContextPayload | undefined {
   if (isStr(v.osInfo, 512)) ctx.osInfo = v.osInfo;
   if (Array.isArray(v.commandHistory)) {
     ctx.commandHistory = v.commandHistory.filter((h): h is string => isStr(h, 2000)).slice(0, 500);
+  }
+  if (isRecord(v.failedCommand)) {
+    const fc = v.failedCommand;
+    if (typeof fc.exitCode === 'number' && Number.isFinite(fc.exitCode)) {
+      ctx.failedCommand = {
+        exitCode: fc.exitCode,
+        ...(isStr(fc.command, 2000) ? { command: fc.command } : {}),
+        ...(isStr(fc.output, MAX_SNIPPET_LEN) ? { output: fc.output } : {})
+      };
+    }
   }
   return ctx;
 }

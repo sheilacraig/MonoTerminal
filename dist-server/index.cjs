@@ -48012,6 +48012,8 @@ var LocalStorageManager = class {
   /** null while the store is locked (master password set but not entered). */
   masterKey;
   masterPasswordEnabled;
+  hostsCorrupted = false;
+  settingsCorrupted = false;
   constructor(customDataDir) {
     this.dataDir = customDataDir || DEFAULT_DATA_DIR;
     if (!import_fs.default.existsSync(this.dataDir)) {
@@ -48311,35 +48313,89 @@ var LocalStorageManager = class {
       import_fs.default.writeFileSync(settingsPath, JSON.stringify(defaultSettings, null, 2), "utf8");
     }
   }
+  isHostsCorrupted() {
+    return this.hostsCorrupted;
+  }
+  isSettingsCorrupted() {
+    return this.settingsCorrupted;
+  }
   getHosts() {
     const hostsPath = import_path.default.join(this.dataDir, "hosts.json");
     try {
       if (import_fs.default.existsSync(hostsPath)) {
-        return JSON.parse(import_fs.default.readFileSync(hostsPath, "utf8"));
+        const parsed = JSON.parse(import_fs.default.readFileSync(hostsPath, "utf8"));
+        if (!Array.isArray(parsed)) {
+          console.error("Failed to read hosts.json (invalid shape, expected array):", typeof parsed);
+          this.hostsCorrupted = true;
+          return [];
+        }
+        this.hostsCorrupted = false;
+        return parsed;
       }
     } catch (e) {
-      console.error("Failed to read hosts.json", e);
+      console.error("Failed to read hosts.json (file corrupted or invalid JSON)", e);
+      this.hostsCorrupted = true;
     }
     return [];
   }
   saveHosts(hosts) {
+    if (this.hostsCorrupted) {
+      throw new Error(
+        "hosts.json \u6587\u4EF6\u635F\u574F\uFF0C\u5DF2\u963B\u6B62\u4FDD\u5B58\u4EE5\u9632\u8986\u76D6\u539F\u6709\u6570\u636E\u3002\u8BF7\u5148\u4ECE hosts.json.bak \u6062\u590D\u6216\u4FEE\u590D\u6587\u4EF6"
+      );
+    }
     const hostsPath = import_path.default.join(this.dataDir, "hosts.json");
-    import_fs.default.writeFileSync(hostsPath, JSON.stringify(hosts, null, 2), "utf8");
+    const bakPath = import_path.default.join(this.dataDir, "hosts.json.bak");
+    const tmpPath = import_path.default.join(this.dataDir, `.hosts.${Date.now()}.${Math.random().toString(36).slice(2)}.tmp`);
+    if (import_fs.default.existsSync(hostsPath)) {
+      try {
+        import_fs.default.copyFileSync(hostsPath, bakPath);
+      } catch (err) {
+        console.warn("Failed to backup hosts.json before save", err);
+      }
+    }
+    import_fs.default.writeFileSync(tmpPath, JSON.stringify(hosts, null, 2), "utf8");
+    import_fs.default.renameSync(tmpPath, hostsPath);
+    this.hostsCorrupted = false;
   }
   getSettings() {
     const settingsPath = import_path.default.join(this.dataDir, "settings.json");
     try {
       if (import_fs.default.existsSync(settingsPath)) {
-        return JSON.parse(import_fs.default.readFileSync(settingsPath, "utf8"));
+        const parsed = JSON.parse(import_fs.default.readFileSync(settingsPath, "utf8"));
+        if (!parsed || typeof parsed !== "object" || Array.isArray(parsed) || !parsed.ai || !parsed.terminal) {
+          console.error("Failed to read settings.json (invalid shape, expected AppSettings object)");
+          this.settingsCorrupted = true;
+          return this.getDefaultSettings();
+        }
+        this.settingsCorrupted = false;
+        return parsed;
       }
     } catch (e) {
-      console.error("Failed to read settings.json", e);
+      console.error("Failed to read settings.json (file corrupted or invalid JSON)", e);
+      this.settingsCorrupted = true;
     }
     return this.getDefaultSettings();
   }
   saveSettings(settings) {
+    if (this.settingsCorrupted) {
+      throw new Error(
+        "settings.json \u6587\u4EF6\u635F\u574F\uFF0C\u5DF2\u963B\u6B62\u4FDD\u5B58\u4EE5\u9632\u8986\u76D6\u539F\u6709\u6570\u636E\u3002\u8BF7\u5148\u4ECE settings.json.bak \u6062\u590D\u6216\u4FEE\u590D\u6587\u4EF6"
+      );
+    }
     const settingsPath = import_path.default.join(this.dataDir, "settings.json");
-    import_fs.default.writeFileSync(settingsPath, JSON.stringify(settings, null, 2), "utf8");
+    const bakPath = import_path.default.join(this.dataDir, "settings.json.bak");
+    const tmpPath = import_path.default.join(this.dataDir, `.settings.${Date.now()}.${Math.random().toString(36).slice(2)}.tmp`);
+    if (import_fs.default.existsSync(settingsPath)) {
+      try {
+        import_fs.default.copyFileSync(settingsPath, bakPath);
+      } catch (err) {
+        console.warn("Failed to backup settings.json before save", err);
+      }
+    }
+    import_fs.default.writeFileSync(tmpPath, JSON.stringify(settings, null, 2), "utf8");
+    import_fs.default.renameSync(tmpPath, settingsPath);
+    this.settingsCorrupted = false;
   }
   getDefaultSettings() {
     return {
@@ -48471,7 +48527,15 @@ var AIService = class {
 - \u5F53\u524D\u7528\u6237: ${opsContext.currentUser || "root"}
 - \u5F53\u524D\u5DE5\u4F5C\u76EE\u5F55: ${opsContext.currentDir || "/etc/nginx"}
 - \u64CD\u4F5C\u7CFB\u7EDF\u753B\u50CF: ${opsContext.osInfo || "Linux x86_64 Ubuntu 22.04 LTS"}
-${opsContext.terminalSnippet ? `
+${opsContext.failedCommand ? `
+- \u5F02\u5E38\u547D\u4EE4\u751F\u547D\u5468\u671F (OSC 133 \u8BED\u4E49\u611F\u77E5):
+  * \u6267\u884C\u547D\u4EE4: ${opsContext.failedCommand.command || "(\u672A\u77E5\u547D\u4EE4)"}
+  * \u9000\u51FA\u72B6\u6001\u7801: ${opsContext.failedCommand.exitCode}
+  * \u547D\u4EE4\u9694\u79BB\u8F93\u51FA:
+\`\`\`text
+${opsContext.failedCommand.output || opsContext.terminalSnippet || ""}
+\`\`\`
+` : opsContext.terminalSnippet ? `
 - \u7EC8\u7AEF\u6700\u8FD1\u8F93\u51FA (\u80CC\u666F\u4E0A\u4E0B\u6587):
 \`\`\`text
 ${opsContext.terminalSnippet}
@@ -48784,7 +48848,13 @@ hostsRouter.get("/", (req, res) => {
   res.json({ success: true, data: sanitized });
 });
 hostsRouter.post("/", (req, res) => {
-  const { plainPassword, plainPassphrase, ...hostData } = req.body;
+  const {
+    plainPassword,
+    plainPassphrase,
+    clearPassword,
+    clearPassphrase,
+    ...hostData
+  } = req.body;
   if (!hostData.id) {
     hostData.id = generateId("host-");
   }
@@ -48808,13 +48878,18 @@ hostsRouter.post("/", (req, res) => {
   const hosts = localStorageManager.getHosts();
   const index = hosts.findIndex((h) => h.id === hostData.id);
   if (index >= 0) {
-    hosts[index] = {
+    const updated = {
       ...hosts[index],
       ...hostData,
-      passwordEncrypted: hostData.passwordEncrypted ?? hosts[index].passwordEncrypted,
-      passphraseEncrypted: hostData.passphraseEncrypted ?? hosts[index].passphraseEncrypted
+      passwordEncrypted: clearPassword ? void 0 : hostData.passwordEncrypted ?? hosts[index].passwordEncrypted,
+      passphraseEncrypted: clearPassphrase ? void 0 : hostData.passphraseEncrypted ?? hosts[index].passphraseEncrypted
     };
+    if (clearPassword) delete updated.passwordEncrypted;
+    if (clearPassphrase) delete updated.passphraseEncrypted;
+    hosts[index] = updated;
   } else {
+    if (clearPassword) delete hostData.passwordEncrypted;
+    if (clearPassphrase) delete hostData.passphraseEncrypted;
     hosts.push(hostData);
   }
   localStorageManager.saveHosts(hosts);
@@ -48836,7 +48911,32 @@ settingsRouter.get("/", (req, res) => {
   res.json({ success: true, data: settings });
 });
 settingsRouter.post("/", (req, res) => {
-  const settings = req.body;
+  const { allowEmptyProviders, ...incomingSettings } = req.body;
+  const current = localStorageManager.getSettings();
+  const settings = {
+    ...current,
+    ...incomingSettings,
+    ai: {
+      ...current.ai,
+      ...incomingSettings.ai || {},
+      providers: incomingSettings.ai?.providers ?? current.ai?.providers ?? []
+    },
+    shortcuts: {
+      ...current.shortcuts,
+      ...incomingSettings.shortcuts || {}
+    },
+    guardrail: {
+      ...current.guardrail,
+      ...incomingSettings.guardrail || {}
+    },
+    terminal: {
+      ...current.terminal,
+      ...incomingSettings.terminal || {}
+    }
+  };
+  if (current.ai?.providers?.length > 0 && (!incomingSettings.ai?.providers || incomingSettings.ai.providers.length === 0) && !allowEmptyProviders) {
+    settings.ai.providers = current.ai.providers;
+  }
   try {
     const providers = settings.ai?.providers ?? [];
     for (const p of providers) {
@@ -48852,8 +48952,12 @@ settingsRouter.post("/", (req, res) => {
     }
     throw err;
   }
-  localStorageManager.saveSettings(settings);
-  res.json({ success: true, data: settings });
+  try {
+    localStorageManager.saveSettings(settings);
+    res.json({ success: true, data: settings });
+  } catch (err) {
+    res.status(409).json({ success: false, error: errorMessage(err) });
+  }
 });
 
 // server/routes/guardrail.ts
@@ -48882,10 +48986,26 @@ var CRITICAL_ABSOLUTE_DIRS = [
   // cleanup and would trigger a false positive.
 ];
 function splitShellSegments(cmd) {
-  return cmd.split(/&&|\|\||[;|]/).map((s) => s.trim()).filter(Boolean);
+  return cmd.split(/[\r\n]+|&&|\|\||[;|]/).map((s) => s.trim()).filter(Boolean);
 }
 function tokenize(segment) {
   return segment.split(/\s+/).filter(Boolean).map((t) => t.replace(/^["']|["']$/g, ""));
+}
+function extractCommandInvocation(segment) {
+  const tokens = tokenize(segment);
+  let i = 0;
+  while (i < tokens.length && PRIVILEGE_ESCALATORS.has(tokens[i].toLowerCase())) {
+    i++;
+    while (i < tokens.length && tokens[i].startsWith("-")) {
+      if (/^-[a-zA-Z]*[uC]$/.test(tokens[i]) && i + 1 < tokens.length) i++;
+      i++;
+    }
+  }
+  if (i >= tokens.length) return null;
+  return {
+    binary: tokens[i],
+    args: tokens.slice(i + 1)
+  };
 }
 function isRootLikePath(rawToken) {
   if (!rawToken) return false;
@@ -48901,24 +49021,14 @@ function isRootLikePath(rawToken) {
 }
 function analyzeRmCommand(cmd) {
   for (const segment of splitShellSegments(cmd)) {
-    const tokens = tokenize(segment);
-    let i = 0;
-    while (i < tokens.length && PRIVILEGE_ESCALATORS.has(tokens[i].toLowerCase())) {
-      i++;
-      while (i < tokens.length && tokens[i].startsWith("-")) {
-        if (/^-[a-zA-Z]*[uC]$/.test(tokens[i]) && i + 1 < tokens.length) i++;
-        i++;
-      }
-    }
-    if (i >= tokens.length) continue;
-    if (tokens[i] !== "rm") continue;
+    const inv = extractCommandInvocation(segment);
+    if (!inv || inv.binary !== "rm") continue;
     let recursive = false;
     let force = false;
     let noPreserveRoot = false;
     const targets = [];
     let sawDoubleDash = false;
-    for (let j = i + 1; j < tokens.length; j++) {
-      const t = tokens[j];
+    for (const t of inv.args) {
       if (sawDoubleDash) {
         targets.push(t);
         continue;
@@ -48961,6 +49071,66 @@ function matchesRecursiveRootDelete(cmd) {
   if (!info || !info.recursive) return false;
   return info.targets.some(isRootLikePath);
 }
+var MKFS_FS_REGEX = /^mkfs\.(ext[234]|xfs|btrfs|vfat|fat(32)?|ntfs|exfat|cramfs|minix|msdos|f2fs|bfs|udf|jfs|reiserfs|nilfs2)$/i;
+function matchesFormatDisk(cmd) {
+  for (const segment of splitShellSegments(cmd)) {
+    const inv = extractCommandInvocation(segment);
+    if (!inv) continue;
+    const bin = inv.binary.toLowerCase();
+    if (bin === "mkfs" || MKFS_FS_REGEX.test(bin)) {
+      return true;
+    }
+  }
+  return false;
+}
+function matchesChmodRoot(cmd) {
+  for (const segment of splitShellSegments(cmd)) {
+    const inv = extractCommandInvocation(segment);
+    if (!inv || inv.binary !== "chmod") continue;
+    const hasRecursive = inv.args.some(
+      (a) => a === "--recursive" || /^-[a-zA-Z]*[rR][a-zA-Z]*$/.test(a)
+    );
+    const hasDangerMode = inv.args.some(
+      (a) => a === "777" || a === "000" || a === "a+rwx" || a.toLowerCase() === "u=rwx,g=rwx,o=rwx"
+    );
+    const targetsRoot = inv.args.some(isRootLikePath);
+    const targetsBareRoot = inv.args.some((a) => {
+      const t = a.replace(/^["']|["']$/g, "").trim();
+      return t === "/" || t === "/*" || /^\/\*(\/|$)/.test(t);
+    });
+    if (hasDangerMode && (targetsBareRoot || hasRecursive && targetsRoot)) {
+      return true;
+    }
+  }
+  return false;
+}
+function matchesOverwriteRawDisk(cmd) {
+  for (const segment of splitShellSegments(cmd)) {
+    const inv = extractCommandInvocation(segment);
+    if (!inv || inv.binary !== "dd") continue;
+    const hasRawDiskTarget = inv.args.some(
+      (a) => /^of=\/dev\/(sd[a-z]|nvme[0-9]n[0-9]|vd[a-z]|hd[a-z])/i.test(a)
+    );
+    if (hasRawDiskTarget) {
+      return true;
+    }
+  }
+  return false;
+}
+function matchesChownRoot(cmd) {
+  for (const segment of splitShellSegments(cmd)) {
+    const inv = extractCommandInvocation(segment);
+    if (!inv || inv.binary !== "chown") continue;
+    const hasRecursive = inv.args.some(
+      (a) => a === "--recursive" || /^-[a-zA-Z]*[rR][a-zA-Z]*$/.test(a)
+    );
+    const targetsRoot = inv.args.some(isRootLikePath);
+    if (hasRecursive && targetsRoot) {
+      return true;
+    }
+  }
+  return false;
+}
 var DANGEROUS_RULES = [
   {
     // Structural matcher — handles every split-flag / escalator / long-option
@@ -48984,13 +49154,13 @@ var DANGEROUS_RULES = [
     reason: "\u4F7F\u7528\u4E86 --no-preserve-root \u53C2\u6570\u89E3\u9664\u4E86 rm \u5BF9\u6839\u76EE\u5F55\u7684\u5185\u5EFA\u4FDD\u62A4\uFF0C\u6781\u5EA6\u5371\u9669\u3002"
   },
   {
-    pattern: /\bmkfs(\.[a-z0-9]+)?(?:\s+|$)/i,
+    match: matchesFormatDisk,
     level: "CRITICAL",
     ruleName: "FORMAT_DISK",
     reason: "\u8BD5\u56FE\u683C\u5F0F\u5316\u78C1\u76D8\u5206\u533A\uFF0C\u4F1A\u5BFC\u81F4\u8BE5\u78C1\u76D8\u4E0A\u7684\u5168\u90E8\u6570\u636E\u4E22\u5931\u3002"
   },
   {
-    pattern: /\bdd\s+.*of=\/dev\/(sd[a-z]|nvme[0-9]n[0-9]|vd[a-z]|hd[a-z])/i,
+    match: matchesOverwriteRawDisk,
     level: "CRITICAL",
     ruleName: "OVERWRITE_RAW_DISK",
     reason: "\u8BD5\u56FE\u901A\u8FC7 dd \u76F4\u63A5\u8986\u5199\u7269\u7406\u6216\u865A\u62DF\u5E95\u5C42\u78C1\u76D8\uFF0C\u4F1A\u7834\u574F\u5206\u533A\u8868\u548C\u7CFB\u7EDF\u3002"
@@ -49002,16 +49172,16 @@ var DANGEROUS_RULES = [
     reason: "\u8BD5\u56FE\u5C06\u91CD\u5B9A\u5411\u6570\u636E\u5199\u5165\u539F\u59CB\u78C1\u76D8\u8BBE\u5907\u3002"
   },
   {
-    pattern: /\bchmod\s+(-[a-zA-Z]*R[a-zA-Z]*\s+)?(777|000)\s+(\/|\/\*)(?:\s|$|;)/i,
+    match: matchesChmodRoot,
     level: "CRITICAL",
     ruleName: "CHMOD_ROOT_777",
-    reason: "\u5168\u76D8\u4FEE\u6539\u6839\u76EE\u5F55\u6743\u9650\u4E3A 777 \u6216 000 \u4F1A\u5F7B\u5E95\u7834\u574F\u7CFB\u7EDF\u6743\u9650\u6A21\u578B\u4E0E sudo \u529F\u80FD\u3002"
+    reason: "\u5168\u76D8\u4FEE\u6539\u6839\u76EE\u5F55\u6216\u5173\u952E\u7CFB\u7EDF\u76EE\u5F55\u6743\u9650\u4E3A 777 \u6216 000 \u4F1A\u5F7B\u5E95\u7834\u574F\u7CFB\u7EDF\u6743\u9650\u6A21\u578B\u4E0E sudo \u529F\u80FD\u3002"
   },
   {
-    pattern: /\bchown\s+-[a-zA-Z]*R[a-zA-Z]*\s+.*\s+(\/|\/\*)(?:\s|$|;)/i,
+    match: matchesChownRoot,
     level: "HIGH",
     ruleName: "CHOWN_ROOT_RECURSIVE",
-    reason: "\u9012\u5F52\u6539\u53D8\u6839\u76EE\u5F55\u6240\u6709\u8005\u4F1A\u5BFC\u81F4\u7CFB\u7EDF\u5173\u952E\u7A0B\u5E8F\u6743\u9650\u5F02\u5E38\u3002"
+    reason: "\u9012\u5F52\u6539\u53D8\u6839\u76EE\u5F55\u6216\u5173\u952E\u7CFB\u7EDF\u76EE\u5F55\u6240\u6709\u8005\u4F1A\u5BFC\u81F4\u7CFB\u7EDF\u5173\u952E\u7A0B\u5E8F\u6743\u9650\u5F02\u5E38\u3002"
   },
   {
     pattern: /(:(){:|:&};:|:\(\)\s*\{\s*:\|:&\s*\};:)/,
@@ -49221,6 +49391,7 @@ var SshManager = class {
       client.on("close", () => {
         instance.isAlive = false;
         events.emit("close");
+        this.closeSession(sessionId);
       });
       const connectConfig = {
         host: host.host,
@@ -49297,6 +49468,15 @@ var SshManager = class {
   async sftpReadFile(sessionId, filePath) {
     const session = this.sessions.get(sessionId);
     if (!session || !session.sftp) throw new Error("SFTP \u672A\u5C31\u7EEA");
+    const stats = await new Promise((resolve, reject) => {
+      session.sftp.stat(filePath, (err, stats2) => err ? reject(err) : resolve(stats2));
+    });
+    const MAX_READ_SIZE = 10 * 1024 * 1024;
+    if (stats.size > MAX_READ_SIZE) {
+      throw new Error(
+        `\u6587\u4EF6\u8FC7\u5927 (${(stats.size / 1024 / 1024).toFixed(1)}MB)\uFF0C\u5728\u7EBF\u7F16\u8F91\u6700\u5927\u652F\u6301 10MB\uFF0C\u8BF7\u4F7F\u7528\u4E0B\u8F7D\u67E5\u770B`
+      );
+    }
     return new Promise((resolve, reject) => {
       const chunks = [];
       const readStream = session.sftp.createReadStream(filePath);
@@ -49308,11 +49488,71 @@ var SshManager = class {
   async sftpWriteFile(sessionId, filePath, content) {
     const session = this.sessions.get(sessionId);
     if (!session || !session.sftp) throw new Error("SFTP \u672A\u5C31\u7EEA");
-    return new Promise((resolve, reject) => {
-      const writeStream = session.sftp.createWriteStream(filePath);
+    const sftp = session.sftp;
+    const lastSlash = filePath.lastIndexOf("/");
+    const dir = lastSlash >= 0 ? filePath.substring(0, lastSlash) : "";
+    const base = lastSlash >= 0 ? filePath.substring(lastSlash + 1) : filePath;
+    const tmpPath = `${dir ? dir + "/" : ""}.${base}.${Date.now()}.${Math.random().toString(36).slice(2)}.tmp`;
+    await new Promise((resolve, reject) => {
+      const writeStream = sftp.createWriteStream(tmpPath);
       writeStream.on("close", () => resolve());
-      writeStream.on("error", (err) => reject(err));
+      writeStream.on("error", (err) => {
+        sftp.unlink(tmpPath, () => {
+        });
+        reject(err);
+      });
       writeStream.end(content, "utf-8");
+    });
+    const tryOpenSshRename = () => {
+      return new Promise((resolve) => {
+        if (typeof sftp.ext_openssh_rename === "function") {
+          try {
+            sftp.ext_openssh_rename(tmpPath, filePath, (err) => {
+              resolve(!err);
+            });
+          } catch {
+            resolve(false);
+          }
+        } else {
+          resolve(false);
+        }
+      });
+    };
+    const openSshSuccess = await tryOpenSshRename();
+    if (openSshSuccess) {
+      return;
+    }
+    const backupPath = `${dir ? dir + "/" : ""}.${base}.bak.${Date.now()}`;
+    const targetExisted = await new Promise((resolve) => {
+      sftp.stat(filePath, (err) => resolve(!err));
+    });
+    if (targetExisted) {
+      await new Promise((resolve, reject) => {
+        sftp.rename(filePath, backupPath, (err) => {
+          if (err) reject(new Error(`\u65E0\u6CD5\u4E3A\u73B0\u6709\u6587\u4EF6\u521B\u5EFA\u5907\u4EFD: ${err.message}`));
+          else resolve();
+        });
+      });
+    }
+    await new Promise((resolve, reject) => {
+      sftp.rename(tmpPath, filePath, (err) => {
+        if (err) {
+          const recoveredPath = `${dir ? dir + "/" : ""}.${base}.recovered.${Date.now()}`;
+          sftp.rename(tmpPath, recoveredPath, () => {
+          });
+          if (targetExisted) {
+            sftp.rename(backupPath, filePath, () => {
+            });
+          }
+          reject(new Error(`SFTP \u66F4\u540D\u76EE\u6807\u6587\u4EF6\u5931\u8D25\uFF0C\u5DF2\u6062\u590D\u539F\u6587\u4EF6\u5E76\u4FDD\u7559\u65B0\u5185\u5BB9\u81F3 ${recoveredPath}: ${err.message}`));
+        } else {
+          if (targetExisted) {
+            sftp.unlink(backupPath, () => {
+            });
+          }
+          resolve();
+        }
+      });
     });
   }
   async rmdirRecursive(sftp, dirPath) {
@@ -49936,8 +50176,10 @@ var LocalFsManager = class {
   list(dirPath) {
     const dir = expandHome2(dirPath);
     const entries = import_fs3.default.readdirSync(dir, { withFileTypes: true });
+    const MAX_DIR_ENTRIES = 2e3;
+    const limitedEntries = entries.length > MAX_DIR_ENTRIES ? entries.slice(0, MAX_DIR_ENTRIES) : entries;
     const items = [];
-    for (const entry of entries) {
+    for (const entry of limitedEntries) {
       const fullPath = import_path3.default.join(dir, entry.name);
       try {
         const stats = import_fs3.default.statSync(fullPath);
@@ -49960,12 +50202,23 @@ var LocalFsManager = class {
     return items;
   }
   readFile(filePath) {
-    return import_fs3.default.readFileSync(expandHome2(filePath), "utf8");
+    const target = expandHome2(filePath);
+    const stats = import_fs3.default.statSync(target);
+    const MAX_READ_SIZE = 10 * 1024 * 1024;
+    if (stats.size > MAX_READ_SIZE) {
+      throw new Error(
+        `\u6587\u4EF6\u8FC7\u5927 (${(stats.size / 1024 / 1024).toFixed(1)}MB)\uFF0C\u5728\u7EBF\u7F16\u8F91\u6700\u5927\u652F\u6301 10MB\uFF0C\u8BF7\u4F7F\u7528\u4E0B\u8F7D\u67E5\u770B`
+      );
+    }
+    return import_fs3.default.readFileSync(target, "utf8");
   }
   writeFile(filePath, content) {
     const target = expandHome2(filePath);
-    import_fs3.default.mkdirSync(import_path3.default.dirname(target), { recursive: true });
-    import_fs3.default.writeFileSync(target, content, "utf8");
+    const dir = import_path3.default.dirname(target);
+    import_fs3.default.mkdirSync(dir, { recursive: true });
+    const tmp = import_path3.default.join(dir, `.${import_path3.default.basename(target)}.${Date.now()}.${Math.random().toString(36).slice(2)}.tmp`);
+    import_fs3.default.writeFileSync(tmp, content, "utf8");
+    import_fs3.default.renameSync(tmp, target);
   }
   delete(targetPath, _isDirectory) {
     import_fs3.default.rmSync(expandHome2(targetPath), { recursive: true, force: false });
@@ -50018,6 +50271,16 @@ function parseOpsContext(v) {
   if (isStr(v.osInfo, 512)) ctx.osInfo = v.osInfo;
   if (Array.isArray(v.commandHistory)) {
     ctx.commandHistory = v.commandHistory.filter((h) => isStr(h, 2e3)).slice(0, 500);
+  }
+  if (isRecord(v.failedCommand)) {
+    const fc = v.failedCommand;
+    if (typeof fc.exitCode === "number" && Number.isFinite(fc.exitCode)) {
+      ctx.failedCommand = {
+        exitCode: fc.exitCode,
+        ...isStr(fc.command, 2e3) ? { command: fc.command } : {},
+        ...isStr(fc.output, MAX_SNIPPET_LEN) ? { output: fc.output } : {}
+      };
+    }
   }
   return ctx;
 }
@@ -50299,7 +50562,18 @@ var import_fs4 = __toESM(require("fs"), 1);
 var handleTermInit = async (msg, conn, deps) => {
   const { sessionId, hostId } = msg;
   const hosts = deps.storage.getHosts();
-  const host = hosts.find((h) => h.id === hostId) || deps.demoHost;
+  let host = hosts.find((h) => h.id === hostId);
+  if (!host && deps.demoHost && (hostId === "local-shell" || hostId === deps.demoHost.id)) {
+    host = deps.demoHost;
+  }
+  if (!host) {
+    conn.send({
+      type: "term:error",
+      sessionId,
+      message: `\u4E3B\u673A\u672A\u627E\u5230 (hostId: "${hostId}")\uFF0C\u8BF7\u68C0\u67E5\u4E3B\u673A\u8D44\u4EA7\u914D\u7F6E\u662F\u5426\u6709\u6548\u3002`
+    });
+    return;
+  }
   conn.clientSessions.add(sessionId);
   if (host.authType === "local") {
     try {
@@ -50335,10 +50609,16 @@ var handleTermInit = async (msg, conn, deps) => {
     if (!sessionObj) {
       sessionObj = deps.createMockSession(sessionId);
       deps.mockSessions.set(sessionId, sessionObj);
-      sessionObj.term.on("data", (data) => {
-        conn.send({ type: "term:data", sessionId, data });
-      });
       sessionObj.term.init();
+    }
+    const onData = (data) => {
+      conn.send({ type: "term:data", sessionId, data });
+    };
+    sessionObj.term.on("data", onData);
+    if (typeof conn.socket?.once === "function") {
+      conn.socket.once("close", () => {
+        sessionObj?.term.off?.("data", onData);
+      });
     }
     conn.send({
       type: "term:ready",
@@ -50680,6 +50960,7 @@ function setupWsRouter(wss, aiService, auth) {
     const clientSessions = /* @__PURE__ */ new Set();
     const conn = {
       clientSessions,
+      socket: ws,
       send: (msg) => {
         if (ws.readyState === import_websocket.default.OPEN) {
           ws.send(JSON.stringify(msg));
@@ -50799,6 +51080,15 @@ async function main() {
   \u5F53\u524D\u4EC5\u63D0\u4F9B API\uFF0C\u6D4F\u89C8\u5668\u6253\u5F00\u4F1A\u663E\u793A 404\u3002\u8BF7\u5148\u6267\u884C \x1B[36mnpm run build\x1B[0m\uFF0C\u6216\u76F4\u63A5\u4F7F\u7528 \x1B[36mnpm run serve\x1B[0m\uFF08\u81EA\u52A8\u6784\u5EFA\u5E76\u542F\u52A8\uFF09\u3002`
     );
   }
+  app.use((err, req, res, _next) => {
+    console.error("[MonoTerminal Server Error]", err);
+    if (res.headersSent) return;
+    if (req.path.startsWith("/api")) {
+      res.status(500).json({ success: false, error: errorMessage(err) });
+    } else {
+      res.status(500).type("text/plain").send(`MonoTerminal Server Error: ${errorMessage(err)}`);
+    }
+  });
   server.on("error", (err) => {
     if (err.code === "EADDRINUSE") {
       console.error(

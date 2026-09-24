@@ -1,6 +1,6 @@
 {
   "name": "monoterminal",
-  "version": "1.0.2",
+  "version": "1.0.3",
   "description": "Zero-Auth, Local-First, 2-Column AI-Native Terminal & SFTP Client",
   "main": "electron/main.cjs",
   "type": "module",

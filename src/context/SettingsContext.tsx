@@ -65,6 +65,7 @@ const SettingsContext = createContext<SettingsContextType | null>(null);
 export const SettingsProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   const [settings, setSettings] = useState<AppSettings>(defaultSettings);
   const [isLoading, setIsLoading] = useState(true);
+  const [hasLoaded, setHasLoaded] = useState(false);
 
   const fetchSettings = useCallback(async () => {
     try {
@@ -73,6 +74,7 @@ export const SettingsProvider: React.FC<{ children: React.ReactNode }> = ({ chil
         const json = await res.json();
         if (json.data) {
           setSettings(json.data);
+          setHasLoaded(true);
         }
       }
     } catch (e) {
@@ -87,6 +89,10 @@ export const SettingsProvider: React.FC<{ children: React.ReactNode }> = ({ chil
   }, [fetchSettings]);
 
   const updateSettings = async (newSettings: Partial<AppSettings>) => {
+    if (!hasLoaded) {
+      console.warn('配置尚未自服务端加载完成，阻止写入以防覆盖原有设置');
+      return;
+    }
     const updated = { ...settings, ...newSettings };
     setSettings(updated);
     try {

@@ -37,12 +37,30 @@ export const AgentView: React.FC<AgentViewProps> = ({ isVisible }) => {
   // Auto-fill error snippet if opened via error trigger
   useEffect(() => {
     if (isVisible && activeSession?.unreadError) {
-      setInput(
-        `终端刚刚报出以下错误，请帮我分析原因并给出修复命令：\n${activeSession.unreadError}`
-      );
+      if (activeSession.lastFailedCommand) {
+        const failed = activeSession.lastFailedCommand;
+        const cmdName = failed.command ? ` \`${failed.command}\`` : '';
+        const outputSnippet = failed.output.trim()
+          ? `，报错输出如下：\n\`\`\`text\n${failed.output.trim().slice(-2000)}\n\`\`\``
+          : '。';
+        setInput(
+          `终端命令${cmdName} 执行失败 (退出码: ${failed.exitCode})${outputSnippet}\n请帮我分析失败原因并给出修复命令。`
+        );
+      } else {
+        setInput(
+          `终端刚刚报出以下错误，请帮我分析原因并给出修复命令：\n${activeSession.unreadError}`
+        );
+      }
       clearUnreadError(activeSession.id);
     }
-  }, [isVisible, activeSession?.unreadError, clearUnreadError, activeSession?.id, setInput]);
+  }, [
+    isVisible,
+    activeSession?.unreadError,
+    activeSession?.lastFailedCommand,
+    clearUnreadError,
+    activeSession?.id,
+    setInput
+  ]);
 
   // Scroll to bottom on new messages
   useEffect(() => {

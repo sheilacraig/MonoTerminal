@@ -1,0 +1,67 @@
+=== guardrail 规则质量探针 ===
+OK  expect=DANGER got=DANGER rule=RM_ROOT_RECURSIVE cmd="rm -rf /" | 经典根删除
+OK  expect=DANGER got=DANGER rule=RM_ROOT_RECURSIVE cmd="rm -r -f /" | 分写 flags
+OK  expect=DANGER got=DANGER rule=RM_ROOT_RECURSIVE cmd="rm -fr /" | 倒序 cluster
+OK  expect=DANGER got=DANGER rule=RM_ROOT_RECURSIVE cmd="rm --recursive --force /" | 长选项
+OK  expect=DANGER got=DANGER rule=RM_ROOT_RECURSIVE cmd="sudo rm -rf /" | sudo 前缀
+OK  expect=DANGER got=DANGER rule=RM_ROOT_RECURSIVE cmd="sudo -u root rm -r -f /" | sudo -u root
+OK  expect=DANGER got=DANGER rule=RM_NO_PRESERVE_ROOT cmd="rm -rf --no-preserve-root ." | no-preserve-root
+OK  expect=DANGER got=DANGER rule=RM_ROOT_RECURSIVE cmd="rm -rf ~" | 家目录
+OK  expect=DANGER got=DANGER rule=RM_ROOT_RECURSIVE cmd="rm -rf $HOME" | $HOME
+OK  expect=DANGER got=DANGER rule=RM_ROOT_RECURSIVE cmd="rm -rf /usr" | 系统目录
+OK  expect=DANGER got=DANGER rule=RM_ROOT_RECURSIVE cmd="rm -rf /etc" | 系统目录
+OK  expect=SAFE   got=SAFE   rule=- cmd="rm -rf /etc/nginx" | 设计放行：非整目录
+OK  expect=SAFE   got=SAFE   rule=- cmd="rm -rf /tmp/*" | 设计放行：tmp
+OK  expect=DANGER got=DANGER rule=RM_ROOT_RECURSIVE cmd="echo hi\nrm -rf /" | 多行：第二行危险（验证是否漏判）
+OK  expect=DANGER got=DANGER rule=FORMAT_DISK cmd="ls -la\nmkfs.ext4 /dev/sda1" | 多行：第二行 mkfs
+OK  expect=DANGER got=DANGER rule=RM_ROOT_RECURSIVE cmd="ls; rm -rf /" | 分号分隔
+OK  expect=DANGER got=DANGER rule=RM_ROOT_RECURSIVE cmd="ls && rm -rf /" | && 分隔
+OK  expect=DANGER got=DANGER rule=FORMAT_DISK cmd="mkfs.ext4 /dev/sda1" | mkfs
+OK  expect=DANGER got=DANGER rule=FORMAT_DISK cmd="mkfs" | 裸 mkfs
+OK  expect=DANGER got=DANGER rule=OVERWRITE_RAW_DISK cmd="dd if=/dev/zero of=/dev/sda" | dd 覆写磁盘
+OK  expect=DANGER got=DANGER rule=REDIRECT_TO_DISK cmd="echo x > /dev/sda" | 重定向到磁盘
+OK  expect=SAFE   got=SAFE   rule=- cmd="ls > /dev/null 2>&1" | 正常用法（查误报）
+OK  expect=SAFE   got=SAFE   rule=- cmd="echo a > result.txt" | 正常重定向（查误报）
+OK  expect=DANGER got=DANGER rule=CHMOD_ROOT_777 cmd="chmod -R 777 /" | chmod 根
+OK  expect=DANGER got=DANGER rule=CHMOD_ROOT_777 cmd="chmod -R 777 /etc" | chmod /etc（验证规则是否只匹配 / 和 /*）
+OK  expect=DANGER got=DANGER rule=CHOWN_ROOT_RECURSIVE cmd="chown -R www-data /" | chown 根
+OK  expect=SAFE   got=SAFE   rule=- cmd="echo \"mkfs.ext4 is scary\"" | 引号内文本（查误报）
+OK  expect=SAFE   got=SAFE   rule=- cmd="grep mkfs manual.txt" | 参数中含关键词（查误报）
+OK  expect=DANGER got=DANGER rule=FORK_BOMB cmd=":(){:|:&};:" | fork 炸弹
+OK  expect=DANGER got=DANGER rule=FLUSH_FIREWALL cmd="iptables -F" | 清空防火墙
+OK  expect=DANGER got=DANGER rule=UFW_RESET cmd="ufw disable" | 关 UFW
+OK  expect=DANGER got=DANGER rule=PARTITION_ALTERATION cmd="fdisk /dev/sda" | 改分区表
+OK  expect=DANGER got=DANGER rule=OVERWRITE_SYSTEM_AUTH_FILES cmd="echo root > /etc/passwd" | 覆盖认证文件
+OK  expect=DANGER got=DANGER rule=WIN_POWERSHELL_DELETE_ROOT cmd="Remove-Item -Recurse -Force C:\\Windows" | PS 删根
+OK  expect=DANGER got=DANGER rule=WIN_CMD_DELETE_ROOT cmd="del /s /q C:\\*" | CMD 删根
+OK  expect=DANGER got=DANGER rule=WIN_FORMAT_DISK cmd="format C:" | 格式化
+OK  expect=DANGER got=DANGER rule=WIN_FORCE_SHUTDOWN cmd="Restart-Computer -Force" | 强重启
+OK  expect=SAFE   got=SAFE   rule=- cmd="docker ps" | 正常命令
+OK  expect=SAFE   got=SAFE   rule=- cmd="nginx -t" | 正常命令
+OK  expect=SAFE   got=SAFE   rule=- cmd="echo \"a > b\"" | 引号内重定向（查误报）
+OK  expect=DANGER got=DANGER rule=FORMAT_DISK cmd="sudo mkfs.ext4 /dev/sda1" | 结构化 mkfs 须仍认 sudo 前缀
+OK  expect=DANGER got=DANGER rule=RM_ROOT_RECURSIVE cmd="ls\nsudo rm -rf /" | 多行第二行 sudo rm
+OK  expect=DANGER got=DANGER rule=CHMOD_ROOT_777 cmd="chmod -R 777 /etc" | 上轮漏报：chmod 系统目录
+OK  expect=DANGER got=DANGER rule=CHMOD_ROOT_777 cmd="sudo chmod -R 777 /var" | sudo chmod 系统目录
+OK  expect=SAFE   got=SAFE   rule=- cmd="chmod -R 755 /etc" | 非危险 mode 应放行
+OK  expect=DANGER got=DANGER rule=CHMOD_ROOT_777 cmd="chmod -R a+rwx /" | 符号 mode a+rwx
+OK  expect=DANGER got=DANGER rule=CHMOD_ROOT_777 cmd="chmod 777 /" | 无 -R 时修改根目录权限同样拦截 (N4 修复)
+OK  expect=DANGER got=DANGER rule=CHOWN_ROOT_RECURSIVE cmd="chown -R www-data /usr" | chown 系统目录
+OK  expect=DANGER got=DANGER rule=CHOWN_ROOT_RECURSIVE cmd="sudo chown -R user /opt" | sudo chown 系统目录
+OK  expect=SAFE   got=SAFE   rule=- cmd="chown www-data /var/www/index.html" | 非递归普通文件应放行
+OK  expect=SAFE   got=SAFE   rule=- cmd="chown -R user /var/www" | 非关键目录递归应放行
+OK  expect=SAFE   got=SAFE   rule=- cmd="mkfs.txt notes.md" | 非命令位置的关键词（查误报）
+OK  expect=SAFE   got=SAFE   rule=- cmd="echo run mkfs.ext4 later" | 参数中关键词（查误报）
+OK  expect=SAFE   got=SAFE   rule=- cmd="cat /var/log/mkfs.log" | 路径中关键词（查误报）
+OK  expect=SAFE   got=SAFE   rule=- cmd="grep dd if=x of=/dev/sda docs" | grep 参数含 dd 模式（查误报）
+--- total=55 mismatch=0 ---
+
+=== 多行文本逐行拆解（粘贴场景，复评） ===
+input = "echo hi\nrm -rf /"
+splitShellSegments 按换行分段? ["echo hi","rm -rf /"]
+checkCommandSafety = {"isDangerous":true,"level":"CRITICAL","reason":"试图递归删除根目录或系统关键目录，将导致系统瞬间损毁。","matchedRule":"RM_ROOT_RECURSIVE"}
+
+=== bracketed paste 提取逻辑（复刻 TerminalView onData 分支） ===
+粘贴帧 "\u001b[200~rm -rf /\u001b[201~" → 提取内容 "rm -rf /" → 判定 {"isDangerous":true,"level":"CRITICAL","reason":"试图递归删除根目录或系统关键目录，将导致系统瞬间损毁。","matchedRule":"RM_ROOT_RECURSIVE"}
+粘贴帧 "\u001b[200~nginx -t\u001b[201~" → 判定 {"isDangerous":false,"level":"SAFE"}
+按键流 'mkfs' (len=4, <5) 是否进入检查分支: false

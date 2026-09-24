@@ -106,6 +106,7 @@ export class SshManager {
       client.on('close', () => {
         instance.isAlive = false;
         events.emit('close');
+        this.closeSession(sessionId);
       });
 
       // Connect config with TCP keepalive
@@ -197,6 +198,17 @@ export class SshManager {
     const session = this.sessions.get(sessionId);
     if (!session || !session.sftp) throw new Error('SFTP 未就绪');
 
+    const stats = await new Promise<{ size: number }>((resolve, reject) => {
+      session.sftp!.stat(filePath, (err, stats) => (err ? reject(err) : resolve(stats)));
+    });
+
+    const MAX_READ_SIZE = 10 * 1024 * 1024; // 10MB
+    if (stats.size > MAX_READ_SIZE) {
+      throw new Error(
+        `文件过大 (${(stats.size / 1024 / 1024).toFixed(1)}MB)，在线编辑最大支持 10MB，请使用下载查看`
+      );
+    }
+
     return new Promise((resolve, reject) => {
       const chunks: Buffer[] = [];
       const readStream = session.sftp!.createReadStream(filePath);
@@ -210,11 +222,84 @@ export class SshManager {
     const session = this.sessions.get(sessionId);
     if (!session || !session.sftp) throw new Error('SFTP 未就绪');
 
-    return new Promise((resolve, reject) => {
-      const writeStream = session.sftp!.createWriteStream(filePath);
+    const sftp = session.sftp;
+    const lastSlash = filePath.lastIndexOf('/');
+    const dir = lastSlash >= 0 ? filePath.substring(0, lastSlash) : '';
+    const base = lastSlash >= 0 ? filePath.substring(lastSlash + 1) : filePath;
+    const tmpPath = `${dir ? dir + '/' : ''}.${base}.${Date.now()}.${Math.random().toString(36).slice(2)}.tmp`;
+
+    // 1. Write content to temporary file
+    await new Promise<void>((resolve, reject) => {
+      const writeStream = sftp.createWriteStream(tmpPath);
       writeStream.on('close', () => resolve());
-      writeStream.on('error', (err: Error) => reject(err));
+      writeStream.on('error', (err: Error) => {
+        sftp.unlink(tmpPath, () => {});
+        reject(err);
+      });
       writeStream.end(content, 'utf-8');
+    });
+
+    // 2. Safely replace target file
+    // Strategy A: OpenSSH POSIX atomic rename (ext_openssh_rename).
+    // Supported on OpenSSH SFTP servers, atomic overwrite without unlink window.
+    const tryOpenSshRename = (): Promise<boolean> => {
+      return new Promise(resolve => {
+        if (typeof sftp.ext_openssh_rename === 'function') {
+          try {
+            sftp.ext_openssh_rename(tmpPath, filePath, (err?: Error | null) => {
+              resolve(!err);
+            });
+          } catch {
+            resolve(false);
+          }
+        } else {
+          resolve(false);
+        }
+      });
+    };
+
+    const openSshSuccess = await tryOpenSshRename();
+    if (openSshSuccess) {
+      return;
+    }
+
+    // Strategy B: Fallback with backup to prevent data loss window.
+    // Never unlink target before rename; backup first, rename tmp, then clean up backup.
+    const backupPath = `${dir ? dir + '/' : ''}.${base}.bak.${Date.now()}`;
+    const targetExisted = await new Promise<boolean>(resolve => {
+      sftp.stat(filePath, err => resolve(!err));
+    });
+
+    if (targetExisted) {
+      await new Promise<void>((resolve, reject) => {
+        sftp.rename(filePath, backupPath, err => {
+          if (err) reject(new Error(`无法为现有文件创建备份: ${err.message}`));
+          else resolve();
+        });
+      });
+    }
+
+    await new Promise<void>((resolve, reject) => {
+      sftp.rename(tmpPath, filePath, err => {
+        if (err) {
+          // Rename failed! Preserve tmpPath as recovered file so user content is never lost
+          const recoveredPath = `${dir ? dir + '/' : ''}.${base}.recovered.${Date.now()}`;
+          sftp.rename(tmpPath, recoveredPath, () => {});
+
+          // If we had backed up the original file, restore it
+          if (targetExisted) {
+            sftp.rename(backupPath, filePath, () => {});
+          }
+
+          reject(new Error(`SFTP 更名目标文件失败，已恢复原文件并保留新内容至 ${recoveredPath}: ${err.message}`));
+        } else {
+          // Success! Clean up backup if it was created
+          if (targetExisted) {
+            sftp.unlink(backupPath, () => {});
+          }
+          resolve();
+        }
+      });
     });
   }
 

@@ -38,6 +38,8 @@ export interface WsConnection {
   send: (msg: WsOutboundMessage) => void;
   /** Session ids owned by this connection, cleaned up on socket close. */
   clientSessions: Set<string>;
+  /** Underlying WebSocket instance or event emitter, if available. */
+  socket?: { once?: (event: string, cb: () => void) => void };
 }
 
 /** A handler for one specific inbound message type. */

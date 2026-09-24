@@ -14,6 +14,7 @@ import {
 import { checkCommandSafety } from '../../utils/guardrail';
 import { readClipboardText, writeClipboardText, COPY_SCOPE_ATTR } from '../../utils/clipboard';
 import { getAuthStore } from '../../services/terminalAuth';
+import { shellIntegrationTracker } from '../../utils/shellIntegration';
 import { TerminalAuthBar } from './TerminalAuthBar';
 import { Zap } from 'lucide-react';
 
@@ -37,6 +38,8 @@ export const TerminalView: React.FC<TerminalViewProps> = ({ sessionId, isVisible
     setIsHostModalOpen,
     closeSession,
     updateSessionTermSize,
+    updateSessionCwd,
+    updateSessionFailedCommand,
     executeCommandWithGuardrail
   } = useSession();
   const { settings } = useSettings();
@@ -67,7 +70,10 @@ export const TerminalView: React.FC<TerminalViewProps> = ({ sessionId, isVisible
     setIsSidebarCollapsed,
     setIsHostModalOpen,
     closeSession,
-    updateSessionTermSize
+    updateSessionTermSize,
+    updateSessionCwd,
+    updateSessionFailedCommand,
+    executeCommandWithGuardrail
   });
   ctxRef.current = {
     settings,
@@ -80,7 +86,10 @@ export const TerminalView: React.FC<TerminalViewProps> = ({ sessionId, isVisible
     setIsSidebarCollapsed,
     setIsHostModalOpen,
     closeSession,
-    updateSessionTermSize
+    updateSessionTermSize,
+    updateSessionCwd,
+    updateSessionFailedCommand,
+    executeCommandWithGuardrail
   };
 
   /**
@@ -94,8 +103,10 @@ export const TerminalView: React.FC<TerminalViewProps> = ({ sessionId, isVisible
       if (!term || !text) return;
       term.focus();
 
-      const isMultiLine = /[\r\n]/.test(text.trim());
-      if (isMultiLine && settings.guardrail?.enabled !== false && checkCommandSafety(text).isDangerous) {
+      if (
+        settings.guardrail?.enabled !== false &&
+        checkCommandSafety(text).isDangerous
+      ) {
         executeCommandWithGuardrail(text, () => term.paste(text));
         return;
       }
@@ -225,9 +236,26 @@ export const TerminalView: React.FC<TerminalViewProps> = ({ sessionId, isVisible
       return true;
     });
 
-    // Send input from user typing to server
+    // Send input from user typing to server with guardrail check for pasted chunks
     const dataSub = term.onData(data => {
-      ctxRef.current.sendTermInput(sessionId, data);
+      const c = ctxRef.current;
+      if (c.settings.guardrail?.enabled !== false) {
+        let contentToCheck: string | null = null;
+        if (data.startsWith('\x1b[200~') && data.endsWith('\x1b[201~')) {
+          contentToCheck = data.slice(6, -6);
+        } else if (data.length >= 5 || data.includes('\n') || data.includes('\r')) {
+          contentToCheck = data;
+        }
+
+        if (contentToCheck && checkCommandSafety(contentToCheck).isDangerous) {
+          c.executeCommandWithGuardrail(contentToCheck, () => {
+            c.sendTermInput(sessionId, data);
+          });
+          return;
+        }
+      }
+
+      c.sendTermInput(sessionId, data);
     });
 
     // Select to copy — only trigger on mouseup when the user finishes dragging,
@@ -241,10 +269,60 @@ export const TerminalView: React.FC<TerminalViewProps> = ({ sessionId, isVisible
     };
     termContainer.addEventListener('mouseup', handleMouseUp);
 
+    // Semantic Shell Integration: OSC 133 & OSC 7
+    const osc133Sub = term.parser.registerOscHandler(133, data => {
+      shellIntegrationTracker.handleOsc133(sessionId, data);
+      return true;
+    });
+
+    const osc7Sub = term.parser.registerOscHandler(7, data => {
+      shellIntegrationTracker.handleOsc7(sessionId, data);
+      return true;
+    });
+
+    const unbindCmd = shellIntegrationTracker.onCommandFinished(sessionId, cmd => {
+      if (cmd.exitCode !== null && cmd.exitCode !== 0) {
+        const displayCmd = cmd.command ? ` \`${cmd.command}\`` : '';
+        const snippet = `Exit ${cmd.exitCode}:${displayCmd} 执行失败`;
+
+        let output = cmd.output.trim();
+        if (!output) {
+          // Fallback to active terminal buffer lines if stream batching completed before noteOutput
+          const buffer = term.buffer.active;
+          const lines: string[] = [];
+          const start = Math.max(0, buffer.cursorY - 20);
+          for (let i = start; i <= buffer.cursorY; i++) {
+            const line = buffer.getLine(i)?.translateToString(true);
+            if (line) lines.push(line);
+          }
+          output = lines.join('\n');
+        }
+
+        ctxRef.current.updateSessionFailedCommand(
+          sessionId,
+          {
+            command: cmd.command || undefined,
+            exitCode: cmd.exitCode,
+            output,
+            cwd: cmd.cwd,
+            timestamp: cmd.endTime || Date.now()
+          },
+          snippet
+        );
+      } else if (cmd.exitCode === 0) {
+        ctxRef.current.updateSessionFailedCommand(sessionId, null, null);
+      }
+    });
+
+    const unbindCwd = shellIntegrationTracker.onCwdChanged(sessionId, newCwd => {
+      ctxRef.current.updateSessionCwd(sessionId, newCwd);
+    });
+
     // Receive data from server
     const unregisterData = ctx.registerTermHandler(sessionId, (data: string) => {
       term.write(data);
       ctxRef.current.appendTerminalContext(sessionId, data);
+      shellIntegrationTracker.noteOutput(sessionId, data);
     });
 
     // Watch the same stream for password prompts / failed attempts
@@ -275,6 +353,10 @@ export const TerminalView: React.FC<TerminalViewProps> = ({ sessionId, isVisible
     resizeObserver.observe(terminalRef.current);
 
     return () => {
+      osc133Sub.dispose();
+      osc7Sub.dispose();
+      unbindCmd();
+      unbindCwd();
       dataSub.dispose();
       termContainer.removeEventListener('mouseup', handleMouseUp);
       unregisterData();

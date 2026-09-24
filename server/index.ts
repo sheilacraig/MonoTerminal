@@ -13,6 +13,7 @@ import { guardrailRouter } from './routes/guardrail';
 import { securityRouter } from './routes/security';
 import { setupWsRouter } from './ws/wsRouter';
 import { generateAuthToken, createAuthMiddleware, isAllowedOrigin, AuthContext } from './auth';
+import { errorMessage } from '../shared/errors';
 
 /** Preferred port; if taken we fall back to the next free one instead of crashing. */
 const PREFERRED_PORT = parseInt(process.env.PORT || '3001', 10);
@@ -131,6 +132,17 @@ async function main(): Promise<void> {
         `或直接使用 \x1b[36mnpm run serve\x1b[0m（自动构建并启动）。`
     );
   }
+
+  // Global error handler: ensure clean JSON responses for /api and avoid HTML stack leak
+  app.use((err: unknown, req: express.Request, res: express.Response, _next: express.NextFunction) => {
+    console.error('[MonoTerminal Server Error]', err);
+    if (res.headersSent) return;
+    if (req.path.startsWith('/api')) {
+      res.status(500).json({ success: false, error: errorMessage(err) });
+    } else {
+      res.status(500).type('text/plain').send(`MonoTerminal Server Error: ${errorMessage(err)}`);
+    }
+  });
 
   server.on('error', (err: NodeJS.ErrnoException) => {
     if (err.code === 'EADDRINUSE') {

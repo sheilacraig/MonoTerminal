@@ -18,6 +18,14 @@ export interface HostAsset {
   lastConnectedAt?: number;
 }
 
+export interface FailedCommandInfo {
+  command?: string;
+  exitCode: number;
+  output: string;
+  cwd?: string;
+  timestamp: number;
+}
+
 export interface SessionTab {
   id: string;
   hostId: string;
@@ -29,6 +37,7 @@ export interface SessionTab {
   cwd: string;
   terminalContext: string; // Last 50 lines buffer for Agent shuttle
   unreadError?: string | null; // Trigger for [⚡ 报错排查 (Ctrl + \)] bubble
+  lastFailedCommand?: FailedCommandInfo | null; // Exact command & output from OSC 133
 }
 
 export interface FileItem {
@@ -86,6 +95,16 @@ export interface AppSettings {
     /** Right-click pastes clipboard content (terminal) / at the caret (AI input). */
     rightClickPaste?: boolean;
   };
+}
+
+/**
+ * Payload sent to POST /api/settings.
+ * Note: If a future UI allows clearing all AI providers, it must set
+ * `allowEmptyProviders: true` so the backend does not restore previous providers
+ * as a protective fallback against empty payload overwrites.
+ */
+export interface UpdateSettingsPayload extends Partial<AppSettings> {
+  allowEmptyProviders?: boolean;
 }
 
 export interface CommandSnippet {

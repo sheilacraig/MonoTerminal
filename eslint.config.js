@@ -13,7 +13,8 @@ export default tseslint.config(
       'release-*/**',
       'node_modules/**',
       '.npm-cache/**',
-      'electron/**'
+      'electron/**',
+      '_review/**'
     ]
   },
 

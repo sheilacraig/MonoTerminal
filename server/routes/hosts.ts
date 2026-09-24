@@ -13,6 +13,8 @@ export const hostsRouter = Router();
 interface HostPayload extends Partial<HostAsset> {
   plainPassword?: string;
   plainPassphrase?: string;
+  clearPassword?: boolean;
+  clearPassphrase?: boolean;
 }
 
 // GET /api/hosts
@@ -31,8 +33,14 @@ hostsRouter.get('/', (req, res) => {
 
 // POST /api/hosts
 hostsRouter.post('/', (req, res) => {
-  // Destructure plaintext secrets out so they can never leak into storage
-  const { plainPassword, plainPassphrase, ...hostData } = req.body as HostPayload;
+  // Destructure plaintext secrets and control flags out so they can never leak into storage
+  const {
+    plainPassword,
+    plainPassphrase,
+    clearPassword,
+    clearPassphrase,
+    ...hostData
+  } = req.body as HostPayload;
 
   if (!hostData.id) {
     hostData.id = generateId('host-');
@@ -60,13 +68,22 @@ hostsRouter.post('/', (req, res) => {
   const hosts = localStorageManager.getHosts();
   const index = hosts.findIndex(h => h.id === hostData.id);
   if (index >= 0) {
-    hosts[index] = {
+    const updated: HostAsset = {
       ...hosts[index],
       ...hostData,
-      passwordEncrypted: hostData.passwordEncrypted ?? hosts[index].passwordEncrypted,
-      passphraseEncrypted: hostData.passphraseEncrypted ?? hosts[index].passphraseEncrypted
-    } as HostAsset;
+      passwordEncrypted: clearPassword
+        ? undefined
+        : (hostData.passwordEncrypted ?? hosts[index].passwordEncrypted),
+      passphraseEncrypted: clearPassphrase
+        ? undefined
+        : (hostData.passphraseEncrypted ?? hosts[index].passphraseEncrypted)
+    };
+    if (clearPassword) delete updated.passwordEncrypted;
+    if (clearPassphrase) delete updated.passphraseEncrypted;
+    hosts[index] = updated;
   } else {
+    if (clearPassword) delete hostData.passwordEncrypted;
+    if (clearPassphrase) delete hostData.passphraseEncrypted;
     hosts.push(hostData as HostAsset);
   }
 

@@ -1,0 +1,10 @@
+=== 配置损坏 → 拒绝保存 探针（复评） ===
+场景1: hosts.json 损坏 → getHosts() 返回 0 条, isHostsCorrupted=true
+场景1: saveHosts 抛错拒绝保存 ✓ (hosts.json 文件损坏，已阻止保存以防覆盖原有数据。请先从 hosts.json.bak 恢...)
+场景1: 损坏文件原内容是否保留: 是 ✓
+场景2: settings.json 损坏 → isSettingsCorrupted=true, providers=0
+场景2: saveSettings 抛错拒绝保存 ✓
+场景2: 损坏文件原内容是否保留: 是 ✓
+场景3: 第二次保存后 hosts.json=3 条, hosts.json.bak=2 条（bak 应为上一版）
+场景3: tmp 残留文件: 无 ✓
+场景4: hosts.json 为合法 JSON 对象 → getHosts()=0 条, isHostsCorrupted=true（形状错误未标记 corrupted 则保存不被拒）

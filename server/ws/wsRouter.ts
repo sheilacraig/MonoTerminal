@@ -68,6 +68,7 @@ export function setupWsRouter(wss: WebSocketServer, aiService: AIService, auth: 
     const clientSessions = new Set<string>();
     const conn: WsConnection = {
       clientSessions,
+      socket: ws,
       send: (msg: WsOutboundMessage) => {
         if (ws.readyState === WebSocket.OPEN) {
           ws.send(JSON.stringify(msg));

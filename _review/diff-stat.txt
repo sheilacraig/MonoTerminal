@@ -1,0 +1,22 @@
+ dist-server/index.cjs                    | 281 ++++++++++++++++++++++++++-----
+ electron/main.cjs                        |   8 +
+ eslint.config.js                         |   3 +-
+ server/aiService.ts                      |  16 +-
+ server/index.ts                          |   7 +
+ server/localFsManager.ts                 |  17 +-
+ server/routes/hosts.ts                   |   8 +-
+ server/routes/settings.ts                |  42 ++++-
+ server/sshManager.ts                     |  37 +++-
+ server/storage.ts                        |  64 ++++++-
+ server/ws/handlers/terminal.ts           |  27 ++-
+ server/ws/types.ts                       |   2 +
+ shared/guardrail.ts                      | 103 ++++++++---
+ shared/wsProtocol.ts                     |  15 ++
+ src/components/MainView/AgentView.tsx    |  26 ++-
+ src/components/MainView/TerminalView.tsx |  94 ++++++++++-
+ src/context/AgentChatContext.tsx         |  23 ++-
+ src/context/SessionContext.tsx           |  58 +++++--
+ src/context/SettingsContext.tsx          |   6 +
+ src/types/index.ts                       |   9 +
+ tests/wsProtocol.test.ts                 |  12 +-
+ 21 files changed, 739 insertions(+), 119 deletions(-)

@@ -113,4 +113,57 @@ describe('Guardrail Security Engine', () => {
       expect(result.isDangerous, `Should NOT be flagged: ${cmd}`).toBe(false);
     }
   });
+
+  it('should intercept multi-line dangerous inputs (paste scenarios)', () => {
+    const multiLineAttacks = [
+      'echo hi\nrm -rf /',
+      'ls -la\r\nmkfs.ext4 /dev/sda1',
+      'ls\nsudo rm -rf /',
+      'echo "status ok"\ndd if=/dev/zero of=/dev/sda'
+    ];
+
+    for (const cmd of multiLineAttacks) {
+      const result = checkCommandSafety(cmd);
+      expect(result.isDangerous, `Multi-line input should be flagged: ${JSON.stringify(cmd)}`).toBe(true);
+      expect(result.level).toBe('CRITICAL');
+    }
+  });
+
+  it('should intercept chmod root attacks with or without -R, and chown root', () => {
+    const chmodAttacks = [
+      'chmod 777 /',
+      'chmod 000 /',
+      'chmod -R 777 /',
+      'chmod -R 777 /etc',
+      'sudo chmod -R 777 /var',
+      'chmod -R a+rwx /',
+      'chown -R www-data /',
+      'chown -R www-data /usr',
+      'sudo chown -R user /opt'
+    ];
+
+    for (const cmd of chmodAttacks) {
+      const result = checkCommandSafety(cmd);
+      expect(result.isDangerous, `Command should be flagged: ${cmd}`).toBe(true);
+      expect(['CRITICAL', 'HIGH']).toContain(result.level);
+    }
+  });
+
+  it('should not false positive on non-destructive commands containing keyword patterns', () => {
+    const benignCommands = [
+      'mkfs.txt notes.md',
+      'echo run mkfs.ext4 later',
+      'cat /var/log/mkfs.log',
+      'grep dd if=x of=/dev/sda docs',
+      'chmod -R 755 /etc',
+      'chmod 755 /',
+      'chown www-data /var/www/index.html',
+      'chown -R user /var/www'
+    ];
+
+    for (const cmd of benignCommands) {
+      const result = checkCommandSafety(cmd);
+      expect(result.isDangerous, `Command should NOT be flagged as dangerous: ${cmd}`).toBe(false);
+    }
+  });
 });

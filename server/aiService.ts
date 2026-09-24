@@ -21,6 +21,11 @@ export interface OpsContext {
   currentUser?: string;
   osInfo?: string;
   commandHistory?: string[];
+  failedCommand?: {
+    command?: string;
+    exitCode: number;
+    output?: string;
+  };
 }
 
 export class AIService {
@@ -39,11 +44,18 @@ export class AIService {
 - 当前工作目录: ${opsContext.currentDir || '/etc/nginx'}
 - 操作系统画像: ${opsContext.osInfo || 'Linux x86_64 Ubuntu 22.04 LTS'}
 ${
-  opsContext.terminalSnippet
+  opsContext.failedCommand
     ? `
+- 异常命令生命周期 (OSC 133 语义感知):
+  * 执行命令: ${opsContext.failedCommand.command || '(未知命令)'}
+  * 退出状态码: ${opsContext.failedCommand.exitCode}
+  * 命令隔离输出:\n\`\`\`text\n${opsContext.failedCommand.output || opsContext.terminalSnippet || ''}\n\`\`\`
+`
+    : opsContext.terminalSnippet
+      ? `
 - 终端最近输出 (背景上下文):\n\`\`\`text\n${opsContext.terminalSnippet}\n\`\`\`
 `
-    : ''
+      : ''
 }
 ================================
 `;

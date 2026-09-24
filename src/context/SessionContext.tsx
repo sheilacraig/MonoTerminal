@@ -13,6 +13,8 @@ import {
 import { generateId } from '../../shared/id';
 import { apiFetch } from '../utils/api';
 import { disposeAuthStore } from '../services/terminalAuth';
+import { shellIntegrationTracker } from '../utils/shellIntegration';
+import { FailedCommandInfo } from '../types';
 
 interface DangerPromptData {
   command: string;
@@ -45,6 +47,11 @@ interface SessionContextType {
   updateSessionTitle: (sessionId: string, newTitle: string) => void;
   updateSessionCwd: (sessionId: string, cwd: string) => void;
   updateSessionTermSize: (sessionId: string, cols: number, rows: number) => void;
+  updateSessionFailedCommand: (
+    sessionId: string,
+    failedCommand: FailedCommandInfo | null,
+    exitErrorSnippet?: string | null
+  ) => void;
   appendTerminalContext: (sessionId: string, chunk: string) => void;
   clearUnreadError: (sessionId: string) => void;
   executeCommandWithGuardrail: (command: string, executeFn: () => void) => void;
@@ -178,6 +185,7 @@ export const SessionProvider: React.FC<{ children: React.ReactNode }> = ({ child
       lastErrorPrompts.current.delete(sessionId);
       termSizesRef.current.delete(sessionId);
       disposeAuthStore(sessionId);
+      shellIntegrationTracker.dispose(sessionId);
 
       setSessions(prev => {
         const filtered = prev.filter(s => s.id !== sessionId);
@@ -224,9 +232,7 @@ export const SessionProvider: React.FC<{ children: React.ReactNode }> = ({ child
   }, []);
 
   const updateSessionTitle = useCallback((sessionId: string, newTitle: string) => {
-    setSessions(prev =>
-      prev.map(s => (s.id === sessionId ? { ...s, title: newTitle } : s))
-    );
+    setSessions(prev => prev.map(s => (s.id === sessionId ? { ...s, title: newTitle } : s)));
   }, []);
 
   const updateSessionCwd = useCallback((sessionId: string, cwd: string) => {
@@ -277,6 +283,28 @@ export const SessionProvider: React.FC<{ children: React.ReactNode }> = ({ child
     }
   }, [isConnected, send]);
 
+  const updateSessionFailedCommand = useCallback(
+    (
+      sessionId: string,
+      failedCommand: FailedCommandInfo | null,
+      exitErrorSnippet?: string | null
+    ) => {
+      setSessions(prev =>
+        prev.map(s => {
+          if (s.id === sessionId) {
+            return {
+              ...s,
+              lastFailedCommand: failedCommand,
+              unreadError: exitErrorSnippet !== undefined ? exitErrorSnippet : s.unreadError
+            };
+          }
+          return s;
+        })
+      );
+    },
+    []
+  );
+
   const appendTerminalContext = useCallback((sessionId: string, chunk: string) => {
     let lines = terminalBuffers.current.get(sessionId) || [];
     const newLines = chunk.split('\n');
@@ -284,17 +312,20 @@ export const SessionProvider: React.FC<{ children: React.ReactNode }> = ({ child
     terminalBuffers.current.set(sessionId, lines);
 
     // Check for error in chunk.
-    // Only critical/error tiers raise the bubble (warnings just enrich the AI
-    // context); identical errors are suppressed within the cooldown window.
-    const check = detectTerminalError(chunk);
+    // If the session has semantic shell integration (OSC 133), the exact exit code
+    // will drive unreadError instead of heuristic regexes, avoiding false alarms.
+    const hasIntegration = shellIntegrationTracker.hasIntegration(sessionId);
     let bubbleSnippet: string | null = null;
-    if (check.hasError && check.severity !== 'warning') {
-      const snippet = check.snippet || '检测到命令执行异常';
-      const last = lastErrorPrompts.current.get(sessionId);
-      const now = Date.now();
-      if (!last || last.snippet !== snippet || now - last.ts >= ERROR_BUBBLE_COOLDOWN_MS) {
-        lastErrorPrompts.current.set(sessionId, { snippet, ts: now });
-        bubbleSnippet = snippet;
+    if (!hasIntegration) {
+      const check = detectTerminalError(chunk);
+      if (check.hasError && check.severity !== 'warning') {
+        const snippet = check.snippet || '检测到命令执行异常';
+        const last = lastErrorPrompts.current.get(sessionId);
+        const now = Date.now();
+        if (!last || last.snippet !== snippet || now - last.ts >= ERROR_BUBBLE_COOLDOWN_MS) {
+          lastErrorPrompts.current.set(sessionId, { snippet, ts: now });
+          bubbleSnippet = snippet;
+        }
       }
     }
 
@@ -442,6 +473,7 @@ export const SessionProvider: React.FC<{ children: React.ReactNode }> = ({ child
         updateSessionTitle,
         updateSessionCwd,
         updateSessionTermSize,
+        updateSessionFailedCommand,
         appendTerminalContext,
         clearUnreadError,
         executeCommandWithGuardrail,

@@ -94,6 +94,8 @@ export class LocalStorageManager {
   /** null while the store is locked (master password set but not entered). */
   private masterKey: Buffer | null;
   private masterPasswordEnabled: boolean;
+  private hostsCorrupted: boolean = false;
+  private settingsCorrupted: boolean = false;
 
   constructor(customDataDir?: string) {
     this.dataDir = customDataDir || DEFAULT_DATA_DIR;
@@ -448,38 +450,104 @@ export class LocalStorageManager {
     }
   }
 
+  public isHostsCorrupted(): boolean {
+    return this.hostsCorrupted;
+  }
+
+  public isSettingsCorrupted(): boolean {
+    return this.settingsCorrupted;
+  }
+
   public getHosts(): HostAsset[] {
     const hostsPath = path.join(this.dataDir, 'hosts.json');
     try {
       if (fs.existsSync(hostsPath)) {
-        return JSON.parse(fs.readFileSync(hostsPath, 'utf8'));
+        const parsed = JSON.parse(fs.readFileSync(hostsPath, 'utf8'));
+        if (!Array.isArray(parsed)) {
+          console.error('Failed to read hosts.json (invalid shape, expected array):', typeof parsed);
+          this.hostsCorrupted = true;
+          return [];
+        }
+        this.hostsCorrupted = false;
+        return parsed;
       }
     } catch (e) {
-      console.error('Failed to read hosts.json', e);
+      console.error('Failed to read hosts.json (file corrupted or invalid JSON)', e);
+      this.hostsCorrupted = true;
     }
     return [];
   }
 
   public saveHosts(hosts: HostAsset[]): void {
+    if (this.hostsCorrupted) {
+      throw new Error(
+        'hosts.json 文件损坏，已阻止保存以防覆盖原有数据。请先从 hosts.json.bak 恢复或修复文件'
+      );
+    }
     const hostsPath = path.join(this.dataDir, 'hosts.json');
-    fs.writeFileSync(hostsPath, JSON.stringify(hosts, null, 2), 'utf8');
+    const bakPath = path.join(this.dataDir, 'hosts.json.bak');
+    const tmpPath = path.join(this.dataDir, `.hosts.${Date.now()}.${Math.random().toString(36).slice(2)}.tmp`);
+
+    if (fs.existsSync(hostsPath)) {
+      try {
+        fs.copyFileSync(hostsPath, bakPath);
+      } catch (err) {
+        console.warn('Failed to backup hosts.json before save', err);
+      }
+    }
+
+    fs.writeFileSync(tmpPath, JSON.stringify(hosts, null, 2), 'utf8');
+    fs.renameSync(tmpPath, hostsPath);
+    this.hostsCorrupted = false;
   }
 
   public getSettings(): AppSettings {
     const settingsPath = path.join(this.dataDir, 'settings.json');
     try {
       if (fs.existsSync(settingsPath)) {
-        return JSON.parse(fs.readFileSync(settingsPath, 'utf8'));
+        const parsed = JSON.parse(fs.readFileSync(settingsPath, 'utf8'));
+        if (
+          !parsed ||
+          typeof parsed !== 'object' ||
+          Array.isArray(parsed) ||
+          !parsed.ai ||
+          !parsed.terminal
+        ) {
+          console.error('Failed to read settings.json (invalid shape, expected AppSettings object)');
+          this.settingsCorrupted = true;
+          return this.getDefaultSettings();
+        }
+        this.settingsCorrupted = false;
+        return parsed;
       }
     } catch (e) {
-      console.error('Failed to read settings.json', e);
+      console.error('Failed to read settings.json (file corrupted or invalid JSON)', e);
+      this.settingsCorrupted = true;
     }
     return this.getDefaultSettings();
   }
 
   public saveSettings(settings: AppSettings): void {
+    if (this.settingsCorrupted) {
+      throw new Error(
+        'settings.json 文件损坏，已阻止保存以防覆盖原有数据。请先从 settings.json.bak 恢复或修复文件'
+      );
+    }
     const settingsPath = path.join(this.dataDir, 'settings.json');
-    fs.writeFileSync(settingsPath, JSON.stringify(settings, null, 2), 'utf8');
+    const bakPath = path.join(this.dataDir, 'settings.json.bak');
+    const tmpPath = path.join(this.dataDir, `.settings.${Date.now()}.${Math.random().toString(36).slice(2)}.tmp`);
+
+    if (fs.existsSync(settingsPath)) {
+      try {
+        fs.copyFileSync(settingsPath, bakPath);
+      } catch (err) {
+        console.warn('Failed to backup settings.json before save', err);
+      }
+    }
+
+    fs.writeFileSync(tmpPath, JSON.stringify(settings, null, 2), 'utf8');
+    fs.renameSync(tmpPath, settingsPath);
+    this.settingsCorrupted = false;
   }
 
   public getDefaultSettings(): AppSettings {

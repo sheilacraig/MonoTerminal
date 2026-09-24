@@ -6,6 +6,7 @@ import { useWebSocket } from './WebSocketContext';
 import { cleanCommandForExecution } from '../utils/commandCleaner';
 import { isMultiLineBlock, requiresElevation } from '../utils/authPrompt';
 import { getAuthStore, setFallbackTerminalSender } from '../services/terminalAuth';
+import { shellIntegrationTracker } from '../utils/shellIntegration';
 
 /**
  * Per-session AI chat state, hosted above the `AgentView` mount boundary.
@@ -65,13 +66,8 @@ const EMPTY_STATE: ChatState = createEmptyState();
 const AgentChatContext = createContext<AgentChatContextType | null>(null);
 
 export const AgentChatProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
-  const {
-    activeSession,
-    activeSessionId,
-    sessions,
-    hosts,
-    executeCommandWithGuardrail
-  } = useSession();
+  const { activeSession, activeSessionId, sessions, hosts, executeCommandWithGuardrail } =
+    useSession();
   const { streamAI, sendTermInput } = useWebSocket();
 
   const [store, setStore] = useState<Record<string, ChatState>>({});
@@ -185,7 +181,14 @@ export const AgentChatProvider: React.FC<{ children: React.ReactNode }> = ({ chi
         terminalSnippet: activeSession.terminalContext || undefined,
         currentDir: activeSession.cwd,
         currentUser: 'root',
-        osInfo: 'Ubuntu 22.04 LTS x86_64'
+        osInfo: 'Ubuntu 22.04 LTS x86_64',
+        failedCommand: activeSession.lastFailedCommand
+          ? {
+              command: activeSession.lastFailedCommand.command,
+              exitCode: activeSession.lastFailedCommand.exitCode,
+              output: activeSession.lastFailedCommand.output
+            }
+          : undefined
       };
 
       const cancel = streamAI(historyForAI, opsContext, {
@@ -277,6 +280,8 @@ export const AgentChatProvider: React.FC<{ children: React.ReactNode }> = ({ chi
       const clean = cleanCommandForExecution(cmd) || cmd.trim();
       if (!clean) return;
 
+      shellIntegrationTracker.setCommandText(sid, clean);
+
       if (needsElevationPreflight(sid, clean)) {
         executeCommandWithGuardrail(clean, () => getAuthStore(sid).beginElevation(clean, 'run'));
         return;
@@ -293,6 +298,8 @@ export const AgentChatProvider: React.FC<{ children: React.ReactNode }> = ({ chi
       const sid = activeSession.id;
       const clean = cleanCommandForExecution(cmd) || cmd.trim();
       if (!clean) return;
+
+      shellIntegrationTracker.setCommandText(sid, clean);
 
       // Parking a multi-line sudo block on the command line has the same flaw as
       // running it: the following heredoc/script lines become the password.

@@ -1,0 +1,11 @@
+=== hostId 静默回退探针 ===
+hostId='totally-nonexistent-host'（hosts 列表为空）
+localPtyManager.createSession 调用次数: 0
+发送给前端的消息: [
+  {
+    "type": "term:error",
+    "sessionId": "probe-session-1",
+    "message": "主机未找到 (hostId: \"totally-nonexistent-host\")，请检查主机资产配置是否有效。"
+  }
+]
+结论: 返回 term:error（正确拒绝）
