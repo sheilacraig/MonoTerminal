@@ -65,6 +65,44 @@ describe('validateWsInboundMessage', () => {
           osInfo: 'Ubuntu 22.04',
           commandHistory: ['systemctl status nginx']
         }
+      },
+      {
+        type: 'term:cmd_event',
+        sessionId: 'sess-1',
+        kind: 'finished',
+        command: 'systemctl status nginx',
+        cwd: '/etc/nginx',
+        exitCode: 3,
+        output: 'active: failed',
+        timestamp: Date.now()
+      },
+      {
+        type: 'term:cmd_event',
+        sessionId: 'sess-1',
+        kind: 'cwd',
+        cwd: '/var/log',
+        timestamp: Date.now()
+      },
+      {
+        type: 'agent:run',
+        requestId: 'agent-1',
+        sessionId: 'sess-1',
+        goal: '排查 nginx 为什么无法启动'
+      },
+      {
+        type: 'agent:approve',
+        sessionId: 'sess-1',
+        approvalId: 'appr-123'
+      },
+      {
+        type: 'agent:reject',
+        sessionId: 'sess-1',
+        approvalId: 'appr-123',
+        reason: '暂不重启生产服务'
+      },
+      {
+        type: 'agent:cancel',
+        sessionId: 'sess-1'
       }
     ];
 
@@ -103,7 +141,11 @@ describe('validateWsInboundMessage', () => {
       { type: 'ai:chat', requestId: 'r' }, // missing messages
       { type: 'ai:chat', requestId: 'r', messages: [{ role: 'hacker', content: 'x' }] }, // bad role
       { type: 'ai:chat', requestId: 'r', messages: [{ role: 'user' }] }, // missing content
-      { type: 'ai:chat', requestId: 'r', messages: [{ role: 'user', content: 'x' }, 'junk'] }
+      { type: 'ai:chat', requestId: 'r', messages: [{ role: 'user', content: 'x' }, 'junk'] },
+      { type: 'term:cmd_event', sessionId: 's', kind: 'bogus', timestamp: Date.now() }, // invalid kind
+      { type: 'term:cmd_event', sessionId: 's', kind: 'finished', exitCode: 1.5 }, // non-integer exitCode
+      { type: 'agent:run', requestId: 'r', sessionId: 's', goal: '   ' }, // empty goal
+      { type: 'agent:approve', sessionId: 's', approvalId: '../bad' } // invalid approvalId
     ];
 
     for (const m of invalid) {

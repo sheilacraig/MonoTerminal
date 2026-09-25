@@ -74,7 +74,7 @@ export const SessionProvider: React.FC<{ children: React.ReactNode }> = ({ child
   const [isHostModalOpen, setIsHostModalOpen] = useState(false);
   const [isSettingsModalOpen, setIsSettingsModalOpen] = useState(false);
   const [isSnippetModalOpen, setIsSnippetModalOpen] = useState(false);
-  const [isSidebarCollapsed, setIsSidebarCollapsed] = useState(false);
+  const [isSidebarCollapsed, setIsSidebarCollapsed] = useState(true);
   const [dangerPrompt, setDangerPrompt] = useState<DangerPromptData | null>(null);
 
   const terminalBuffers = useRef<Map<string, string[]>>(new Map());
@@ -325,6 +325,13 @@ export const SessionProvider: React.FC<{ children: React.ReactNode }> = ({ child
         if (!last || last.snippet !== snippet || now - last.ts >= ERROR_BUBBLE_COOLDOWN_MS) {
           lastErrorPrompts.current.set(sessionId, { snippet, ts: now });
           bubbleSnippet = snippet;
+          send({
+            type: 'term:cmd_event',
+            sessionId,
+            kind: 'heuristic_error',
+            output: snippet,
+            timestamp: now
+          });
         }
       }
     }
@@ -341,7 +348,7 @@ export const SessionProvider: React.FC<{ children: React.ReactNode }> = ({ child
         return s;
       })
     );
-  }, []);
+  }, [send]);
 
   const clearUnreadError = useCallback((sessionId: string) => {
     setSessions(prev => prev.map(s => (s.id === sessionId ? { ...s, unreadError: null } : s)));

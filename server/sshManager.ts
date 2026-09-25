@@ -13,6 +13,17 @@ export interface SshSessionInstance {
   isAlive: boolean;
 }
 
+const MAX_EXEC_CAPTURE_BYTES = 64_000;
+
+/**
+ * POSIX-safe single-quote shell escaping (P0-1 / v3 P1-③).
+ * Wraps the value in single quotes and replaces any embedded `'` with `'\''`,
+ * preventing `$()` command substitution, backtick expansion, and semicolon injection.
+ */
+export function shQuote(s: string): string {
+  return `'${s.replace(/'/g, `'\\''`)}'`;
+}
+
 export class SshManager {
   private sessions: Map<string, SshSessionInstance> = new Map();
 
@@ -164,6 +175,104 @@ export class SshManager {
       }
       this.sessions.delete(sessionId);
     }
+  }
+
+  /**
+   * Execute a one-shot non-interactive command over an independent SSH `exec` channel (P1-6)
+   * with mandatory timeout enforcement (P0-B) so interactive shells are never polluted.
+   */
+  public async execCommand(
+    sessionId: string,
+    command: string,
+    options?: { cwd?: string; timeoutMs?: number }
+  ): Promise<{ exitCode: number; stdout: string; stderr: string; timedOut?: boolean }> {
+    const session = this.sessions.get(sessionId);
+    if (!session || !session.isAlive) {
+      throw new Error('SSH 会话未连接或不存在');
+    }
+
+    const timeoutMs = Math.max(100, options?.timeoutMs ?? 15_000);
+    const fullCommand = options?.cwd
+      ? `cd ${shQuote(options.cwd)} && ${command}`
+      : command;
+
+    return new Promise((resolve, reject) => {
+      session.client.exec(fullCommand, (err, stream) => {
+        if (err) {
+          return reject(err);
+        }
+
+        let stdout = '';
+        let stderr = '';
+        let stdoutBytes = 0;
+        let stderrBytes = 0;
+        let settled = false;
+        let exitCode = 0;
+
+        const timer = setTimeout(() => {
+          if (settled) return;
+          settled = true;
+          try {
+            stream.close();
+          } catch {
+            // ignore
+          }
+          resolve({
+            exitCode: 124,
+            stdout,
+            stderr: stderr ? `${stderr}\n[Timeout after ${timeoutMs}ms]` : `[Timeout after ${timeoutMs}ms]`,
+            timedOut: true
+          });
+        }, timeoutMs);
+        timer.unref?.();
+
+        stream.on('data', (chunk: Buffer | string) => {
+          if (stdoutBytes >= MAX_EXEC_CAPTURE_BYTES) return;
+          const buf = typeof chunk === 'string' ? Buffer.from(chunk, 'utf-8') : chunk;
+          const remaining = MAX_EXEC_CAPTURE_BYTES - stdoutBytes;
+          const slice = buf.byteLength > remaining ? buf.subarray(0, remaining) : buf;
+          stdoutBytes += slice.byteLength;
+          stdout += slice.toString('utf-8');
+        });
+
+        stream.stderr.on('data', (chunk: Buffer | string) => {
+          if (stderrBytes >= MAX_EXEC_CAPTURE_BYTES) return;
+          const buf = typeof chunk === 'string' ? Buffer.from(chunk, 'utf-8') : chunk;
+          const remaining = MAX_EXEC_CAPTURE_BYTES - stderrBytes;
+          const slice = buf.byteLength > remaining ? buf.subarray(0, remaining) : buf;
+          stderrBytes += slice.byteLength;
+          stderr += slice.toString('utf-8');
+        });
+
+        stream.on('exit', (code: number | null) => {
+          if (typeof code === 'number') {
+            exitCode = code;
+          }
+        });
+
+        stream.on('close', (code?: number | null) => {
+          if (settled) return;
+          settled = true;
+          clearTimeout(timer);
+          if (typeof code === 'number') {
+            exitCode = code;
+          }
+          resolve({
+            exitCode,
+            stdout,
+            stderr,
+            timedOut: false
+          });
+        });
+
+        stream.on('error', (streamErr: Error) => {
+          if (settled) return;
+          settled = true;
+          clearTimeout(timer);
+          reject(streamErr);
+        });
+      });
+    });
   }
 
   public async sftpList(sessionId: string, dirPath: string): Promise<FileItem[]> {

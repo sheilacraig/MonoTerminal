@@ -14,14 +14,56 @@ import {
 import { handleSftpList, handleSftpWrite, handleSftpMkdir } from '../server/ws/handlers/sftp';
 import { handleAiChat } from '../server/ws/handlers/ai';
 
-function makeConn() {
+import { createDefaultSessionManager } from '../server/ws/wsRouter';
+import type { LocalPtyManager } from '../server/localPtyManager';
+import type { LocalFsManager } from '../server/localFsManager';
+import type { SshManager } from '../server/sshManager';
+
+function makeConn(connectionId = 'test-conn-1') {
   const sent: WsOutboundMessage[] = [];
   const conn: WsConnection = {
+    connectionId,
     clientSessions: new Set<string>(),
     send: (m: WsOutboundMessage) => sent.push(m)
   };
   return { conn, sent };
 }
+
+const realHost = {
+  id: 'h1',
+  name: 'Real',
+  group: 'g',
+  host: '1.2.3.4',
+  port: 22,
+  username: 'root',
+  authType: 'password' as const,
+  passwordEncrypted: 'enc',
+  createdAt: 0
+};
+
+const localHost = {
+  id: 'local-shell',
+  name: '本机终端 (Local Shell)',
+  group: '本地',
+  host: 'localhost',
+  port: 0,
+  username: 'local',
+  authType: 'local' as const,
+  initialDir: 'C:\\Users\\test',
+  createdAt: 0
+};
+
+const mockHost = {
+  id: 'mock-local-demo',
+  name: 'Demo Linux',
+  group: '演示',
+  host: '127.0.0.1',
+  port: 22,
+  username: 'root',
+  authType: 'mock' as const,
+  initialDir: '/etc/nginx',
+  createdAt: 0
+};
 
 function makeDeps() {
   const term = {
@@ -29,6 +71,7 @@ function makeDeps() {
     resize: vi.fn(),
     init: vi.fn(),
     on: vi.fn(),
+    off: vi.fn(),
     getCurrentDir: vi.fn(() => '/etc/nginx')
   };
   const fs = {
@@ -67,7 +110,7 @@ function makeDeps() {
     host: 'localhost',
     port: 0,
     username: 'local',
-    authType: 'local',
+    authType: 'local' as const,
     initialDir: '~',
     createdAt: 0
   };
@@ -95,15 +138,43 @@ function makeDeps() {
     mkdir: vi.fn()
   };
 
+  const createMockSession = vi.fn(() => ({ term, fs }) as unknown as MockSessionEntry);
+
+  const sessionManager = createDefaultSessionManager({
+    localPtyManager: localPtyManager as unknown as LocalPtyManager,
+    localFsManager: localFsManager as unknown as LocalFsManager,
+    sshManager: sshManager as unknown as SshManager,
+    mockSessions,
+    createMockSession
+  });
+
+  // Pre-seed 'local-s1' and 'real' for direct handler unit tests that skip term:init,
+  // and intercept mockSessions.set('s1', ...) to register the mock session in sessionManager
+  void sessionManager.create({ id: 'local-s1', host: localHost, cols: 80, rows: 24 });
+  void sessionManager.create({ id: 'real', host: realHost, cols: 80, rows: 24 });
+  localPtyManager.createSession.mockClear();
+  sshManager.createSession.mockClear();
+  sshManager.resize.mockClear();
+
+  const origMockSet = mockSessions.set.bind(mockSessions);
+  mockSessions.set = (key: string, value: MockSessionEntry) => {
+    const res = origMockSet(key, value);
+    if (!sessionManager.get(key)) {
+      void sessionManager.create({ id: key, host: mockHost, cols: 80, rows: 24 });
+    }
+    return res;
+  };
+
   const deps = {
     aiService,
     sshManager,
     storage,
     mockSessions,
     demoHost,
-    createMockSession: vi.fn(() => ({ term, fs })),
+    createMockSession,
     localPtyManager,
-    localFsManager
+    localFsManager,
+    sessionManager
   } as unknown as WsDependencies;
 
   return {
@@ -116,33 +187,10 @@ function makeDeps() {
     mockSessions,
     localPtyManager,
     localFsManager,
-    localPtySession
+    localPtySession,
+    sessionManager
   };
 }
-
-const realHost = {
-  id: 'h1',
-  name: 'Real',
-  group: 'g',
-  host: '1.2.3.4',
-  port: 22,
-  username: 'root',
-  authType: 'password',
-  passwordEncrypted: 'enc',
-  createdAt: 0
-};
-
-const localHost = {
-  id: 'local-shell',
-  name: '本机终端 (Local Shell)',
-  group: '本地',
-  host: 'localhost',
-  port: 0,
-  username: 'local',
-  authType: 'local',
-  initialDir: 'C:\\Users\\test',
-  createdAt: 0
-};
 
 describe('ws handlers · ping', () => {
   it('replies with pong echoing clientTime', () => {
@@ -165,11 +213,22 @@ describe('ws handlers · terminal', () => {
     expect(sshManager.writeToShell).not.toHaveBeenCalled();
   });
 
-  it('term:input falls back to sshManager for real sessions', () => {
+  it('term:input routes to sshManager for registered ssh sessions', () => {
     const { conn } = makeConn();
     const { deps, sshManager } = makeDeps();
     handleTermInput({ type: 'term:input', sessionId: 'real', data: 'pwd\r' }, conn, deps);
     expect(sshManager.writeToShell).toHaveBeenCalledWith('real', 'pwd\r');
+  });
+
+  it('term:input rejects unknown sessionId with term:error instead of falling back to sshManager', () => {
+    const { conn, sent } = makeConn();
+    const { deps, sshManager } = makeDeps();
+    handleTermInput({ type: 'term:input', sessionId: 'unknown-sid', data: 'pwd\r' }, conn, deps);
+    expect(sshManager.writeToShell).not.toHaveBeenCalled();
+    expect(sent[0]).toMatchObject({
+      type: 'term:error',
+      sessionId: 'unknown-sid'
+    });
   });
 
   it('term:input routes to the local pty when the session is local', () => {
@@ -192,11 +251,11 @@ describe('ws handlers · terminal', () => {
     expect(sshManager.resize).not.toHaveBeenCalled();
   });
 
-  it('term:close also releases the local pty session', () => {
+  it('term:close releases the local pty session', async () => {
     const { conn } = makeConn();
     const { deps, localPtyManager } = makeDeps();
     conn.clientSessions.add('local-s1');
-    handleTermClose({ type: 'term:close', sessionId: 'local-s1' }, conn, deps);
+    await handleTermClose({ type: 'term:close', sessionId: 'local-s1' }, conn, deps);
     expect(localPtyManager.closeSession).toHaveBeenCalledWith('local-s1');
     expect(conn.clientSessions.has('local-s1')).toBe(false);
   });
@@ -205,20 +264,20 @@ describe('ws handlers · terminal', () => {
     const { conn } = makeConn();
     const { deps, term, fs, sshManager, mockSessions } = makeDeps();
     mockSessions.set('s1', { term, fs } as unknown as MockSessionEntry);
+    term.resize.mockClear();
     handleTermResize({ type: 'term:resize', sessionId: 's1', cols: 100, rows: 30 }, conn, deps);
     expect(term.resize).toHaveBeenCalledWith(100, 30);
     handleTermResize({ type: 'term:resize', sessionId: 'real', cols: 80, rows: 24 }, conn, deps);
     expect(sshManager.resize).toHaveBeenCalledWith('real', 80, 24);
   });
 
-  it('term:close cleans mock session, ssh session and the client set', () => {
+  it('term:close cleans mock session and the client set', async () => {
     const { conn } = makeConn();
-    const { deps, term, fs, sshManager, mockSessions } = makeDeps();
+    const { deps, term, fs, mockSessions } = makeDeps();
     mockSessions.set('s1', { term, fs } as unknown as MockSessionEntry);
     conn.clientSessions.add('s1');
-    handleTermClose({ type: 'term:close', sessionId: 's1' }, conn, deps);
+    await handleTermClose({ type: 'term:close', sessionId: 's1' }, conn, deps);
     expect(mockSessions.has('s1')).toBe(false);
-    expect(sshManager.closeSession).toHaveBeenCalledWith('s1');
     expect(conn.clientSessions.has('s1')).toBe(false);
   });
 

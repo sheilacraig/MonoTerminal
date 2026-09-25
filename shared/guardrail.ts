@@ -35,14 +35,14 @@ export interface DangerousRule {
 // ---------------------------------------------------------------------------
 
 /** Privilege escalators that may prefix a dangerous command. */
-const PRIVILEGE_ESCALATORS = new Set(['sudo', 'doas', 'pkexec']);
+export const PRIVILEGE_ESCALATORS = new Set(['sudo', 'doas', 'pkexec']);
 
 /**
  * Absolute paths whose recursive deletion is universally catastrophic. Matched
  * exactly (or with a trailing `/` or `/*`), never as a prefix — so `/etc/nginx`
  * stays safe while `/etc` and `/etc/*` are flagged.
  */
-const CRITICAL_ABSOLUTE_DIRS = [
+export const CRITICAL_ABSOLUTE_DIRS = [
   'etc',
   'usr',
   'var',
@@ -64,7 +64,7 @@ const CRITICAL_ABSOLUTE_DIRS = [
 ];
 
 /** Split a shell command line into segments on newlines, `&&`, `||`, `;`, and `|`. */
-function splitShellSegments(cmd: string): string[] {
+export function splitShellSegments(cmd: string): string[] {
   return cmd
     .split(/[\r\n]+|&&|\|\||[;|]/)
     .map(s => s.trim())
@@ -72,7 +72,7 @@ function splitShellSegments(cmd: string): string[] {
 }
 
 /** Naive whitespace tokenizer that also strips one layer of surrounding quotes. */
-function tokenize(segment: string): string[] {
+export function tokenize(segment: string): string[] {
   return segment
     .split(/\s+/)
     .filter(Boolean)
@@ -80,7 +80,9 @@ function tokenize(segment: string): string[] {
 }
 
 /** Extract the primary command binary token and argument tokens after any escalators (sudo, etc.) */
-function extractCommandInvocation(segment: string): { binary: string; args: string[] } | null {
+export function extractCommandInvocation(
+  segment: string
+): { binary: string; args: string[] } | null {
   const tokens = tokenize(segment);
   let i = 0;
 
@@ -101,7 +103,7 @@ function extractCommandInvocation(segment: string): { binary: string; args: stri
 }
 
 /** True if the token looks like a filesystem root or first-level wildcard. */
-function isRootLikePath(rawToken: string): boolean {
+export function isRootLikePath(rawToken: string): boolean {
   if (!rawToken) return false;
   const t = rawToken.replace(/^["']|["']$/g, '').trim();
   if (!t) return false;
@@ -122,7 +124,7 @@ function isRootLikePath(rawToken: string): boolean {
   return false;
 }
 
-interface RmInvocation {
+export interface RmInvocation {
   recursive: boolean;
   force: boolean;
   noPreserveRoot: boolean;
@@ -141,7 +143,7 @@ interface RmInvocation {
  *
  * Returns null when no `rm` invocation is present.
  */
-function analyzeRmCommand(cmd: string): RmInvocation | null {
+export function analyzeRmCommand(cmd: string): RmInvocation | null {
   for (const segment of splitShellSegments(cmd)) {
     const inv = extractCommandInvocation(segment);
     if (!inv || inv.binary !== 'rm') continue;

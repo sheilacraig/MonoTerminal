@@ -1,5 +1,5 @@
 import React from 'react';
-import { FileItem } from '../../types';
+import { FileEntry as FileItem } from '../../types';
 import { Folder, File, FileCode, FileText } from 'lucide-react';
 
 interface FileTreeItemProps {

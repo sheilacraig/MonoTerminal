@@ -2,6 +2,7 @@ import type { WsInboundMessage } from '../../../shared/wsProtocol';
 import type { WsConnection, WsDependencies, WsHandler, WsHandlerMap } from '../types';
 import { handlePing } from './ping';
 import { handleTermInit, handleTermInput, handleTermResize, handleTermClose } from './terminal';
+import { handleTermCmdEvent } from './command';
 import {
   handleSftpList,
   handleSftpRead,
@@ -12,6 +13,12 @@ import {
   handleSftpMkdir
 } from './sftp';
 import { handleAiChat } from './ai';
+import {
+  handleAgentApprove,
+  handleAgentCancel,
+  handleAgentReject,
+  handleAgentRun
+} from './agent';
 
 /** Message-type → handler registry. Add new message types here. */
 export const wsHandlers: WsHandlerMap = {
@@ -20,6 +27,7 @@ export const wsHandlers: WsHandlerMap = {
   'term:input': handleTermInput,
   'term:resize': handleTermResize,
   'term:close': handleTermClose,
+  'term:cmd_event': handleTermCmdEvent,
   'sftp:list': handleSftpList,
   'sftp:read': handleSftpRead,
   'sftp:write': handleSftpWrite,
@@ -27,7 +35,11 @@ export const wsHandlers: WsHandlerMap = {
   'sftp:rename': handleSftpRename,
   'sftp:chmod': handleSftpChmod,
   'sftp:mkdir': handleSftpMkdir,
-  'ai:chat': handleAiChat
+  'ai:chat': handleAiChat,
+  'agent:run': handleAgentRun,
+  'agent:approve': handleAgentApprove,
+  'agent:reject': handleAgentReject,
+  'agent:cancel': handleAgentCancel
 };
 
 /**

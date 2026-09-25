@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { useSession } from '../../context/SessionContext';
 import { useSftp } from '../../hooks/useSftp';
-import { FileItem } from '../../types';
+import { FileEntry as FileItem } from '../../types';
 import { errorMessage } from '../../../shared/errors';
 import { joinPath, getParentPath, isRootPath } from '../../utils/pathUtils';
 import { FileTreeItem } from './FileTreeItem';
@@ -172,34 +172,11 @@ export const SftpSidebar: React.FC = () => {
       <aside className="w-9 bg-orca-surface border-r border-orca-border flex flex-col items-center py-2 select-none z-20 shrink-0">
         <button
           onClick={() => setIsSidebarCollapsed(false)}
-          className="p-1.5 text-orca-muted hover:text-white hover:bg-orca-card rounded transition-colors mb-4"
+          className="p-1.5 text-orca-muted hover:text-white hover:bg-orca-card rounded transition-colors"
           title="展开 SFTP 文件树 (Ctrl+B)"
         >
           <SidebarOpen size={16} />
         </button>
-
-        <div className="flex flex-col space-y-3 text-orca-muted">
-          <button
-            onClick={() => {
-              setIsSidebarCollapsed(false);
-              refresh();
-            }}
-            className="p-1.5 hover:text-orca-accent hover:bg-orca-card rounded"
-            title="查看远程文件"
-          >
-            <Folder size={16} />
-          </button>
-          <button
-            onClick={() => {
-              setIsSidebarCollapsed(false);
-              handleUpload();
-            }}
-            className="p-1.5 hover:text-orca-success hover:bg-orca-card rounded"
-            title="上传文件"
-          >
-            <Upload size={16} />
-          </button>
-        </div>
       </aside>
     );
   }

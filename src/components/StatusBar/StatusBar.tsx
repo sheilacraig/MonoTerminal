@@ -1,11 +1,9 @@
 import React from 'react';
 import { useWebSocket } from '../../context/WebSocketContext';
-import { useSettings } from '../../context/SettingsContext';
-import { Activity, ShieldCheck, Cpu } from 'lucide-react';
+import { Activity, ShieldCheck } from 'lucide-react';
 
 export const StatusBar: React.FC = () => {
   const { rtt, isConnected } = useWebSocket();
-  const { activeAIProvider } = useSettings();
 
   let latencyColor = 'text-orca-success';
   if (rtt > 80) latencyColor = 'text-orca-warning';
@@ -32,16 +30,6 @@ export const StatusBar: React.FC = () => {
         <span className="hidden sm:inline" title="终端字符集编码">
           UTF-8
         </span>
-
-        <span className="text-orca-border">|</span>
-
-        <div
-          className="flex items-center space-x-1 text-purple-400"
-          title="当前激活的 AI 运维推理引擎"
-        >
-          <Cpu size={12} />
-          <span className="truncate max-w-[160px]">{activeAIProvider?.name || 'DeepSeek-V3'}</span>
-        </div>
       </div>
 
       {/* Right: Shortcut guide */}

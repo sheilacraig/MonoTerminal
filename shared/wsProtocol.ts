@@ -10,6 +10,22 @@
  */
 
 // ---------------------------------------------------------------------------
+// FileSystem / SFTP shared payloads
+// ---------------------------------------------------------------------------
+
+export interface FileEntry {
+  name: string;
+  path: string;
+  isDirectory: boolean;
+  size: number;
+  modifyTime: number;
+  permissions: string;
+  owner?: string;
+}
+
+export type FileItem = FileEntry;
+
+// ---------------------------------------------------------------------------
 // AI chat payloads
 // ---------------------------------------------------------------------------
 
@@ -75,6 +91,18 @@ export interface TermCloseMessage {
   sessionId: string;
 }
 
+export interface TermCmdEventMessage {
+  type: 'term:cmd_event';
+  sessionId: string;
+  kind: 'started' | 'finished' | 'cwd' | 'heuristic_error';
+  commandId?: string;
+  command?: string;
+  cwd?: string;
+  exitCode?: number;
+  output?: string;
+  timestamp?: number;
+}
+
 export interface SftpListMessage {
   type: 'sftp:list';
   requestId: string;
@@ -131,8 +159,34 @@ export interface SftpMkdirMessage {
 export interface AiChatMessage {
   type: 'ai:chat';
   requestId: string;
+  sessionId?: string;
   messages: ChatPayload[];
   opsContext?: OpsContextPayload;
+}
+
+export interface AgentRunMessage {
+  type: 'agent:run';
+  requestId: string;
+  sessionId: string;
+  goal: string;
+}
+
+export interface AgentApproveMessage {
+  type: 'agent:approve';
+  sessionId: string;
+  approvalId: string;
+}
+
+export interface AgentRejectMessage {
+  type: 'agent:reject';
+  sessionId: string;
+  approvalId: string;
+  reason?: string;
+}
+
+export interface AgentCancelMessage {
+  type: 'agent:cancel';
+  sessionId: string;
 }
 
 export type WsInboundMessage =
@@ -141,6 +195,7 @@ export type WsInboundMessage =
   | TermInputMessage
   | TermResizeMessage
   | TermCloseMessage
+  | TermCmdEventMessage
   | SftpListMessage
   | SftpReadMessage
   | SftpWriteMessage
@@ -148,7 +203,11 @@ export type WsInboundMessage =
   | SftpRenameMessage
   | SftpChmodMessage
   | SftpMkdirMessage
-  | AiChatMessage;
+  | AiChatMessage
+  | AgentRunMessage
+  | AgentApproveMessage
+  | AgentRejectMessage
+  | AgentCancelMessage;
 
 /** All SFTP request types accepted by the client-side `requestSftp` helper. */
 export type SftpRequestType =
@@ -227,6 +286,94 @@ export interface AiErrorMessage {
   error: string;
 }
 
+export interface AgentPlanStepPayload {
+  id: string;
+  title: string;
+  description?: string;
+  toolName: 'shell' | 'file' | 'git' | 'ssh';
+  input: Record<string, unknown>;
+  status: 'pending' | 'running' | 'awaiting_approval' | 'completed' | 'failed' | 'skipped';
+  outputSummary?: string;
+  error?: string;
+  approvalId?: string;
+}
+
+export interface AgentPlanPayload {
+  id: string;
+  sessionId: string;
+  goal: string;
+  status:
+    | 'planning'
+    | 'running'
+    | 'awaiting_approval'
+    | 'verifying'
+    | 'completed'
+    | 'failed'
+    | 'cancelled';
+  steps: AgentPlanStepPayload[];
+  createdAt: number;
+  updatedAt: number;
+  summary?: string;
+}
+
+export interface ApprovalRequestPayload {
+  id: string;
+  sessionId: string;
+  planId?: string;
+  stepId?: string;
+  toolName: string;
+  action: Record<string, unknown>;
+  assessment: {
+    level: 'SAFE' | 'LOW' | 'MEDIUM' | 'HIGH' | 'CRITICAL';
+    reason?: string;
+    matchedRule?: string;
+  };
+  status: 'pending' | 'approved' | 'rejected' | 'expired';
+  createdAt: number;
+  expiresAt: number;
+  resolvedAt?: number;
+  reason?: string;
+}
+
+export interface TimelineEntryPayload {
+  id: string;
+  sessionId: string;
+  kind: 'command' | 'file' | 'agent' | 'session';
+  title: string;
+  detail?: string;
+  status?: 'running' | 'success' | 'failed' | 'info';
+  exitCode?: number;
+  cwd?: string;
+  durationMs?: number;
+  timestamp: number;
+}
+
+export interface AgentPlanMessage {
+  type: 'agent:plan';
+  sessionId: string;
+  plan: AgentPlanPayload;
+}
+
+export interface AgentApprovalRequestMessage {
+  type: 'agent:approval_request';
+  sessionId: string;
+  approval: ApprovalRequestPayload;
+}
+
+export interface AgentApprovalResolvedMessage {
+  type: 'agent:approval_resolved';
+  sessionId: string;
+  approvalId: string;
+  status: 'approved' | 'rejected' | 'expired';
+  reason?: string;
+}
+
+export interface AgentTimelineMessage {
+  type: 'agent:timeline';
+  sessionId: string;
+  entries: TimelineEntryPayload[];
+}
+
 export type WsOutboundMessage =
   | PongMessage
   | TermDataMessage
@@ -237,7 +384,11 @@ export type WsOutboundMessage =
   | AiThinkingMessage
   | AiContentMessage
   | AiDoneMessage
-  | AiErrorMessage;
+  | AiErrorMessage
+  | AgentPlanMessage
+  | AgentApprovalRequestMessage
+  | AgentApprovalResolvedMessage
+  | AgentTimelineMessage;
 
 // ---------------------------------------------------------------------------
 // Runtime validation — server-side trust boundary
@@ -360,6 +511,57 @@ export function validateWsInboundMessage(value: unknown): WsValidationResult {
       return { ok: true, msg: { type: 'term:close', sessionId: value.sessionId } };
     }
 
+    case 'term:cmd_event': {
+      if (!isId(value.sessionId)) return fail('term:cmd_event.sessionId 非法');
+      const kind = value.kind;
+      if (
+        kind !== 'started' &&
+        kind !== 'finished' &&
+        kind !== 'cwd' &&
+        kind !== 'heuristic_error'
+      ) {
+        return fail('term:cmd_event.kind 必须是 started/finished/cwd/heuristic_error');
+      }
+      if (value.commandId !== undefined && !isId(value.commandId)) {
+        return fail('term:cmd_event.commandId 非法');
+      }
+      if (value.command !== undefined && !isStr(value.command, 4000)) {
+        return fail('term:cmd_event.command 过长或非法');
+      }
+      if (value.cwd !== undefined && !isStr(value.cwd, MAX_PATH_LEN)) {
+        return fail('term:cmd_event.cwd 非法');
+      }
+      if (
+        value.exitCode !== undefined &&
+        (typeof value.exitCode !== 'number' || !Number.isInteger(value.exitCode))
+      ) {
+        return fail('term:cmd_event.exitCode 必须是整数');
+      }
+      if (value.output !== undefined && !isStr(value.output, MAX_SNIPPET_LEN)) {
+        return fail('term:cmd_event.output 过长或非法');
+      }
+      if (
+        value.timestamp !== undefined &&
+        (typeof value.timestamp !== 'number' || !Number.isFinite(value.timestamp))
+      ) {
+        return fail('term:cmd_event.timestamp 必须是有限数值');
+      }
+      return {
+        ok: true,
+        msg: {
+          type: 'term:cmd_event',
+          sessionId: value.sessionId,
+          kind,
+          ...(value.commandId !== undefined ? { commandId: value.commandId } : {}),
+          ...(value.command !== undefined ? { command: value.command } : {}),
+          ...(value.cwd !== undefined ? { cwd: value.cwd } : {}),
+          ...(value.exitCode !== undefined ? { exitCode: value.exitCode } : {}),
+          ...(value.output !== undefined ? { output: value.output } : {}),
+          ...(value.timestamp !== undefined ? { timestamp: value.timestamp } : {})
+        }
+      };
+    }
+
     case 'sftp:list': {
       if (!isId(value.requestId)) return fail('sftp:list.requestId 非法');
       if (!isId(value.sessionId)) return fail('sftp:list.sessionId 非法');
@@ -479,6 +681,9 @@ export function validateWsInboundMessage(value: unknown): WsValidationResult {
 
     case 'ai:chat': {
       if (!isId(value.requestId)) return fail('ai:chat.requestId 非法');
+      if (value.sessionId !== undefined && !isId(value.sessionId)) {
+        return fail('ai:chat.sessionId 非法');
+      }
       if (!Array.isArray(value.messages) || value.messages.length > MAX_AI_MESSAGES) {
         return fail(`ai:chat.messages 必须是 ≤${MAX_AI_MESSAGES} 条的数组`);
       }
@@ -498,8 +703,67 @@ export function validateWsInboundMessage(value: unknown): WsValidationResult {
         msg: {
           type: 'ai:chat',
           requestId: value.requestId,
+          ...(value.sessionId !== undefined ? { sessionId: value.sessionId } : {}),
           messages,
           opsContext: parseOpsContext(value.opsContext)
+        }
+      };
+    }
+
+    case 'agent:run': {
+      if (!isId(value.requestId)) return fail('agent:run.requestId 非法');
+      if (!isId(value.sessionId)) return fail('agent:run.sessionId 非法');
+      if (typeof value.goal !== 'string' || !value.goal.trim() || value.goal.length > MAX_AI_MESSAGE_LEN) {
+        return fail('agent:run.goal 必须是非空字符串');
+      }
+      return {
+        ok: true,
+        msg: {
+          type: 'agent:run',
+          requestId: value.requestId,
+          sessionId: value.sessionId,
+          goal: value.goal.trim()
+        }
+      };
+    }
+
+    case 'agent:approve': {
+      if (!isId(value.sessionId)) return fail('agent:approve.sessionId 非法');
+      if (!isId(value.approvalId)) return fail('agent:approve.approvalId 非法');
+      return {
+        ok: true,
+        msg: {
+          type: 'agent:approve',
+          sessionId: value.sessionId,
+          approvalId: value.approvalId
+        }
+      };
+    }
+
+    case 'agent:reject': {
+      if (!isId(value.sessionId)) return fail('agent:reject.sessionId 非法');
+      if (!isId(value.approvalId)) return fail('agent:reject.approvalId 非法');
+      if (value.reason !== undefined && !isStr(value.reason, 2000)) {
+        return fail('agent:reject.reason 非法');
+      }
+      return {
+        ok: true,
+        msg: {
+          type: 'agent:reject',
+          sessionId: value.sessionId,
+          approvalId: value.approvalId,
+          ...(value.reason !== undefined ? { reason: value.reason } : {})
+        }
+      };
+    }
+
+    case 'agent:cancel': {
+      if (!isId(value.sessionId)) return fail('agent:cancel.sessionId 非法');
+      return {
+        ok: true,
+        msg: {
+          type: 'agent:cancel',
+          sessionId: value.sessionId
         }
       };
     }

@@ -393,22 +393,22 @@ export class LocalStorageManager {
     if (!fs.existsSync(settingsPath)) {
       const defaultSettings: AppSettings = {
         ai: {
-          activeProvider: 'mock-ai',
+          activeProvider: 'deepseek-api',
           providers: [
-            {
-              id: 'mock-ai',
-              name: '内置运维专家 (离线演示)',
-              type: 'mock',
-              baseUrl: 'http://localhost/mock',
-              model: 'monoterminal-ops-mock',
-              temperature: 0.7
-            },
             {
               id: 'deepseek-api',
               name: 'DeepSeek 官方 API',
               type: 'deepseek',
               baseUrl: 'https://api.deepseek.com',
               model: 'deepseek-chat',
+              temperature: 0.7
+            },
+            {
+              id: 'qwen-api',
+              name: 'Qwen 官方 API',
+              type: 'qwen',
+              baseUrl: 'https://dashscope.aliyuncs.com/compatible-mode/v1',
+              model: 'qwen-plus',
               temperature: 0.7
             },
             {
@@ -447,6 +447,52 @@ export class LocalStorageManager {
         }
       };
       fs.writeFileSync(settingsPath, JSON.stringify(defaultSettings, null, 2), 'utf8');
+    } else {
+      try {
+        const settings: AppSettings = JSON.parse(fs.readFileSync(settingsPath, 'utf8'));
+        if (settings && settings.ai && Array.isArray(settings.ai.providers)) {
+          let modified = false;
+
+          if (settings.ai.providers.some(p => p.id === 'mock-ai' || p.type === 'mock')) {
+            settings.ai.providers = settings.ai.providers.filter(
+              p => p.id !== 'mock-ai' && p.type !== 'mock'
+            );
+            modified = true;
+          }
+
+          if (!settings.ai.providers.some(p => p.id === 'qwen-api' || p.type === 'qwen')) {
+            const qwenProvider: AppSettings['ai']['providers'][number] = {
+              id: 'qwen-api',
+              name: 'Qwen 官方 API',
+              type: 'qwen',
+              baseUrl: 'https://dashscope.aliyuncs.com/compatible-mode/v1',
+              model: 'qwen-plus',
+              temperature: 0.7
+            };
+            const deepseekIdx = settings.ai.providers.findIndex(p => p.id === 'deepseek-api');
+            if (deepseekIdx >= 0) {
+              settings.ai.providers.splice(deepseekIdx + 1, 0, qwenProvider);
+            } else {
+              settings.ai.providers.unshift(qwenProvider);
+            }
+            modified = true;
+          }
+
+          if (
+            settings.ai.providers.length > 0 &&
+            !settings.ai.providers.some(p => p.id === settings.ai.activeProvider)
+          ) {
+            settings.ai.activeProvider = settings.ai.providers[0].id;
+            modified = true;
+          }
+
+          if (modified) {
+            fs.writeFileSync(settingsPath, JSON.stringify(settings, null, 2), 'utf8');
+          }
+        }
+      } catch (e) {
+        console.error('Failed to migrate settings.json', e);
+      }
     }
   }
 
@@ -553,7 +599,7 @@ export class LocalStorageManager {
   public getDefaultSettings(): AppSettings {
     return {
       ai: {
-        activeProvider: 'mock-ai',
+        activeProvider: 'deepseek-api',
         providers: []
       },
       shortcuts: {

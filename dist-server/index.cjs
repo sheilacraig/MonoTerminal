@@ -1289,8 +1289,8 @@ var require_node = __commonJS({
           }
           break;
         case "FILE":
-          var fs6 = require("fs");
-          stream2 = new fs6.SyncWriteStream(fd2, { autoClose: false });
+          var fs7 = require("fs");
+          stream2 = new fs7.SyncWriteStream(fd2, { autoClose: false });
           stream2._type = "fs";
           break;
         case "PIPE":
@@ -14077,11 +14077,11 @@ var require_mime_types = __commonJS({
       }
       return exts[0];
     }
-    function lookup(path5) {
-      if (!path5 || typeof path5 !== "string") {
+    function lookup(path11) {
+      if (!path11 || typeof path11 !== "string") {
         return false;
       }
-      var extension3 = extname("x." + path5).toLowerCase().substr(1);
+      var extension3 = extname("x." + path11).toLowerCase().substr(1);
       if (!extension3) {
         return false;
       }
@@ -14728,10 +14728,10 @@ var require_object_inspect = __commonJS({
       }
       if (!isDate(obj) && !isRegExp(obj)) {
         var ys = arrObjKeys(obj, inspect);
-        var isPlainObject = gPO ? gPO(obj) === Object.prototype : obj instanceof Object || obj.constructor === Object;
+        var isPlainObject2 = gPO ? gPO(obj) === Object.prototype : obj instanceof Object || obj.constructor === Object;
         var protoTag = obj instanceof Object ? "" : "null prototype";
-        var stringTag = !isPlainObject && toStringTag && Object(obj) === obj && toStringTag in obj ? $slice.call(toStr(obj), 8, -1) : protoTag ? "Object" : "";
-        var constructorTag = isPlainObject || typeof obj.constructor !== "function" ? "" : obj.constructor.name ? obj.constructor.name + " " : "";
+        var stringTag = !isPlainObject2 && toStringTag && Object(obj) === obj && toStringTag in obj ? $slice.call(toStr(obj), 8, -1) : protoTag ? "Object" : "";
+        var constructorTag = isPlainObject2 || typeof obj.constructor !== "function" ? "" : obj.constructor.name ? obj.constructor.name + " " : "";
         var tag = constructorTag + (stringTag || protoTag ? "[" + $join.call($concat.call([], stringTag || [], protoTag || []), ": ") + "] " : "");
         if (ys.length === 0) {
           return tag + "{}";
@@ -17734,8 +17734,8 @@ var require_node2 = __commonJS({
           }
           break;
         case "FILE":
-          var fs6 = require("fs");
-          stream2 = new fs6.SyncWriteStream(fd2, { autoClose: false });
+          var fs7 = require("fs");
+          stream2 = new fs7.SyncWriteStream(fd2, { autoClose: false });
           stream2._type = "fs";
           break;
         case "PIPE":
@@ -18453,8 +18453,8 @@ var require_node3 = __commonJS({
           }
           break;
         case "FILE":
-          var fs6 = require("fs");
-          stream2 = new fs6.SyncWriteStream(fd2, { autoClose: false });
+          var fs7 = require("fs");
+          stream2 = new fs7.SyncWriteStream(fd2, { autoClose: false });
           stream2._type = "fs";
           break;
         case "PIPE":
@@ -18542,7 +18542,7 @@ var require_path_to_regexp = __commonJS({
   "node_modules/path-to-regexp/index.js"(exports2, module2) {
     module2.exports = pathToRegexp;
     var MATCHING_GROUP_REGEXP = /\\.|\((?:\?<(.*?)>)?(?!\?)/g;
-    function pathToRegexp(path5, keys, options) {
+    function pathToRegexp(path11, keys, options) {
       options = options || {};
       keys = keys || [];
       var strict = options.strict;
@@ -18556,8 +18556,8 @@ var require_path_to_regexp = __commonJS({
       var pos = 0;
       var backtrack = "";
       var m;
-      if (path5 instanceof RegExp) {
-        while (m = MATCHING_GROUP_REGEXP.exec(path5.source)) {
+      if (path11 instanceof RegExp) {
+        while (m = MATCHING_GROUP_REGEXP.exec(path11.source)) {
           if (m[0][0] === "\\") continue;
           keys.push({
             name: m[1] || name++,
@@ -18565,18 +18565,18 @@ var require_path_to_regexp = __commonJS({
             offset: m.index
           });
         }
-        return path5;
+        return path11;
       }
-      if (Array.isArray(path5)) {
-        path5 = path5.map(function(value) {
+      if (Array.isArray(path11)) {
+        path11 = path11.map(function(value) {
           return pathToRegexp(value, keys, options).source;
         });
-        return new RegExp(path5.join("|"), flags);
+        return new RegExp(path11.join("|"), flags);
       }
-      if (typeof path5 !== "string") {
+      if (typeof path11 !== "string") {
         throw new TypeError("path must be a string, array of strings, or regular expression");
       }
-      path5 = path5.replace(
+      path11 = path11.replace(
         /\\.|(\/)?(\.)?:(\w+)(\(.*?\))?(\*)?(\?)?|[.*]|\/\(/g,
         function(match, slash, format, key, capture, star, optional, offset) {
           if (match[0] === "\\") {
@@ -18593,7 +18593,7 @@ var require_path_to_regexp = __commonJS({
           if (slash || format) {
             backtrack = "";
           } else {
-            backtrack += path5.slice(pos, offset);
+            backtrack += path11.slice(pos, offset);
           }
           pos = offset + match.length;
           if (match === "*") {
@@ -18623,7 +18623,7 @@ var require_path_to_regexp = __commonJS({
           return result;
         }
       );
-      while (m = MATCHING_GROUP_REGEXP.exec(path5)) {
+      while (m = MATCHING_GROUP_REGEXP.exec(path11)) {
         if (m[0][0] === "\\") continue;
         if (keysOffset + i === keys.length || keys[keysOffset + i].offset > m.index) {
           keys.splice(keysOffset + i, 0, {
@@ -18635,13 +18635,13 @@ var require_path_to_regexp = __commonJS({
         }
         i++;
       }
-      path5 += strict ? "" : path5[path5.length - 1] === "/" ? "?" : "/?";
+      path11 += strict ? "" : path11[path11.length - 1] === "/" ? "?" : "/?";
       if (end) {
-        path5 += "$";
-      } else if (path5[path5.length - 1] !== "/") {
-        path5 += lookahead ? "(?=/|$)" : "(?:/|$)";
+        path11 += "$";
+      } else if (path11[path11.length - 1] !== "/") {
+        path11 += lookahead ? "(?=/|$)" : "(?:/|$)";
       }
-      return new RegExp("^" + path5, flags);
+      return new RegExp("^" + path11, flags);
     }
   }
 });
@@ -18654,19 +18654,19 @@ var require_layer = __commonJS({
     var debug = require_src3()("express:router:layer");
     var hasOwnProperty = Object.prototype.hasOwnProperty;
     module2.exports = Layer;
-    function Layer(path5, options, fn) {
+    function Layer(path11, options, fn) {
       if (!(this instanceof Layer)) {
-        return new Layer(path5, options, fn);
+        return new Layer(path11, options, fn);
       }
-      debug("new %o", path5);
+      debug("new %o", path11);
       var opts = options || {};
       this.handle = fn;
       this.name = fn.name || "<anonymous>";
       this.params = void 0;
       this.path = void 0;
-      this.regexp = pathRegexp(path5, this.keys = [], opts);
-      this.regexp.fast_star = path5 === "*";
-      this.regexp.fast_slash = path5 === "/" && opts.end === false;
+      this.regexp = pathRegexp(path11, this.keys = [], opts);
+      this.regexp.fast_star = path11 === "*";
+      this.regexp.fast_slash = path11 === "/" && opts.end === false;
     }
     Layer.prototype.handle_error = function handle_error(error, req, res, next) {
       var fn = this.handle;
@@ -18690,20 +18690,20 @@ var require_layer = __commonJS({
         next(err);
       }
     };
-    Layer.prototype.match = function match(path5) {
+    Layer.prototype.match = function match(path11) {
       var match2;
-      if (path5 != null) {
+      if (path11 != null) {
         if (this.regexp.fast_slash) {
           this.params = {};
           this.path = "";
           return true;
         }
         if (this.regexp.fast_star) {
-          this.params = { "0": decode_param(path5) };
-          this.path = path5;
+          this.params = { "0": decode_param(path11) };
+          this.path = path11;
           return true;
         }
-        match2 = this.regexp.exec(path5);
+        match2 = this.regexp.exec(path11);
       }
       if (!match2) {
         this.params = void 0;
@@ -18796,10 +18796,10 @@ var require_route = __commonJS({
     var slice = Array.prototype.slice;
     var toString = Object.prototype.toString;
     module2.exports = Route;
-    function Route(path5) {
-      this.path = path5;
+    function Route(path11) {
+      this.path = path11;
       this.stack = [];
-      debug("new %o", path5);
+      debug("new %o", path11);
       this.methods = {};
     }
     Route.prototype._handles_method = function _handles_method(method) {
@@ -19011,8 +19011,8 @@ var require_router = __commonJS({
         if (++sync > 100) {
           return setImmediate(next, err);
         }
-        var path5 = getPathname(req);
-        if (path5 == null) {
+        var path11 = getPathname(req);
+        if (path11 == null) {
           return done(layerError);
         }
         var layer;
@@ -19020,7 +19020,7 @@ var require_router = __commonJS({
         var route;
         while (match !== true && idx < stack.length) {
           layer = stack[idx++];
-          match = matchLayer(layer, path5);
+          match = matchLayer(layer, path11);
           route = layer.route;
           if (typeof match !== "boolean") {
             layerError = layerError || match;
@@ -19058,18 +19058,18 @@ var require_router = __commonJS({
           } else if (route) {
             layer.handle_request(req, res, next);
           } else {
-            trim_prefix(layer, layerError, layerPath, path5);
+            trim_prefix(layer, layerError, layerPath, path11);
           }
           sync = 0;
         });
       }
-      function trim_prefix(layer, layerError, layerPath, path5) {
+      function trim_prefix(layer, layerError, layerPath, path11) {
         if (layerPath.length !== 0) {
-          if (layerPath !== path5.slice(0, layerPath.length)) {
+          if (layerPath !== path11.slice(0, layerPath.length)) {
             next(layerError);
             return;
           }
-          var c = path5[layerPath.length];
+          var c = path11[layerPath.length];
           if (c && c !== "/" && c !== ".") return next(layerError);
           debug("trim prefix (%s) from url %s", layerPath, req.url);
           removed = layerPath;
@@ -19147,7 +19147,7 @@ var require_router = __commonJS({
     };
     proto.use = function use(fn) {
       var offset = 0;
-      var path5 = "/";
+      var path11 = "/";
       if (typeof fn !== "function") {
         var arg = fn;
         while (Array.isArray(arg) && arg.length !== 0) {
@@ -19155,7 +19155,7 @@ var require_router = __commonJS({
         }
         if (typeof arg !== "function") {
           offset = 1;
-          path5 = fn;
+          path11 = fn;
         }
       }
       var callbacks = flatten(slice.call(arguments, offset));
@@ -19167,8 +19167,8 @@ var require_router = __commonJS({
         if (typeof fn !== "function") {
           throw new TypeError("Router.use() requires a middleware function but got a " + gettype(fn));
         }
-        debug("use %o %s", path5, fn.name || "<anonymous>");
-        var layer = new Layer(path5, {
+        debug("use %o %s", path11, fn.name || "<anonymous>");
+        var layer = new Layer(path11, {
           sensitive: this.caseSensitive,
           strict: false,
           end: false
@@ -19178,9 +19178,9 @@ var require_router = __commonJS({
       }
       return this;
     };
-    proto.route = function route(path5) {
-      var route2 = new Route(path5);
-      var layer = new Layer(path5, {
+    proto.route = function route(path11) {
+      var route2 = new Route(path11);
+      var layer = new Layer(path11, {
         sensitive: this.caseSensitive,
         strict: this.strict,
         end: true
@@ -19190,8 +19190,8 @@ var require_router = __commonJS({
       return route2;
     };
     methods.concat("all").forEach(function(method) {
-      proto[method] = function(path5) {
-        var route = this.route(path5);
+      proto[method] = function(path11) {
+        var route = this.route(path11);
         route[method].apply(route, slice.call(arguments, 1));
         return this;
       };
@@ -19227,9 +19227,9 @@ var require_router = __commonJS({
       }
       return toString.call(obj).replace(objectRegExp, "$1");
     }
-    function matchLayer(layer, path5) {
+    function matchLayer(layer, path11) {
       try {
-        return layer.match(path5);
+        return layer.match(path11);
       } catch (err) {
         return err;
       }
@@ -19347,13 +19347,13 @@ var require_view = __commonJS({
   "node_modules/express/lib/view.js"(exports2, module2) {
     "use strict";
     var debug = require_src3()("express:view");
-    var path5 = require("path");
-    var fs6 = require("fs");
-    var dirname = path5.dirname;
-    var basename = path5.basename;
-    var extname = path5.extname;
-    var join = path5.join;
-    var resolve = path5.resolve;
+    var path11 = require("path");
+    var fs7 = require("fs");
+    var dirname = path11.dirname;
+    var basename = path11.basename;
+    var extname = path11.extname;
+    var join = path11.join;
+    var resolve = path11.resolve;
     module2.exports = View;
     function View(name, options) {
       var opts = options || {};
@@ -19382,17 +19382,17 @@ var require_view = __commonJS({
       this.path = this.lookup(fileName);
     }
     View.prototype.lookup = function lookup(name) {
-      var path6;
+      var path12;
       var roots = [].concat(this.root);
       debug('lookup "%s"', name);
-      for (var i = 0; i < roots.length && !path6; i++) {
+      for (var i = 0; i < roots.length && !path12; i++) {
         var root = roots[i];
         var loc = resolve(root, name);
         var dir = dirname(loc);
         var file = basename(loc);
-        path6 = this.resolve(dir, file);
+        path12 = this.resolve(dir, file);
       }
-      return path6;
+      return path12;
     };
     View.prototype.render = function render(options, callback) {
       debug('render "%s"', this.path);
@@ -19400,21 +19400,21 @@ var require_view = __commonJS({
     };
     View.prototype.resolve = function resolve2(dir, file) {
       var ext = this.ext;
-      var path6 = join(dir, file);
-      var stat = tryStat(path6);
+      var path12 = join(dir, file);
+      var stat = tryStat(path12);
       if (stat && stat.isFile()) {
-        return path6;
+        return path12;
       }
-      path6 = join(dir, basename(file, ext), "index" + ext);
-      stat = tryStat(path6);
+      path12 = join(dir, basename(file, ext), "index" + ext);
+      stat = tryStat(path12);
       if (stat && stat.isFile()) {
-        return path6;
+        return path12;
       }
     };
-    function tryStat(path6) {
-      debug('stat "%s"', path6);
+    function tryStat(path12) {
+      debug('stat "%s"', path12);
       try {
-        return fs6.statSync(path6);
+        return fs7.statSync(path12);
       } catch (e) {
         return void 0;
       }
@@ -20019,8 +20019,8 @@ var require_node4 = __commonJS({
           }
           break;
         case "FILE":
-          var fs6 = require("fs");
-          stream2 = new fs6.SyncWriteStream(fd2, { autoClose: false });
+          var fs7 = require("fs");
+          stream2 = new fs7.SyncWriteStream(fd2, { autoClose: false });
           stream2._type = "fs";
           break;
         case "PIPE":
@@ -20072,14 +20072,14 @@ var require_etag = __commonJS({
   "node_modules/etag/index.js"(exports2, module2) {
     "use strict";
     module2.exports = etag;
-    var crypto3 = require("crypto");
+    var crypto7 = require("crypto");
     var Stats = require("fs").Stats;
     var toString = Object.prototype.toString;
     function entitytag(entity) {
       if (entity.length === 0) {
         return '"0-2jmj7l5rSw0yVb/vlWAYkK/YBwk"';
       }
-      var hash = crypto3.createHash("sha1").update(entity, "utf8").digest("base64").substring(0, 27);
+      var hash = crypto7.createHash("sha1").update(entity, "utf8").digest("base64").substring(0, 27);
       var len = typeof entity === "string" ? Buffer.byteLength(entity, "utf8") : entity.length;
       return '"' + len.toString(16) + "-" + hash + '"';
     }
@@ -20192,8 +20192,8 @@ var require_types = __commonJS({
 // node_modules/mime/mime.js
 var require_mime = __commonJS({
   "node_modules/mime/mime.js"(exports2, module2) {
-    var path5 = require("path");
-    var fs6 = require("fs");
+    var path11 = require("path");
+    var fs7 = require("fs");
     function Mime() {
       this.types = /* @__PURE__ */ Object.create(null);
       this.extensions = /* @__PURE__ */ Object.create(null);
@@ -20214,7 +20214,7 @@ var require_mime = __commonJS({
     };
     Mime.prototype.load = function(file) {
       this._loading = file;
-      var map = {}, content = fs6.readFileSync(file, "ascii"), lines = content.split(/[\r\n]+/);
+      var map = {}, content = fs7.readFileSync(file, "ascii"), lines = content.split(/[\r\n]+/);
       lines.forEach(function(line) {
         var fields = line.replace(/\s*#.*|^\s*|\s*$/g, "").split(/\s+/);
         map[fields.shift()] = fields;
@@ -20222,8 +20222,8 @@ var require_mime = __commonJS({
       this.define(map);
       this._loading = null;
     };
-    Mime.prototype.lookup = function(path6, fallback) {
-      var ext = path6.replace(/^.*[\.\/\\]/, "").toLowerCase();
+    Mime.prototype.lookup = function(path12, fallback) {
+      var ext = path12.replace(/^.*[\.\/\\]/, "").toLowerCase();
       return this.types[ext] || fallback || this.default_type;
     };
     Mime.prototype.extension = function(mimeType) {
@@ -20452,33 +20452,33 @@ var require_send = __commonJS({
     var escapeHtml = require_escape_html();
     var etag = require_etag();
     var fresh = require_fresh();
-    var fs6 = require("fs");
+    var fs7 = require("fs");
     var mime = require_mime();
     var ms = require_ms5();
     var onFinished = require_on_finished();
     var parseRange = require_range_parser();
-    var path5 = require("path");
+    var path11 = require("path");
     var statuses = require_statuses();
     var Stream = require("stream");
     var util = require("util");
-    var extname = path5.extname;
-    var join = path5.join;
-    var normalize = path5.normalize;
-    var resolve = path5.resolve;
-    var sep = path5.sep;
+    var extname = path11.extname;
+    var join = path11.join;
+    var normalize = path11.normalize;
+    var resolve = path11.resolve;
+    var sep = path11.sep;
     var BYTES_RANGE_REGEXP = /^ *bytes=/;
     var MAX_MAXAGE = 60 * 60 * 24 * 365 * 1e3;
     var UP_PATH_REGEXP = /(?:^|[\\/])\.\.(?:[\\/]|$)/;
     module2.exports = send;
     module2.exports.mime = mime;
-    function send(req, path6, options) {
-      return new SendStream(req, path6, options);
+    function send(req, path12, options) {
+      return new SendStream(req, path12, options);
     }
-    function SendStream(req, path6, options) {
+    function SendStream(req, path12, options) {
       Stream.call(this);
       var opts = options || {};
       this.options = opts;
-      this.path = path6;
+      this.path = path12;
       this.req = req;
       this._acceptRanges = opts.acceptRanges !== void 0 ? Boolean(opts.acceptRanges) : true;
       this._cacheControl = opts.cacheControl !== void 0 ? Boolean(opts.cacheControl) : true;
@@ -20524,8 +20524,8 @@ var require_send = __commonJS({
       this._index = index2;
       return this;
     }, "send.index: pass index as option");
-    SendStream.prototype.root = function root(path6) {
-      this._root = resolve(String(path6));
+    SendStream.prototype.root = function root(path12) {
+      this._root = resolve(String(path12));
       debug("root %s", this._root);
       return this;
     };
@@ -20638,10 +20638,10 @@ var require_send = __commonJS({
       var lastModified = this.res.getHeader("Last-Modified");
       return parseHttpDate(lastModified) <= parseHttpDate(ifRange);
     };
-    SendStream.prototype.redirect = function redirect(path6) {
+    SendStream.prototype.redirect = function redirect(path12) {
       var res = this.res;
       if (hasListeners(this, "directory")) {
-        this.emit("directory", res, path6);
+        this.emit("directory", res, path12);
         return;
       }
       if (this.hasTrailingSlash()) {
@@ -20661,42 +20661,42 @@ var require_send = __commonJS({
     SendStream.prototype.pipe = function pipe(res) {
       var root = this._root;
       this.res = res;
-      var path6 = decode(this.path);
-      if (path6 === -1) {
+      var path12 = decode(this.path);
+      if (path12 === -1) {
         this.error(400);
         return res;
       }
-      if (~path6.indexOf("\0")) {
+      if (~path12.indexOf("\0")) {
         this.error(400);
         return res;
       }
       var parts;
       if (root !== null) {
-        if (path6) {
-          path6 = normalize("." + sep + path6);
+        if (path12) {
+          path12 = normalize("." + sep + path12);
         }
-        if (UP_PATH_REGEXP.test(path6)) {
-          debug('malicious path "%s"', path6);
+        if (UP_PATH_REGEXP.test(path12)) {
+          debug('malicious path "%s"', path12);
           this.error(403);
           return res;
         }
-        parts = path6.split(sep);
-        path6 = normalize(join(root, path6));
+        parts = path12.split(sep);
+        path12 = normalize(join(root, path12));
       } else {
-        if (UP_PATH_REGEXP.test(path6)) {
-          debug('malicious path "%s"', path6);
+        if (UP_PATH_REGEXP.test(path12)) {
+          debug('malicious path "%s"', path12);
           this.error(403);
           return res;
         }
-        parts = normalize(path6).split(sep);
-        path6 = resolve(path6);
+        parts = normalize(path12).split(sep);
+        path12 = resolve(path12);
       }
       if (containsDotFile(parts)) {
         var access = this._dotfiles;
         if (access === void 0) {
           access = parts[parts.length - 1][0] === "." ? this._hidden ? "allow" : "ignore" : "allow";
         }
-        debug('%s dotfile "%s"', access, path6);
+        debug('%s dotfile "%s"', access, path12);
         switch (access) {
           case "allow":
             break;
@@ -20710,13 +20710,13 @@ var require_send = __commonJS({
         }
       }
       if (this._index.length && this.hasTrailingSlash()) {
-        this.sendIndex(path6);
+        this.sendIndex(path12);
         return res;
       }
-      this.sendFile(path6);
+      this.sendFile(path12);
       return res;
     };
-    SendStream.prototype.send = function send2(path6, stat) {
+    SendStream.prototype.send = function send2(path12, stat) {
       var len = stat.size;
       var options = this.options;
       var opts = {};
@@ -20728,9 +20728,9 @@ var require_send = __commonJS({
         this.headersAlreadySent();
         return;
       }
-      debug('pipe "%s"', path6);
-      this.setHeader(path6, stat);
-      this.type(path6);
+      debug('pipe "%s"', path12);
+      this.setHeader(path12, stat);
+      this.type(path12);
       if (this.isConditionalGET()) {
         if (this.isPreconditionFailure()) {
           this.error(412);
@@ -20779,28 +20779,28 @@ var require_send = __commonJS({
         res.end();
         return;
       }
-      this.stream(path6, opts);
+      this.stream(path12, opts);
     };
-    SendStream.prototype.sendFile = function sendFile(path6) {
+    SendStream.prototype.sendFile = function sendFile(path12) {
       var i = 0;
       var self2 = this;
-      debug('stat "%s"', path6);
-      fs6.stat(path6, function onstat(err, stat) {
-        if (err && err.code === "ENOENT" && !extname(path6) && path6[path6.length - 1] !== sep) {
+      debug('stat "%s"', path12);
+      fs7.stat(path12, function onstat(err, stat) {
+        if (err && err.code === "ENOENT" && !extname(path12) && path12[path12.length - 1] !== sep) {
           return next(err);
         }
         if (err) return self2.onStatError(err);
-        if (stat.isDirectory()) return self2.redirect(path6);
-        self2.emit("file", path6, stat);
-        self2.send(path6, stat);
+        if (stat.isDirectory()) return self2.redirect(path12);
+        self2.emit("file", path12, stat);
+        self2.send(path12, stat);
       });
       function next(err) {
         if (self2._extensions.length <= i) {
           return err ? self2.onStatError(err) : self2.error(404);
         }
-        var p = path6 + "." + self2._extensions[i++];
+        var p = path12 + "." + self2._extensions[i++];
         debug('stat "%s"', p);
-        fs6.stat(p, function(err2, stat) {
+        fs7.stat(p, function(err2, stat) {
           if (err2) return next(err2);
           if (stat.isDirectory()) return next();
           self2.emit("file", p, stat);
@@ -20808,7 +20808,7 @@ var require_send = __commonJS({
         });
       }
     };
-    SendStream.prototype.sendIndex = function sendIndex(path6) {
+    SendStream.prototype.sendIndex = function sendIndex(path12) {
       var i = -1;
       var self2 = this;
       function next(err) {
@@ -20816,9 +20816,9 @@ var require_send = __commonJS({
           if (err) return self2.onStatError(err);
           return self2.error(404);
         }
-        var p = join(path6, self2._index[i]);
+        var p = join(path12, self2._index[i]);
         debug('stat "%s"', p);
-        fs6.stat(p, function(err2, stat) {
+        fs7.stat(p, function(err2, stat) {
           if (err2) return next(err2);
           if (stat.isDirectory()) return next();
           self2.emit("file", p, stat);
@@ -20827,10 +20827,10 @@ var require_send = __commonJS({
       }
       next();
     };
-    SendStream.prototype.stream = function stream(path6, options) {
+    SendStream.prototype.stream = function stream(path12, options) {
       var self2 = this;
       var res = this.res;
-      var stream2 = fs6.createReadStream(path6, options);
+      var stream2 = fs7.createReadStream(path12, options);
       this.emit("stream", stream2);
       stream2.pipe(res);
       function cleanup() {
@@ -20845,10 +20845,10 @@ var require_send = __commonJS({
         self2.emit("end");
       });
     };
-    SendStream.prototype.type = function type(path6) {
+    SendStream.prototype.type = function type(path12) {
       var res = this.res;
       if (res.getHeader("Content-Type")) return;
-      var type2 = mime.lookup(path6);
+      var type2 = mime.lookup(path12);
       if (!type2) {
         debug("no content-type");
         return;
@@ -20857,9 +20857,9 @@ var require_send = __commonJS({
       debug("content-type %s", type2);
       res.setHeader("Content-Type", type2 + (charset ? "; charset=" + charset : ""));
     };
-    SendStream.prototype.setHeader = function setHeader(path6, stat) {
+    SendStream.prototype.setHeader = function setHeader(path12, stat) {
       var res = this.res;
-      this.emit("headers", res, path6, stat);
+      this.emit("headers", res, path12, stat);
       if (this._acceptRanges && !res.getHeader("Accept-Ranges")) {
         debug("accept ranges");
         res.setHeader("Accept-Ranges", "bytes");
@@ -20918,9 +20918,9 @@ var require_send = __commonJS({
       }
       return err instanceof Error ? createError(status, err, { expose: false }) : createError(status, err);
     }
-    function decode(path6) {
+    function decode(path12) {
       try {
-        return decodeURIComponent(path6);
+        return decodeURIComponent(path12);
       } catch (err) {
         return -1;
       }
@@ -21845,10 +21845,10 @@ var require_utils2 = __commonJS({
     var querystring = require("querystring");
     exports2.etag = createETagGenerator({ weak: false });
     exports2.wetag = createETagGenerator({ weak: true });
-    exports2.isAbsolute = function(path5) {
-      if ("/" === path5[0]) return true;
-      if (":" === path5[1] && ("\\" === path5[2] || "/" === path5[2])) return true;
-      if ("\\\\" === path5.substring(0, 2)) return true;
+    exports2.isAbsolute = function(path11) {
+      if ("/" === path11[0]) return true;
+      if (":" === path11[1] && ("\\" === path11[2] || "/" === path11[2])) return true;
+      if ("\\\\" === path11.substring(0, 2)) return true;
     };
     exports2.flatten = deprecate.function(
       flatten,
@@ -22060,7 +22060,7 @@ var require_application = __commonJS({
     };
     app.use = function use(fn) {
       var offset = 0;
-      var path5 = "/";
+      var path11 = "/";
       if (typeof fn !== "function") {
         var arg = fn;
         while (Array.isArray(arg) && arg.length !== 0) {
@@ -22068,7 +22068,7 @@ var require_application = __commonJS({
         }
         if (typeof arg !== "function") {
           offset = 1;
-          path5 = fn;
+          path11 = fn;
         }
       }
       var fns = flatten(slice.call(arguments, offset));
@@ -22079,12 +22079,12 @@ var require_application = __commonJS({
       var router = this._router;
       fns.forEach(function(fn2) {
         if (!fn2 || !fn2.handle || !fn2.set) {
-          return router.use(path5, fn2);
+          return router.use(path11, fn2);
         }
-        debug(".use app under %s", path5);
-        fn2.mountpath = path5;
+        debug(".use app under %s", path11);
+        fn2.mountpath = path11;
         fn2.parent = this;
-        router.use(path5, function mounted_app(req, res, next) {
+        router.use(path11, function mounted_app(req, res, next) {
           var orig = req.app;
           fn2.handle(req, res, function(err) {
             setPrototypeOf(req, orig.request);
@@ -22096,9 +22096,9 @@ var require_application = __commonJS({
       }, this);
       return this;
     };
-    app.route = function route(path5) {
+    app.route = function route(path11) {
       this.lazyrouter();
-      return this._router.route(path5);
+      return this._router.route(path11);
     };
     app.engine = function engine(ext, fn) {
       if (typeof fn !== "function") {
@@ -22149,7 +22149,7 @@ var require_application = __commonJS({
       }
       return this;
     };
-    app.path = function path5() {
+    app.path = function path11() {
       return this.parent ? this.parent.path() + this.mountpath : "";
     };
     app.enabled = function enabled(setting) {
@@ -22165,19 +22165,19 @@ var require_application = __commonJS({
       return this.set(setting, false);
     };
     methods.forEach(function(method) {
-      app[method] = function(path5) {
+      app[method] = function(path11) {
         if (method === "get" && arguments.length === 1) {
-          return this.set(path5);
+          return this.set(path11);
         }
         this.lazyrouter();
-        var route = this._router.route(path5);
+        var route = this._router.route(path11);
         route[method].apply(route, slice.call(arguments, 1));
         return this;
       };
     });
-    app.all = function all(path5) {
+    app.all = function all(path11) {
       this.lazyrouter();
-      var route = this._router.route(path5);
+      var route = this._router.route(path11);
       var args = slice.call(arguments, 1);
       for (var i = 0; i < methods.length; i++) {
         route[methods[i]].apply(route, args);
@@ -22936,7 +22936,7 @@ var require_request = __commonJS({
       var subdomains2 = !isIP(hostname) ? hostname.split(".").reverse() : [hostname];
       return subdomains2.slice(offset);
     });
-    defineGetter(req, "path", function path5() {
+    defineGetter(req, "path", function path11() {
       return parse(this).pathname;
     });
     defineGetter(req, "hostname", function hostname() {
@@ -22988,11 +22988,11 @@ var require_request = __commonJS({
 // node_modules/cookie-signature/index.js
 var require_cookie_signature = __commonJS({
   "node_modules/cookie-signature/index.js"(exports2) {
-    var crypto3 = require("crypto");
+    var crypto7 = require("crypto");
     exports2.sign = function(val, secret) {
       if ("string" !== typeof val) throw new TypeError("Cookie value must be provided as a string.");
       if (null == secret) throw new TypeError("Secret key must be provided.");
-      return val + "." + crypto3.createHmac("sha256", secret).update(val).digest("base64").replace(/\=+$/, "");
+      return val + "." + crypto7.createHmac("sha256", secret).update(val).digest("base64").replace(/\=+$/, "");
     };
     exports2.unsign = function(val, secret) {
       if ("string" !== typeof val) throw new TypeError("Signed cookie string must be provided.");
@@ -23001,7 +23001,7 @@ var require_cookie_signature = __commonJS({
       return sha1(mac) == sha1(val) ? str : false;
     };
     function sha1(str) {
-      return crypto3.createHash("sha1").update(str).digest("hex");
+      return crypto7.createHash("sha1").update(str).digest("hex");
     }
   }
 });
@@ -23258,7 +23258,7 @@ var require_response = __commonJS({
     var http2 = require("http");
     var isAbsolute = require_utils2().isAbsolute;
     var onFinished = require_on_finished();
-    var path5 = require("path");
+    var path11 = require("path");
     var statuses = require_statuses();
     var merge = require_utils_merge();
     var sign = require_cookie_signature().sign;
@@ -23267,9 +23267,9 @@ var require_response = __commonJS({
     var setCharset = require_utils2().setCharset;
     var cookie = require_cookie();
     var send = require_send();
-    var extname = path5.extname;
+    var extname = path11.extname;
     var mime = send.mime;
-    var resolve = path5.resolve;
+    var resolve = path11.resolve;
     var vary = require_vary();
     var res = Object.create(http2.ServerResponse.prototype);
     module2.exports = res;
@@ -23446,26 +23446,26 @@ var require_response = __commonJS({
       this.type("txt");
       return this.send(body);
     };
-    res.sendFile = function sendFile(path6, options, callback) {
+    res.sendFile = function sendFile(path12, options, callback) {
       var done = callback;
       var req = this.req;
       var res2 = this;
       var next = req.next;
       var opts = options || {};
-      if (!path6) {
+      if (!path12) {
         throw new TypeError("path argument is required to res.sendFile");
       }
-      if (typeof path6 !== "string") {
+      if (typeof path12 !== "string") {
         throw new TypeError("path must be a string to res.sendFile");
       }
       if (typeof options === "function") {
         done = options;
         opts = {};
       }
-      if (!opts.root && !isAbsolute(path6)) {
+      if (!opts.root && !isAbsolute(path12)) {
         throw new TypeError("path must be absolute or specify root to res.sendFile");
       }
-      var pathname = encodeURI(path6);
+      var pathname = encodeURI(path12);
       var file = send(req, pathname, opts);
       sendfile(res2, file, opts, function(err) {
         if (done) return done(err);
@@ -23475,7 +23475,7 @@ var require_response = __commonJS({
         }
       });
     };
-    res.sendfile = function(path6, options, callback) {
+    res.sendfile = function(path12, options, callback) {
       var done = callback;
       var req = this.req;
       var res2 = this;
@@ -23485,7 +23485,7 @@ var require_response = __commonJS({
         done = options;
         opts = {};
       }
-      var file = send(req, path6, opts);
+      var file = send(req, path12, opts);
       sendfile(res2, file, opts, function(err) {
         if (done) return done(err);
         if (err && err.code === "EISDIR") return next();
@@ -23498,7 +23498,7 @@ var require_response = __commonJS({
       res.sendfile,
       "res.sendfile: Use res.sendFile instead"
     );
-    res.download = function download(path6, filename, options, callback) {
+    res.download = function download(path12, filename, options, callback) {
       var done = callback;
       var name = filename;
       var opts = options || null;
@@ -23515,7 +23515,7 @@ var require_response = __commonJS({
         opts = filename;
       }
       var headers = {
-        "Content-Disposition": contentDisposition(name || path6)
+        "Content-Disposition": contentDisposition(name || path12)
       };
       if (opts && opts.headers) {
         var keys = Object.keys(opts.headers);
@@ -23528,7 +23528,7 @@ var require_response = __commonJS({
       }
       opts = Object.create(opts);
       opts.headers = headers;
-      var fullPath = !opts.root ? resolve(path6) : path6;
+      var fullPath = !opts.root ? resolve(path12) : path12;
       return this.sendFile(fullPath, opts, done);
     };
     res.contentType = res.type = function contentType(type) {
@@ -23829,11 +23829,11 @@ var require_serve_static = __commonJS({
         }
         var forwardError = !fallthrough;
         var originalUrl = parseUrl.original(req);
-        var path5 = parseUrl(req).pathname;
-        if (path5 === "/" && originalUrl.pathname.substr(-1) !== "/") {
-          path5 = "";
+        var path11 = parseUrl(req).pathname;
+        if (path11 === "/" && originalUrl.pathname.substr(-1) !== "/") {
+          path11 = "";
         }
-        var stream = send(req, path5, opts);
+        var stream = send(req, path11, opts);
         stream.on("directory", onDirectory);
         if (setHeaders) {
           stream.on("headers", setHeaders);
@@ -30609,22 +30609,22 @@ var require_nacl_fast = __commonJS({
         randombytes = fn;
       };
       (function() {
-        var crypto3 = typeof self !== "undefined" ? self.crypto || self.msCrypto : null;
-        if (crypto3 && crypto3.getRandomValues) {
+        var crypto7 = typeof self !== "undefined" ? self.crypto || self.msCrypto : null;
+        if (crypto7 && crypto7.getRandomValues) {
           var QUOTA = 65536;
           nacl.setPRNG(function(x, n) {
             var i, v = new Uint8Array(n);
             for (i = 0; i < n; i += QUOTA) {
-              crypto3.getRandomValues(v.subarray(i, i + Math.min(n - i, QUOTA)));
+              crypto7.getRandomValues(v.subarray(i, i + Math.min(n - i, QUOTA)));
             }
             for (i = 0; i < n; i++) x[i] = v[i];
             cleanup(v);
           });
         } else if (typeof require !== "undefined") {
-          crypto3 = require("crypto");
-          if (crypto3 && crypto3.randomBytes) {
+          crypto7 = require("crypto");
+          if (crypto7 && crypto7.randomBytes) {
             nacl.setPRNG(function(x, n) {
-              var i, v = crypto3.randomBytes(n);
+              var i, v = crypto7.randomBytes(n);
               for (i = 0; i < n; i++) x[i] = v[i];
               cleanup(v);
             });
@@ -31892,7 +31892,7 @@ var require_bcrypt_pbkdf = __commonJS({
 var require_constants2 = __commonJS({
   "node_modules/ssh2/lib/protocol/constants.js"(exports2, module2) {
     "use strict";
-    var crypto3 = require("crypto");
+    var crypto7 = require("crypto");
     var cpuInfo;
     try {
       cpuInfo = require("cpu-features")();
@@ -31900,21 +31900,21 @@ var require_constants2 = __commonJS({
     }
     var { bindingAvailable, CIPHER_INFO, MAC_INFO } = require_crypto();
     var eddsaSupported = (() => {
-      if (typeof crypto3.sign === "function" && typeof crypto3.verify === "function") {
+      if (typeof crypto7.sign === "function" && typeof crypto7.verify === "function") {
         const key = "-----BEGIN PRIVATE KEY-----\r\nMC4CAQAwBQYDK2VwBCIEIHKj+sVa9WcD/q2DJUJaf43Kptc8xYuUQA4bOFj9vC8T\r\n-----END PRIVATE KEY-----";
         const data = Buffer.from("a");
         let sig;
         let verified;
         try {
-          sig = crypto3.sign(null, data, key);
-          verified = crypto3.verify(null, data, key, sig);
+          sig = crypto7.sign(null, data, key);
+          verified = crypto7.verify(null, data, key, sig);
         } catch {
         }
         return Buffer.isBuffer(sig) && sig.length === 64 && verified === true;
       }
       return false;
     })();
-    var curve25519Supported = typeof crypto3.diffieHellman === "function" && typeof crypto3.generateKeyPairSync === "function" && typeof crypto3.createPublicKey === "function";
+    var curve25519Supported = typeof crypto7.diffieHellman === "function" && typeof crypto7.generateKeyPairSync === "function" && typeof crypto7.createPublicKey === "function";
     var DEFAULT_KEX = [
       // https://tools.ietf.org/html/rfc5656#section-10.1
       "ecdh-sha2-nistp256",
@@ -31957,7 +31957,7 @@ var require_constants2 = __commonJS({
       "ssh-dss"
     ]);
     var canUseCipher = (() => {
-      const ciphers = crypto3.getCiphers();
+      const ciphers = crypto7.getCiphers();
       return (name) => ciphers.includes(CIPHER_INFO[name].sslName);
     })();
     var DEFAULT_CIPHER = [
@@ -31995,7 +31995,7 @@ var require_constants2 = __commonJS({
       "arcfour"
     ].filter(canUseCipher));
     var canUseMAC = (() => {
-      const hashes = crypto3.getHashes();
+      const hashes = crypto7.getHashes();
       return (name) => hashes.includes(MAC_INFO[name].sslName);
     })();
     var DEFAULT_MAC = [
@@ -35898,11 +35898,11 @@ var require_agent = __commonJS({
       };
     })();
     var WINDOWS_PIPE_REGEX = /^[/\\][/\\]\.[/\\]pipe[/\\].+/;
-    function createAgent(path5) {
-      if (process.platform === "win32" && !WINDOWS_PIPE_REGEX.test(path5)) {
-        return path5 === "pageant" ? new PageantAgent() : new CygwinAgent(path5);
+    function createAgent(path11) {
+      if (process.platform === "win32" && !WINDOWS_PIPE_REGEX.test(path11)) {
+        return path11 === "pageant" ? new PageantAgent() : new CygwinAgent(path11);
       }
-      return new OpenSSHAgent(path5);
+      return new OpenSSHAgent(path11);
     }
     var AgentProtocol = (() => {
       const SSH_AGENTC_REQUEST_IDENTITIES = 11;
@@ -40877,8 +40877,8 @@ var require_SFTP = __commonJS({
   "node_modules/ssh2/lib/protocol/SFTP.js"(exports2, module2) {
     "use strict";
     var EventEmitter4 = require("events");
-    var fs6 = require("fs");
-    var { constants } = fs6;
+    var fs7 = require("fs");
+    var { constants } = fs7;
     var {
       Readable: ReadableStream,
       Writable: WritableStream
@@ -41146,17 +41146,17 @@ var require_SFTP = __commonJS({
       // ===========================================================================
       // Client-specific ===========================================================
       // ===========================================================================
-      createReadStream(path5, options) {
+      createReadStream(path11, options) {
         if (this.server)
           throw new Error("Client-only method called in server mode");
-        return new ReadStream(this, path5, options);
+        return new ReadStream(this, path11, options);
       }
-      createWriteStream(path5, options) {
+      createWriteStream(path11, options) {
         if (this.server)
           throw new Error("Client-only method called in server mode");
-        return new WriteStream(this, path5, options);
+        return new WriteStream(this, path11, options);
       }
-      open(path5, flags_, attrs, cb) {
+      open(path11, flags_, attrs, cb) {
         if (this.server)
           throw new Error("Client-only method called in server mode");
         if (typeof attrs === "function") {
@@ -41175,7 +41175,7 @@ var require_SFTP = __commonJS({
           attrsFlags = attrs.flags;
           attrsLen = attrs.nb;
         }
-        const pathLen = Buffer.byteLength(path5);
+        const pathLen = Buffer.byteLength(path11);
         let p = 9;
         const buf = Buffer.allocUnsafe(4 + 1 + 4 + 4 + pathLen + 4 + 4 + attrsLen);
         writeUInt32BE(buf, buf.length - 4, 0);
@@ -41183,7 +41183,7 @@ var require_SFTP = __commonJS({
         const reqid = this._writeReqid = this._writeReqid + 1 & MAX_REQID;
         writeUInt32BE(buf, reqid, 5);
         writeUInt32BE(buf, pathLen, p);
-        buf.utf8Write(path5, p += 4, pathLen);
+        buf.utf8Write(path11, p += 4, pathLen);
         writeUInt32BE(buf, flags, p += pathLen);
         writeUInt32BE(buf, attrsFlags, p += 4);
         if (attrsLen) {
@@ -41307,14 +41307,14 @@ var require_SFTP = __commonJS({
       fastGet(remotePath, localPath, opts, cb) {
         if (this.server)
           throw new Error("Client-only method called in server mode");
-        fastXfer(this, fs6, remotePath, localPath, opts, cb);
+        fastXfer(this, fs7, remotePath, localPath, opts, cb);
       }
       fastPut(localPath, remotePath, opts, cb) {
         if (this.server)
           throw new Error("Client-only method called in server mode");
-        fastXfer(fs6, this, localPath, remotePath, opts, cb);
+        fastXfer(fs7, this, localPath, remotePath, opts, cb);
       }
-      readFile(path5, options, callback_) {
+      readFile(path11, options, callback_) {
         if (this.server)
           throw new Error("Client-only method called in server mode");
         let callback;
@@ -41387,13 +41387,13 @@ var require_SFTP = __commonJS({
             return callback && callback(er, buffer);
           });
         };
-        this.open(path5, flag, 438, (er, handle_) => {
+        this.open(path11, flag, 438, (er, handle_) => {
           if (er)
             return callback && callback(er);
           handle = handle_;
           const tryStat = (er2, st) => {
             if (er2) {
-              this.stat(path5, (er_, st_) => {
+              this.stat(path11, (er_, st_) => {
                 if (er_) {
                   return this.close(handle, () => {
                     callback && callback(er2);
@@ -41414,7 +41414,7 @@ var require_SFTP = __commonJS({
           this.fstat(handle, tryStat);
         });
       }
-      writeFile(path5, data, options, callback_) {
+      writeFile(path11, data, options, callback_) {
         if (this.server)
           throw new Error("Client-only method called in server mode");
         let callback;
@@ -41433,7 +41433,7 @@ var require_SFTP = __commonJS({
         if (options.encoding && !Buffer.isEncoding(options.encoding))
           throw new Error(`Unknown encoding: ${options.encoding}`);
         const flag = options.flag || "w";
-        this.open(path5, flag, options.mode, (openErr, handle) => {
+        this.open(path11, flag, options.mode, (openErr, handle) => {
           if (openErr) {
             callback && callback(openErr);
           } else {
@@ -41442,7 +41442,7 @@ var require_SFTP = __commonJS({
             if (position === null) {
               const tryStat = (er, st) => {
                 if (er) {
-                  this.stat(path5, (er_, st_) => {
+                  this.stat(path11, (er_, st_) => {
                     if (er_) {
                       return this.close(handle, () => {
                         callback && callback(er);
@@ -41461,7 +41461,7 @@ var require_SFTP = __commonJS({
           }
         });
       }
-      appendFile(path5, data, options, callback_) {
+      appendFile(path11, data, options, callback_) {
         if (this.server)
           throw new Error("Client-only method called in server mode");
         let callback;
@@ -41479,12 +41479,12 @@ var require_SFTP = __commonJS({
           throw new TypeError("Bad arguments");
         if (!options.flag)
           options = Object.assign({ flag: "a" }, options);
-        this.writeFile(path5, data, options, callback);
+        this.writeFile(path11, data, options, callback);
       }
-      exists(path5, cb) {
+      exists(path11, cb) {
         if (this.server)
           throw new Error("Client-only method called in server mode");
-        this.stat(path5, (err) => {
+        this.stat(path11, (err) => {
           cb && cb(err ? false : true);
         });
       }
@@ -41527,7 +41527,7 @@ var require_SFTP = __commonJS({
           `SFTP: Outbound: ${isBuffered ? "Buffered" : "Sending"} RENAME`
         );
       }
-      mkdir(path5, attrs, cb) {
+      mkdir(path11, attrs, cb) {
         if (this.server)
           throw new Error("Client-only method called in server mode");
         let flags = 0;
@@ -41541,7 +41541,7 @@ var require_SFTP = __commonJS({
           flags = attrs.flags;
           attrsLen = attrs.nb;
         }
-        const pathLen = Buffer.byteLength(path5);
+        const pathLen = Buffer.byteLength(path11);
         let p = 9;
         const buf = Buffer.allocUnsafe(4 + 1 + 4 + 4 + pathLen + 4 + attrsLen);
         writeUInt32BE(buf, buf.length - 4, 0);
@@ -41549,7 +41549,7 @@ var require_SFTP = __commonJS({
         const reqid = this._writeReqid = this._writeReqid + 1 & MAX_REQID;
         writeUInt32BE(buf, reqid, 5);
         writeUInt32BE(buf, pathLen, p);
-        buf.utf8Write(path5, p += 4, pathLen);
+        buf.utf8Write(path11, p += 4, pathLen);
         writeUInt32BE(buf, flags, p += pathLen);
         if (attrsLen) {
           p += 4;
@@ -41565,10 +41565,10 @@ var require_SFTP = __commonJS({
           `SFTP: Outbound: ${isBuffered ? "Buffered" : "Sending"} MKDIR`
         );
       }
-      rmdir(path5, cb) {
+      rmdir(path11, cb) {
         if (this.server)
           throw new Error("Client-only method called in server mode");
-        const pathLen = Buffer.byteLength(path5);
+        const pathLen = Buffer.byteLength(path11);
         let p = 9;
         const buf = Buffer.allocUnsafe(4 + 1 + 4 + 4 + pathLen);
         writeUInt32BE(buf, buf.length - 4, 0);
@@ -41576,7 +41576,7 @@ var require_SFTP = __commonJS({
         const reqid = this._writeReqid = this._writeReqid + 1 & MAX_REQID;
         writeUInt32BE(buf, reqid, 5);
         writeUInt32BE(buf, pathLen, p);
-        buf.utf8Write(path5, p += 4, pathLen);
+        buf.utf8Write(path11, p += 4, pathLen);
         this._requests[reqid] = { cb };
         const isBuffered = sendOrBuffer(this, buf);
         this._debug && this._debug(
@@ -41666,10 +41666,10 @@ var require_SFTP = __commonJS({
           `SFTP: Outbound: ${isBuffered ? "Buffered" : "Sending"} FSTAT`
         );
       }
-      stat(path5, cb) {
+      stat(path11, cb) {
         if (this.server)
           throw new Error("Client-only method called in server mode");
-        const pathLen = Buffer.byteLength(path5);
+        const pathLen = Buffer.byteLength(path11);
         let p = 9;
         const buf = Buffer.allocUnsafe(4 + 1 + 4 + 4 + pathLen);
         writeUInt32BE(buf, buf.length - 4, 0);
@@ -41677,17 +41677,17 @@ var require_SFTP = __commonJS({
         const reqid = this._writeReqid = this._writeReqid + 1 & MAX_REQID;
         writeUInt32BE(buf, reqid, 5);
         writeUInt32BE(buf, pathLen, p);
-        buf.utf8Write(path5, p += 4, pathLen);
+        buf.utf8Write(path11, p += 4, pathLen);
         this._requests[reqid] = { cb };
         const isBuffered = sendOrBuffer(this, buf);
         this._debug && this._debug(
           `SFTP: Outbound: ${isBuffered ? "Buffered" : "Sending"} STAT`
         );
       }
-      lstat(path5, cb) {
+      lstat(path11, cb) {
         if (this.server)
           throw new Error("Client-only method called in server mode");
-        const pathLen = Buffer.byteLength(path5);
+        const pathLen = Buffer.byteLength(path11);
         let p = 9;
         const buf = Buffer.allocUnsafe(4 + 1 + 4 + 4 + pathLen);
         writeUInt32BE(buf, buf.length - 4, 0);
@@ -41695,17 +41695,17 @@ var require_SFTP = __commonJS({
         const reqid = this._writeReqid = this._writeReqid + 1 & MAX_REQID;
         writeUInt32BE(buf, reqid, 5);
         writeUInt32BE(buf, pathLen, p);
-        buf.utf8Write(path5, p += 4, pathLen);
+        buf.utf8Write(path11, p += 4, pathLen);
         this._requests[reqid] = { cb };
         const isBuffered = sendOrBuffer(this, buf);
         this._debug && this._debug(
           `SFTP: Outbound: ${isBuffered ? "Buffered" : "Sending"} LSTAT`
         );
       }
-      opendir(path5, cb) {
+      opendir(path11, cb) {
         if (this.server)
           throw new Error("Client-only method called in server mode");
-        const pathLen = Buffer.byteLength(path5);
+        const pathLen = Buffer.byteLength(path11);
         let p = 9;
         const buf = Buffer.allocUnsafe(4 + 1 + 4 + 4 + pathLen);
         writeUInt32BE(buf, buf.length - 4, 0);
@@ -41713,14 +41713,14 @@ var require_SFTP = __commonJS({
         const reqid = this._writeReqid = this._writeReqid + 1 & MAX_REQID;
         writeUInt32BE(buf, reqid, 5);
         writeUInt32BE(buf, pathLen, p);
-        buf.utf8Write(path5, p += 4, pathLen);
+        buf.utf8Write(path11, p += 4, pathLen);
         this._requests[reqid] = { cb };
         const isBuffered = sendOrBuffer(this, buf);
         this._debug && this._debug(
           `SFTP: Outbound: ${isBuffered ? "Buffered" : "Sending"} OPENDIR`
         );
       }
-      setstat(path5, attrs, cb) {
+      setstat(path11, attrs, cb) {
         if (this.server)
           throw new Error("Client-only method called in server mode");
         let flags = 0;
@@ -41732,7 +41732,7 @@ var require_SFTP = __commonJS({
         } else if (typeof attrs === "function") {
           cb = attrs;
         }
-        const pathLen = Buffer.byteLength(path5);
+        const pathLen = Buffer.byteLength(path11);
         let p = 9;
         const buf = Buffer.allocUnsafe(4 + 1 + 4 + 4 + pathLen + 4 + attrsLen);
         writeUInt32BE(buf, buf.length - 4, 0);
@@ -41740,7 +41740,7 @@ var require_SFTP = __commonJS({
         const reqid = this._writeReqid = this._writeReqid + 1 & MAX_REQID;
         writeUInt32BE(buf, reqid, 5);
         writeUInt32BE(buf, pathLen, p);
-        buf.utf8Write(path5, p += 4, pathLen);
+        buf.utf8Write(path11, p += 4, pathLen);
         writeUInt32BE(buf, flags, p += pathLen);
         if (attrsLen) {
           p += 4;
@@ -41800,8 +41800,8 @@ var require_SFTP = __commonJS({
           mtime: toUnixTimestamp(mtime)
         }, cb);
       }
-      utimes(path5, atime, mtime, cb) {
-        return this.setstat(path5, {
+      utimes(path11, atime, mtime, cb) {
+        return this.setstat(path11, {
           atime: toUnixTimestamp(atime),
           mtime: toUnixTimestamp(mtime)
         }, cb);
@@ -41812,8 +41812,8 @@ var require_SFTP = __commonJS({
           gid
         }, cb);
       }
-      chown(path5, uid, gid, cb) {
-        return this.setstat(path5, {
+      chown(path11, uid, gid, cb) {
+        return this.setstat(path11, {
           uid,
           gid
         }, cb);
@@ -41823,15 +41823,15 @@ var require_SFTP = __commonJS({
           mode
         }, cb);
       }
-      chmod(path5, mode, cb) {
-        return this.setstat(path5, {
+      chmod(path11, mode, cb) {
+        return this.setstat(path11, {
           mode
         }, cb);
       }
-      readlink(path5, cb) {
+      readlink(path11, cb) {
         if (this.server)
           throw new Error("Client-only method called in server mode");
-        const pathLen = Buffer.byteLength(path5);
+        const pathLen = Buffer.byteLength(path11);
         let p = 9;
         const buf = Buffer.allocUnsafe(4 + 1 + 4 + 4 + pathLen);
         writeUInt32BE(buf, buf.length - 4, 0);
@@ -41839,7 +41839,7 @@ var require_SFTP = __commonJS({
         const reqid = this._writeReqid = this._writeReqid + 1 & MAX_REQID;
         writeUInt32BE(buf, reqid, 5);
         writeUInt32BE(buf, pathLen, p);
-        buf.utf8Write(path5, p += 4, pathLen);
+        buf.utf8Write(path11, p += 4, pathLen);
         this._requests[reqid] = {
           cb: (err, names) => {
             if (typeof cb !== "function")
@@ -41884,10 +41884,10 @@ var require_SFTP = __commonJS({
           `SFTP: Outbound: ${isBuffered ? "Buffered" : "Sending"} SYMLINK`
         );
       }
-      realpath(path5, cb) {
+      realpath(path11, cb) {
         if (this.server)
           throw new Error("Client-only method called in server mode");
-        const pathLen = Buffer.byteLength(path5);
+        const pathLen = Buffer.byteLength(path11);
         let p = 9;
         const buf = Buffer.allocUnsafe(4 + 1 + 4 + 4 + pathLen);
         writeUInt32BE(buf, buf.length - 4, 0);
@@ -41895,7 +41895,7 @@ var require_SFTP = __commonJS({
         const reqid = this._writeReqid = this._writeReqid + 1 & MAX_REQID;
         writeUInt32BE(buf, reqid, 5);
         writeUInt32BE(buf, pathLen, p);
-        buf.utf8Write(path5, p += 4, pathLen);
+        buf.utf8Write(path11, p += 4, pathLen);
         this._requests[reqid] = {
           cb: (err, names) => {
             if (typeof cb !== "function")
@@ -41940,13 +41940,13 @@ var require_SFTP = __commonJS({
           this._debug(`SFTP: Outbound: ${which} posix-rename@openssh.com`);
         }
       }
-      ext_openssh_statvfs(path5, cb) {
+      ext_openssh_statvfs(path11, cb) {
         if (this.server)
           throw new Error("Client-only method called in server mode");
         const ext = this._extensions["statvfs@openssh.com"];
         if (!ext || ext !== "2")
           throw new Error("Server does not support this extended request");
-        const pathLen = Buffer.byteLength(path5);
+        const pathLen = Buffer.byteLength(path11);
         let p = 9;
         const buf = Buffer.allocUnsafe(4 + 1 + 4 + 4 + 19 + 4 + pathLen);
         writeUInt32BE(buf, buf.length - 4, 0);
@@ -41956,7 +41956,7 @@ var require_SFTP = __commonJS({
         writeUInt32BE(buf, 19, p);
         buf.utf8Write("statvfs@openssh.com", p += 4, 19);
         writeUInt32BE(buf, pathLen, p += 19);
-        buf.utf8Write(path5, p += 4, pathLen);
+        buf.utf8Write(path11, p += 4, pathLen);
         this._requests[reqid] = { extended: "statvfs@openssh.com", cb };
         const isBuffered = sendOrBuffer(this, buf);
         if (this._debug) {
@@ -42042,7 +42042,7 @@ var require_SFTP = __commonJS({
           `SFTP: Outbound: ${isBuffered ? "Buffered" : "Sending"} fsync@openssh.com`
         );
       }
-      ext_openssh_lsetstat(path5, attrs, cb) {
+      ext_openssh_lsetstat(path11, attrs, cb) {
         if (this.server)
           throw new Error("Client-only method called in server mode");
         const ext = this._extensions["lsetstat@openssh.com"];
@@ -42057,7 +42057,7 @@ var require_SFTP = __commonJS({
         } else if (typeof attrs === "function") {
           cb = attrs;
         }
-        const pathLen = Buffer.byteLength(path5);
+        const pathLen = Buffer.byteLength(path11);
         let p = 9;
         const buf = Buffer.allocUnsafe(4 + 1 + 4 + 4 + 20 + 4 + pathLen + 4 + attrsLen);
         writeUInt32BE(buf, buf.length - 4, 0);
@@ -42067,7 +42067,7 @@ var require_SFTP = __commonJS({
         writeUInt32BE(buf, 20, p);
         buf.utf8Write("lsetstat@openssh.com", p += 4, 20);
         writeUInt32BE(buf, pathLen, p += 20);
-        buf.utf8Write(path5, p += 4, pathLen);
+        buf.utf8Write(path11, p += 4, pathLen);
         writeUInt32BE(buf, flags, p += pathLen);
         if (attrsLen) {
           p += 4;
@@ -42084,13 +42084,13 @@ var require_SFTP = __commonJS({
           this._debug(`SFTP: Outbound: ${status} lsetstat@openssh.com`);
         }
       }
-      ext_openssh_expandPath(path5, cb) {
+      ext_openssh_expandPath(path11, cb) {
         if (this.server)
           throw new Error("Client-only method called in server mode");
         const ext = this._extensions["expand-path@openssh.com"];
         if (ext !== "1")
           throw new Error("Server does not support this extended request");
-        const pathLen = Buffer.byteLength(path5);
+        const pathLen = Buffer.byteLength(path11);
         let p = 9;
         const buf = Buffer.allocUnsafe(4 + 1 + 4 + 4 + 23 + 4 + pathLen);
         writeUInt32BE(buf, buf.length - 4, 0);
@@ -42100,7 +42100,7 @@ var require_SFTP = __commonJS({
         writeUInt32BE(buf, 23, p);
         buf.utf8Write("expand-path@openssh.com", p += 4, 23);
         writeUInt32BE(buf, pathLen, p += 20);
-        buf.utf8Write(path5, p += 4, pathLen);
+        buf.utf8Write(path11, p += 4, pathLen);
         this._requests[reqid] = {
           cb: (err, names) => {
             if (typeof cb !== "function")
@@ -42573,13 +42573,13 @@ var require_SFTP = __commonJS({
             if (--left === 0)
               cb(err);
           };
-          if (srcHandle && (src === fs6 || src.outgoing.state === "open"))
+          if (srcHandle && (src === fs7 || src.outgoing.state === "open"))
             ++left;
-          if (dstHandle && (dst === fs6 || dst.outgoing.state === "open"))
+          if (dstHandle && (dst === fs7 || dst.outgoing.state === "open"))
             ++left;
-          if (srcHandle && (src === fs6 || src.outgoing.state === "open"))
+          if (srcHandle && (src === fs7 || src.outgoing.state === "open"))
             src.close(srcHandle, cbfinal);
-          if (dstHandle && (dst === fs6 || dst.outgoing.state === "open"))
+          if (dstHandle && (dst === fs7 || dst.outgoing.state === "open"))
             dst.close(dstHandle, cbfinal);
         } else {
           cb(err);
@@ -42595,7 +42595,7 @@ var require_SFTP = __commonJS({
           tryStat(null, { size: fileSize });
         function tryStat(err2, attrs) {
           if (err2) {
-            if (src !== fs6) {
+            if (src !== fs7) {
               src.stat(srcPath, (err_, attrs_) => {
                 if (err_)
                   return onerror(err2);
@@ -43378,12 +43378,12 @@ var require_SFTP = __commonJS({
       [REQUEST.LSTAT]: (sftp, payload) => {
         bufferParser.init(payload, 1);
         const reqID = bufferParser.readUInt32BE();
-        const path5 = bufferParser.readString(true);
+        const path11 = bufferParser.readString(true);
         bufferParser.clear();
-        if (path5 === void 0)
+        if (path11 === void 0)
           return doFatalSFTPError(sftp, "Malformed LSTAT packet");
         sftp._debug && sftp._debug(`SFTP: Inbound: Received LSTAT (id:${reqID})`);
-        if (!sftp.emit("LSTAT", reqID, path5)) {
+        if (!sftp.emit("LSTAT", reqID, path11)) {
           sftp.status(reqID, STATUS_CODE.OP_UNSUPPORTED);
         }
       },
@@ -43402,13 +43402,13 @@ var require_SFTP = __commonJS({
       [REQUEST.SETSTAT]: (sftp, payload) => {
         bufferParser.init(payload, 1);
         const reqID = bufferParser.readUInt32BE();
-        const path5 = bufferParser.readString(true);
+        const path11 = bufferParser.readString(true);
         const attrs = readAttrs(sftp._biOpt);
         bufferParser.clear();
         if (attrs === void 0)
           return doFatalSFTPError(sftp, "Malformed SETSTAT packet");
         sftp._debug && sftp._debug(`SFTP: Inbound: Received SETSTAT (id:${reqID})`);
-        if (!sftp.emit("SETSTAT", reqID, path5, attrs)) {
+        if (!sftp.emit("SETSTAT", reqID, path11, attrs)) {
           sftp.status(reqID, STATUS_CODE.OP_UNSUPPORTED);
         }
       },
@@ -43430,12 +43430,12 @@ var require_SFTP = __commonJS({
       [REQUEST.OPENDIR]: (sftp, payload) => {
         bufferParser.init(payload, 1);
         const reqID = bufferParser.readUInt32BE();
-        const path5 = bufferParser.readString(true);
+        const path11 = bufferParser.readString(true);
         bufferParser.clear();
-        if (path5 === void 0)
+        if (path11 === void 0)
           return doFatalSFTPError(sftp, "Malformed OPENDIR packet");
         sftp._debug && sftp._debug(`SFTP: Inbound: Received OPENDIR (id:${reqID})`);
-        if (!sftp.emit("OPENDIR", reqID, path5)) {
+        if (!sftp.emit("OPENDIR", reqID, path11)) {
           sftp.status(reqID, STATUS_CODE.OP_UNSUPPORTED);
         }
       },
@@ -43454,63 +43454,63 @@ var require_SFTP = __commonJS({
       [REQUEST.REMOVE]: (sftp, payload) => {
         bufferParser.init(payload, 1);
         const reqID = bufferParser.readUInt32BE();
-        const path5 = bufferParser.readString(true);
+        const path11 = bufferParser.readString(true);
         bufferParser.clear();
-        if (path5 === void 0)
+        if (path11 === void 0)
           return doFatalSFTPError(sftp, "Malformed REMOVE packet");
         sftp._debug && sftp._debug(`SFTP: Inbound: Received REMOVE (id:${reqID})`);
-        if (!sftp.emit("REMOVE", reqID, path5)) {
+        if (!sftp.emit("REMOVE", reqID, path11)) {
           sftp.status(reqID, STATUS_CODE.OP_UNSUPPORTED);
         }
       },
       [REQUEST.MKDIR]: (sftp, payload) => {
         bufferParser.init(payload, 1);
         const reqID = bufferParser.readUInt32BE();
-        const path5 = bufferParser.readString(true);
+        const path11 = bufferParser.readString(true);
         const attrs = readAttrs(sftp._biOpt);
         bufferParser.clear();
         if (attrs === void 0)
           return doFatalSFTPError(sftp, "Malformed MKDIR packet");
         sftp._debug && sftp._debug(`SFTP: Inbound: Received MKDIR (id:${reqID})`);
-        if (!sftp.emit("MKDIR", reqID, path5, attrs)) {
+        if (!sftp.emit("MKDIR", reqID, path11, attrs)) {
           sftp.status(reqID, STATUS_CODE.OP_UNSUPPORTED);
         }
       },
       [REQUEST.RMDIR]: (sftp, payload) => {
         bufferParser.init(payload, 1);
         const reqID = bufferParser.readUInt32BE();
-        const path5 = bufferParser.readString(true);
+        const path11 = bufferParser.readString(true);
         bufferParser.clear();
-        if (path5 === void 0)
+        if (path11 === void 0)
           return doFatalSFTPError(sftp, "Malformed RMDIR packet");
         sftp._debug && sftp._debug(`SFTP: Inbound: Received RMDIR (id:${reqID})`);
-        if (!sftp.emit("RMDIR", reqID, path5)) {
+        if (!sftp.emit("RMDIR", reqID, path11)) {
           sftp.status(reqID, STATUS_CODE.OP_UNSUPPORTED);
         }
       },
       [REQUEST.REALPATH]: (sftp, payload) => {
         bufferParser.init(payload, 1);
         const reqID = bufferParser.readUInt32BE();
-        const path5 = bufferParser.readString(true);
+        const path11 = bufferParser.readString(true);
         bufferParser.clear();
-        if (path5 === void 0)
+        if (path11 === void 0)
           return doFatalSFTPError(sftp, "Malformed REALPATH packet");
         sftp._debug && sftp._debug(
           `SFTP: Inbound: Received REALPATH (id:${reqID})`
         );
-        if (!sftp.emit("REALPATH", reqID, path5)) {
+        if (!sftp.emit("REALPATH", reqID, path11)) {
           sftp.status(reqID, STATUS_CODE.OP_UNSUPPORTED);
         }
       },
       [REQUEST.STAT]: (sftp, payload) => {
         bufferParser.init(payload, 1);
         const reqID = bufferParser.readUInt32BE();
-        const path5 = bufferParser.readString(true);
+        const path11 = bufferParser.readString(true);
         bufferParser.clear();
-        if (path5 === void 0)
+        if (path11 === void 0)
           return doFatalSFTPError(sftp, "Malformed STAT packet");
         sftp._debug && sftp._debug(`SFTP: Inbound: Received STAT (id:${reqID})`);
-        if (!sftp.emit("STAT", reqID, path5)) {
+        if (!sftp.emit("STAT", reqID, path11)) {
           sftp.status(reqID, STATUS_CODE.OP_UNSUPPORTED);
         }
       },
@@ -43530,14 +43530,14 @@ var require_SFTP = __commonJS({
       [REQUEST.READLINK]: (sftp, payload) => {
         bufferParser.init(payload, 1);
         const reqID = bufferParser.readUInt32BE();
-        const path5 = bufferParser.readString(true);
+        const path11 = bufferParser.readString(true);
         bufferParser.clear();
-        if (path5 === void 0)
+        if (path11 === void 0)
           return doFatalSFTPError(sftp, "Malformed READLINK packet");
         sftp._debug && sftp._debug(
           `SFTP: Inbound: Received READLINK (id:${reqID})`
         );
-        if (!sftp.emit("READLINK", reqID, path5)) {
+        if (!sftp.emit("READLINK", reqID, path11)) {
           sftp.status(reqID, STATUS_CODE.OP_UNSUPPORTED);
         }
       },
@@ -43608,7 +43608,7 @@ var require_SFTP = __commonJS({
     function roundUpToMultipleOf8(n) {
       return n + 7 & ~7;
     }
-    function ReadStream(sftp, path5, options) {
+    function ReadStream(sftp, path11, options) {
       if (options === void 0)
         options = {};
       else if (typeof options === "string")
@@ -43622,7 +43622,7 @@ var require_SFTP = __commonJS({
       options.emitClose = false;
       options.autoDestroy = false;
       ReadableStream.call(this, options);
-      this.path = path5;
+      this.path = path11;
       this.flags = options.flags === void 0 ? "r" : options.flags;
       this.mode = options.mode === void 0 ? 438 : options.mode;
       this.start = options.start;
@@ -43753,7 +43753,7 @@ var require_SFTP = __commonJS({
       },
       configurable: true
     });
-    function WriteStream(sftp, path5, options) {
+    function WriteStream(sftp, path11, options) {
       if (options === void 0)
         options = {};
       else if (typeof options === "string")
@@ -43765,7 +43765,7 @@ var require_SFTP = __commonJS({
       options.emitClose = false;
       options.autoDestroy = false;
       WritableStream.call(this, options);
-      this.path = path5;
+      this.path = path11;
       this.flags = options.flags === void 0 ? "w" : options.flags;
       this.mode = options.mode === void 0 ? 438 : options.mode;
       this.start = options.start;
@@ -47986,8 +47986,8 @@ var import_websocket_server = __toESM(require_websocket_server(), 1);
 
 // server/index.ts
 var import_cors = __toESM(require_lib3(), 1);
-var import_path4 = __toESM(require("path"), 1);
-var import_fs5 = __toESM(require("fs"), 1);
+var import_path10 = __toESM(require("path"), 1);
+var import_fs6 = __toESM(require("fs"), 1);
 
 // server/storage.ts
 var import_crypto = __toESM(require("crypto"), 1);
@@ -48257,22 +48257,22 @@ var LocalStorageManager = class {
     if (!import_fs.default.existsSync(settingsPath)) {
       const defaultSettings = {
         ai: {
-          activeProvider: "mock-ai",
+          activeProvider: "deepseek-api",
           providers: [
-            {
-              id: "mock-ai",
-              name: "\u5185\u7F6E\u8FD0\u7EF4\u4E13\u5BB6 (\u79BB\u7EBF\u6F14\u793A)",
-              type: "mock",
-              baseUrl: "http://localhost/mock",
-              model: "monoterminal-ops-mock",
-              temperature: 0.7
-            },
             {
               id: "deepseek-api",
               name: "DeepSeek \u5B98\u65B9 API",
               type: "deepseek",
               baseUrl: "https://api.deepseek.com",
               model: "deepseek-chat",
+              temperature: 0.7
+            },
+            {
+              id: "qwen-api",
+              name: "Qwen \u5B98\u65B9 API",
+              type: "qwen",
+              baseUrl: "https://dashscope.aliyuncs.com/compatible-mode/v1",
+              model: "qwen-plus",
               temperature: 0.7
             },
             {
@@ -48311,6 +48311,45 @@ var LocalStorageManager = class {
         }
       };
       import_fs.default.writeFileSync(settingsPath, JSON.stringify(defaultSettings, null, 2), "utf8");
+    } else {
+      try {
+        const settings = JSON.parse(import_fs.default.readFileSync(settingsPath, "utf8"));
+        if (settings && settings.ai && Array.isArray(settings.ai.providers)) {
+          let modified = false;
+          if (settings.ai.providers.some((p) => p.id === "mock-ai" || p.type === "mock")) {
+            settings.ai.providers = settings.ai.providers.filter(
+              (p) => p.id !== "mock-ai" && p.type !== "mock"
+            );
+            modified = true;
+          }
+          if (!settings.ai.providers.some((p) => p.id === "qwen-api" || p.type === "qwen")) {
+            const qwenProvider = {
+              id: "qwen-api",
+              name: "Qwen \u5B98\u65B9 API",
+              type: "qwen",
+              baseUrl: "https://dashscope.aliyuncs.com/compatible-mode/v1",
+              model: "qwen-plus",
+              temperature: 0.7
+            };
+            const deepseekIdx = settings.ai.providers.findIndex((p) => p.id === "deepseek-api");
+            if (deepseekIdx >= 0) {
+              settings.ai.providers.splice(deepseekIdx + 1, 0, qwenProvider);
+            } else {
+              settings.ai.providers.unshift(qwenProvider);
+            }
+            modified = true;
+          }
+          if (settings.ai.providers.length > 0 && !settings.ai.providers.some((p) => p.id === settings.ai.activeProvider)) {
+            settings.ai.activeProvider = settings.ai.providers[0].id;
+            modified = true;
+          }
+          if (modified) {
+            import_fs.default.writeFileSync(settingsPath, JSON.stringify(settings, null, 2), "utf8");
+          }
+        }
+      } catch (e) {
+        console.error("Failed to migrate settings.json", e);
+      }
     }
   }
   isHostsCorrupted() {
@@ -48400,7 +48439,7 @@ var LocalStorageManager = class {
   getDefaultSettings() {
     return {
       ai: {
-        activeProvider: "mock-ai",
+        activeProvider: "deepseek-api",
         providers: []
       },
       shortcuts: {
@@ -48513,96 +48552,39 @@ var ThinkTagParser = class {
   }
 };
 
-// server/aiService.ts
-var AIService = class {
-  storage;
-  constructor(storage) {
-    this.storage = storage;
-  }
-  getSystemPrompt(opsContext) {
-    let contextStr = "";
-    if (opsContext) {
-      contextStr = `
-=== \u5F53\u524D\u670D\u52A1\u5668\u4E0E\u4F1A\u8BDD\u4E0A\u4E0B\u6587 ===
-- \u5F53\u524D\u7528\u6237: ${opsContext.currentUser || "root"}
-- \u5F53\u524D\u5DE5\u4F5C\u76EE\u5F55: ${opsContext.currentDir || "/etc/nginx"}
-- \u64CD\u4F5C\u7CFB\u7EDF\u753B\u50CF: ${opsContext.osInfo || "Linux x86_64 Ubuntu 22.04 LTS"}
-${opsContext.failedCommand ? `
-- \u5F02\u5E38\u547D\u4EE4\u751F\u547D\u5468\u671F (OSC 133 \u8BED\u4E49\u611F\u77E5):
-  * \u6267\u884C\u547D\u4EE4: ${opsContext.failedCommand.command || "(\u672A\u77E5\u547D\u4EE4)"}
-  * \u9000\u51FA\u72B6\u6001\u7801: ${opsContext.failedCommand.exitCode}
-  * \u547D\u4EE4\u9694\u79BB\u8F93\u51FA:
-\`\`\`text
-${opsContext.failedCommand.output || opsContext.terminalSnippet || ""}
-\`\`\`
-` : opsContext.terminalSnippet ? `
-- \u7EC8\u7AEF\u6700\u8FD1\u8F93\u51FA (\u80CC\u666F\u4E0A\u4E0B\u6587):
-\`\`\`text
-${opsContext.terminalSnippet}
-\`\`\`
-` : ""}
-================================
-`;
-    }
-    return `\u4F60\u662F\u4E00\u6B3E\u96C6\u6210\u5728 MonoTerminal \u8FD0\u7EF4\u7EC8\u7AEF\u4E2D\u7684\u4E0B\u4E00\u4EE3 AI \u667A\u80FD\u8FD0\u7EF4\u4E13\u5BB6 (SRE & Linux Assistant)\u3002
-\u4F60\u7684\u804C\u8D23\uFF1A\u534F\u52A9\u8FD0\u7EF4\u5DE5\u7A0B\u5E08\u6392\u67E5\u6545\u969C\u3001\u5206\u6790\u65E5\u5FD7\u3001\u751F\u6210\u7CBE\u51C6\u5B89\u5168\u7684 Linux Shell \u547D\u4EE4\u3002
-
-\u6838\u5FC3\u51C6\u5219\uFF1A
-1. \u5206\u6790\u95EE\u9898\u5FC5\u987B\u76F4\u51FB\u8981\u5BB3\uFF0C\u89E3\u91CA\u6E05\u6670\u7B80\u660E\u3002
-2. \u9047\u5230\u6545\u969C\u8BCA\u65AD\uFF0C\u8BF7\u9075\u5FAA\u201C\u5148\u6392\u67E5\u3001\u540E\u4FEE\u590D\u3001\u518D\u9A8C\u8BC1\u201D\u7684\u539F\u5219\u3002
-3. \u51E1\u662F\u7ED9\u7528\u6237\u63A8\u8350\u6267\u884C\u7684\u64CD\u4F5C\uFF0C\u5FC5\u987B\u7528\u6807\u51C6 Markdown \u4EE3\u7801\u5757\u5305\u88F9\uFF0C\u6307\u5B9A \`bash\` \u6216 \`shell\` \u8BED\u8A00\u6807\u7B7E\uFF1A
-\`\`\`bash
-command here
-\`\`\`
-4. \u7EC8\u7AEF\u4F1A\u81EA\u52A8\u5C06\u4F60\u7684 Bash \u4EE3\u7801\u5757\u6E32\u67D3\u4E3A\u53EF\u7A7F\u68AD\u4EA4\u4E92\u7684\u3010\u53EF\u6267\u884C\u547D\u4EE4\u5361\u7247\u3011\u4F9B\u7528\u6237\u4E00\u952E\u5728\u7EC8\u7AEF\u8FD0\u884C\u3002\u56E0\u6B64\u8BF7\u786E\u4FDD\u4EE3\u7801\u5757\u4E2D\u7684\u547D\u4EE4\u8BED\u6CD5\u5B8C\u5168\u51C6\u786E\u3002
-5. \u9488\u5BF9\u9AD8\u5371\u64CD\u4F5C\uFF08\u5982\u5220\u9664\u3001\u683C\u5F0F\u5316\u3001\u4FEE\u6539\u5E95\u5C42\u6743\u9650\uFF09\u5FC5\u987B\u5728\u6B63\u6587\u4E2D\u660E\u786E\u8B66\u793A\u98CE\u9669\u3002
-6. \u3010\u5173\u952E\u683C\u5F0F\u89C4\u8303\u3011\uFF1A
-- \u4EE3\u7801\u5757\u5185\u90E8\u3010\u7EDD\u5BF9\u4E0D\u8981\u3011\u5199\u5165\u4EE5 '#' \u5F00\u5934\u7684\u8BF4\u660E\u6CE8\u91CA\u884C\uFF0C\u6240\u6709\u8BF4\u660E\u4E0E\u89E3\u6790\u8BF7\u4E00\u5F8B\u5199\u5728\u4EE3\u7801\u5757\u5916\u9762\u7684 Markdown \u6B63\u6587\u4E2D\uFF0C\u786E\u4FDD\u4EE3\u7801\u5757\u5E72\u51C0\u5229\u843D\uFF0C\u907F\u514D\u6CE8\u91CA\u590D\u5236\u8FDB\u7EC8\u7AEF\u3002
-- \u5982\u6709\u591A\u4E2A\u4E0D\u540C\u76EE\u7684\u7684\u6392\u67E5\u6B65\u9AA4\uFF0C\u8BF7\u5206\u522B\u653E\u7F6E\u5728\u4E0D\u540C\u7684\u72EC\u7ACB\u4EE3\u7801\u5757\u4E2D\uFF0C\u65B9\u4FBF\u7528\u6237\u6309\u9700\u5206\u6B65\u6267\u884C\u3002
-
-${contextStr}
-`;
-  }
-  async streamChat(messages, opsContext, callbacks) {
-    const settings = this.storage.getSettings();
-    const activeProvider = settings.ai.providers.find((p) => p.id === settings.ai.activeProvider) || settings.ai.providers[0];
-    if (!activeProvider || activeProvider.type === "mock") {
-      return this.handleMockChat(messages, opsContext, callbacks);
-    }
-    if (this.storage.isLocked() && activeProvider.apiKeyEncrypted) {
-      callbacks.onError?.(
-        new Error("\u672C\u5730\u52A0\u5BC6\u5B58\u50A8\u5DF2\u88AB\u4E3B\u5BC6\u7801\u9501\u5B9A\uFF0C\u8BF7\u5148\u5728 \u8BBE\u7F6E \u2192 \u5B89\u5168 \u4E2D\u89E3\u9501\uFF08\u79BB\u7EBF\u6F14\u793A\u6A21\u578B\u4E0D\u53D7\u5F71\u54CD\uFF09\u3002")
-      );
-      return;
-    }
-    const apiKey = activeProvider.apiKeyEncrypted ? this.storage.decrypt(activeProvider.apiKeyEncrypted) : "";
-    const baseUrl = (activeProvider.baseUrl || "https://api.deepseek.com").replace(/\/+$/, "");
-    const model = activeProvider.model || "deepseek-chat";
-    const systemPrompt = this.getSystemPrompt(opsContext);
-    const fullMessages = [
-      { role: "system", content: systemPrompt },
-      ...messages.map((m) => ({ role: m.role, content: m.content }))
-    ];
-    const STREAM_IDLE_TIMEOUT_MS = 12e4;
+// server/agent/model/OpenAIProvider.ts
+var DEFAULT_STREAM_IDLE_TIMEOUT_MS = 12e4;
+var OpenAIProvider = class {
+  type = "openai";
+  async streamChat(messages, callbacks, config) {
+    const baseUrl = (config.baseUrl || "https://api.deepseek.com").replace(/\/+$/, "");
+    const model = config.model || "deepseek-chat";
+    const apiKey = config.apiKey || "";
+    const idleTimeoutMs = config.idleTimeoutMs ?? DEFAULT_STREAM_IDLE_TIMEOUT_MS;
     const controller = new AbortController();
     let watchdog = null;
     const resetWatchdog = () => {
       if (watchdog) clearTimeout(watchdog);
-      watchdog = setTimeout(() => controller.abort(), STREAM_IDLE_TIMEOUT_MS);
+      watchdog = setTimeout(() => controller.abort(), idleTimeoutMs);
     };
+    const onExternalAbort = () => controller.abort();
+    config.abortSignal?.addEventListener("abort", onExternalAbort, { once: true });
     try {
       resetWatchdog();
+      const headers = {
+        "Content-Type": "application/json"
+      };
+      if (apiKey) {
+        headers.Authorization = `Bearer ${apiKey}`;
+      }
       const response = await fetch(`${baseUrl}/chat/completions`, {
         method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-          Authorization: `Bearer ${apiKey}`
-        },
+        headers,
         body: JSON.stringify({
           model,
-          messages: fullMessages,
+          messages: messages.map((m) => ({ role: m.role, content: m.content })),
           stream: true,
-          temperature: activeProvider.temperature ?? 0.7
+          temperature: config.temperature ?? 0.7
         }),
         signal: controller.signal
       });
@@ -48667,17 +48649,33 @@ ${contextStr}
       callbacks.onError?.(toError(err));
     } finally {
       if (watchdog) clearTimeout(watchdog);
+      config.abortSignal?.removeEventListener("abort", onExternalAbort);
     }
   }
-  /**
-   * High-quality offline Mock AI assistant.
-   * Analyzes the context and error messages from the terminal, generates thinking stream
-   * and practical ops shell commands with actionable codeblocks.
-   */
-  async handleMockChat(messages, opsContext, callbacks) {
+};
+
+// server/agent/model/OllamaProvider.ts
+var OllamaProvider = class {
+  type = "ollama";
+  openAiCompat = new OpenAIProvider();
+  async streamChat(messages, callbacks, config) {
+    const rawBase = (config.baseUrl || "http://127.0.0.1:11434/v1").replace(/\/+$/, "");
+    const normalizedBase = rawBase.endsWith("/v1") ? rawBase : `${rawBase}/v1`;
+    return this.openAiCompat.streamChat(messages, callbacks, {
+      ...config,
+      baseUrl: normalizedBase,
+      model: config.model || "qwen2.5-coder:7b"
+    });
+  }
+};
+
+// server/agent/model/MockModelProvider.ts
+var MockModelProvider = class {
+  type = "mock";
+  async streamChat(messages, callbacks, _config, contextHint = "") {
     const userMsg = messages[messages.length - 1]?.content || "";
-    const termContext = opsContext?.terminalSnippet || "";
-    const lowerAll = `${userMsg} ${termContext}`.toLowerCase();
+    const sysMsg = messages.find((m) => m.role === "system")?.content || "";
+    const lowerAll = `${userMsg} ${contextHint} ${sysMsg}`.toLowerCase();
     let thinking = "\u6B63\u5728\u5206\u6790\u8FD0\u7EF4\u73B0\u573A...\n";
     let content;
     if (lowerAll.includes("nginx") || lowerAll.includes("80") || lowerAll.includes("443")) {
@@ -48755,7 +48753,7 @@ sudo ls -la /var/log/nginx/
 
 1. **\u67E5\u770B\u6240\u6709\u5BB9\u5668\u8FD0\u884C\u72B6\u6001 (\u5305\u542B\u5DF2\u9000\u51FA\u5BB9\u5668)**\uFF1A
 \`\`\`bash
-docker ps -a --format "table {{.ID}}	{{.Names}}	{{.Status}}	{{.Ports}}"
+docker ps -a --format "table {{.ID}}\\t{{.Names}}\\t{{.Status}}\\t{{.Ports}}"
 \`\`\`
 
 2. **\u67E5\u770B\u6700\u8FD1\u9000\u51FA\u7684\u5BB9\u5668\u7684\u65E5\u5FD7** (\u66FF\u6362 <container_name>)\uFF1A
@@ -48798,6 +48796,107 @@ ss -tulpn | head -n 15
       await new Promise((r) => setTimeout(r, 40));
     }
     callbacks.onDone?.(content, thinking);
+  }
+};
+
+// server/aiService.ts
+var AIService = class {
+  storage;
+  openAiProvider = new OpenAIProvider();
+  ollamaProvider = new OllamaProvider();
+  mockProvider = new MockModelProvider();
+  constructor(storage) {
+    this.storage = storage;
+  }
+  getSystemPrompt(opsContext) {
+    let contextStr = "";
+    if (opsContext) {
+      contextStr = `
+=== \u5F53\u524D\u670D\u52A1\u5668\u4E0E\u4F1A\u8BDD\u4E0A\u4E0B\u6587 ===
+- \u5F53\u524D\u7528\u6237: ${opsContext.currentUser || "root"}
+- \u5F53\u524D\u5DE5\u4F5C\u76EE\u5F55: ${opsContext.currentDir || "/etc/nginx"}
+- \u64CD\u4F5C\u7CFB\u7EDF\u753B\u50CF: ${opsContext.osInfo || "Linux x86_64 Ubuntu 22.04 LTS"}
+${opsContext.failedCommand ? `
+- \u5F02\u5E38\u547D\u4EE4\u751F\u547D\u5468\u671F (OSC 133 \u8BED\u4E49\u611F\u77E5):
+  * \u6267\u884C\u547D\u4EE4: ${opsContext.failedCommand.command || "(\u672A\u77E5\u547D\u4EE4)"}
+  * \u9000\u51FA\u72B6\u6001\u7801: ${opsContext.failedCommand.exitCode}
+  * \u547D\u4EE4\u9694\u79BB\u8F93\u51FA:
+\`\`\`text
+${opsContext.failedCommand.output || opsContext.terminalSnippet || ""}
+\`\`\`
+` : opsContext.terminalSnippet ? `
+- \u7EC8\u7AEF\u6700\u8FD1\u8F93\u51FA (\u80CC\u666F\u4E0A\u4E0B\u6587):
+\`\`\`text
+${opsContext.terminalSnippet}
+\`\`\`
+` : ""}
+================================
+`;
+    }
+    return `\u4F60\u662F\u4E00\u6B3E\u96C6\u6210\u5728 MonoTerminal \u8FD0\u7EF4\u7EC8\u7AEF\u4E2D\u7684\u4E0B\u4E00\u4EE3 AI \u667A\u80FD\u8FD0\u7EF4\u4E13\u5BB6 (SRE & Linux Assistant)\u3002
+\u4F60\u7684\u804C\u8D23\uFF1A\u534F\u52A9\u8FD0\u7EF4\u5DE5\u7A0B\u5E08\u6392\u67E5\u6545\u969C\u3001\u5206\u6790\u65E5\u5FD7\u3001\u751F\u6210\u7CBE\u51C6\u5B89\u5168\u7684 Linux Shell \u547D\u4EE4\u3002
+
+\u6838\u5FC3\u51C6\u5219\uFF1A
+1. \u5206\u6790\u95EE\u9898\u5FC5\u987B\u76F4\u51FB\u8981\u5BB3\uFF0C\u89E3\u91CA\u6E05\u6670\u7B80\u660E\u3002
+2. \u9047\u5230\u6545\u969C\u8BCA\u65AD\uFF0C\u8BF7\u9075\u5FAA\u201C\u5148\u6392\u67E5\u3001\u540E\u4FEE\u590D\u3001\u518D\u9A8C\u8BC1\u201D\u7684\u539F\u5219\u3002
+3. \u51E1\u662F\u7ED9\u7528\u6237\u63A8\u8350\u6267\u884C\u7684\u64CD\u4F5C\uFF0C\u5FC5\u987B\u7528\u6807\u51C6 Markdown \u4EE3\u7801\u5757\u5305\u88F9\uFF0C\u6307\u5B9A \`bash\` \u6216 \`shell\` \u8BED\u8A00\u6807\u7B7E\uFF1A
+\`\`\`bash
+command here
+\`\`\`
+4. \u7EC8\u7AEF\u4F1A\u81EA\u52A8\u5C06\u4F60\u7684 Bash \u4EE3\u7801\u5757\u6E32\u67D3\u4E3A\u53EF\u7A7F\u68AD\u4EA4\u4E92\u7684\u3010\u53EF\u6267\u884C\u547D\u4EE4\u5361\u7247\u3011\u4F9B\u7528\u6237\u4E00\u952E\u5728\u7EC8\u7AEF\u8FD0\u884C\u3002\u56E0\u6B64\u8BF7\u786E\u4FDD\u4EE3\u7801\u5757\u4E2D\u7684\u547D\u4EE4\u8BED\u6CD5\u5B8C\u5168\u51C6\u786E\u3002
+5. \u9488\u5BF9\u9AD8\u5371\u64CD\u4F5C\uFF08\u5982\u5220\u9664\u3001\u683C\u5F0F\u5316\u3001\u4FEE\u6539\u5E95\u5C42\u6743\u9650\uFF09\u5FC5\u987B\u5728\u6B63\u6587\u4E2D\u660E\u786E\u8B66\u793A\u98CE\u9669\u3002
+6. \u3010\u5173\u952E\u683C\u5F0F\u89C4\u8303\u3011\uFF1A
+- \u4EE3\u7801\u5757\u5185\u90E8\u3010\u7EDD\u5BF9\u4E0D\u8981\u3011\u5199\u5165\u4EE5 '#' \u5F00\u5934\u7684\u8BF4\u660E\u6CE8\u91CA\u884C\uFF0C\u6240\u6709\u8BF4\u660E\u4E0E\u89E3\u6790\u8BF7\u4E00\u5F8B\u5199\u5728\u4EE3\u7801\u5757\u5916\u9762\u7684 Markdown \u6B63\u6587\u4E2D\uFF0C\u786E\u4FDD\u4EE3\u7801\u5757\u5E72\u51C0\u5229\u843D\uFF0C\u907F\u514D\u6CE8\u91CA\u590D\u5236\u8FDB\u7EC8\u7AEF\u3002
+- \u5982\u6709\u591A\u4E2A\u4E0D\u540C\u76EE\u7684\u7684\u6392\u67E5\u6B65\u9AA4\uFF0C\u8BF7\u5206\u522B\u653E\u7F6E\u5728\u4E0D\u540C\u7684\u72EC\u7ACB\u4EE3\u7801\u5757\u4E2D\uFF0C\u65B9\u4FBF\u7528\u6237\u6309\u9700\u5206\u6B65\u6267\u884C\u3002
+
+${contextStr}
+`;
+  }
+  async streamChat(messages, opsContext, callbacks) {
+    const settings = this.storage.getSettings();
+    const activeProvider = settings.ai.providers.find((p) => p.id === settings.ai.activeProvider) || settings.ai.providers[0];
+    if (!activeProvider || activeProvider.type === "mock") {
+      return this.mockProvider.streamChat(
+        messages,
+        callbacks,
+        { id: activeProvider?.id || "mock", type: "mock" },
+        opsContext?.terminalSnippet || opsContext?.failedCommand?.output || ""
+      );
+    }
+    if (this.storage.isLocked() && activeProvider.apiKeyEncrypted) {
+      callbacks.onError?.(
+        new Error("\u672C\u5730\u52A0\u5BC6\u5B58\u50A8\u5DF2\u88AB\u4E3B\u5BC6\u7801\u9501\u5B9A\uFF0C\u8BF7\u5148\u5728 \u8BBE\u7F6E \u2192 \u5B89\u5168 \u4E2D\u89E3\u9501\uFF08\u79BB\u7EBF\u6F14\u793A\u6A21\u578B\u4E0D\u53D7\u5F71\u54CD\uFF09\u3002")
+      );
+      return;
+    }
+    const apiKey = activeProvider.apiKeyEncrypted ? this.storage.decrypt(activeProvider.apiKeyEncrypted) : "";
+    if (activeProvider.type !== "ollama" && !apiKey) {
+      return this.mockProvider.streamChat(
+        messages,
+        callbacks,
+        { id: activeProvider.id, type: "mock" },
+        opsContext?.terminalSnippet || opsContext?.failedCommand?.output || ""
+      );
+    }
+    const baseUrl = (activeProvider.baseUrl || "https://api.deepseek.com").replace(/\/+$/, "");
+    const model = activeProvider.model || "deepseek-chat";
+    const systemPrompt = this.getSystemPrompt(opsContext);
+    const fullMessages = [
+      { role: "system", content: systemPrompt },
+      ...messages.map((m) => ({ role: m.role, content: m.content }))
+    ];
+    const config = {
+      id: activeProvider.id,
+      type: activeProvider.type,
+      baseUrl,
+      apiKey,
+      model,
+      temperature: activeProvider.temperature ?? 0.7
+    };
+    if (activeProvider.type === "ollama") {
+      return this.ollamaProvider.streamChat(fullMessages, callbacks, config);
+    }
+    return this.openAiProvider.streamChat(fullMessages, callbacks, config);
   }
 };
 
@@ -49318,9 +49417,16 @@ securityRouter.post("/master-password", (req, res) => {
   }
 });
 
+// server/ws/wsRouter.ts
+var import_crypto6 = __toESM(require("crypto"), 1);
+
 // server/sshManager.ts
 var import_ssh2 = __toESM(require_lib5(), 1);
 var import_events = __toESM(require("events"), 1);
+var MAX_EXEC_CAPTURE_BYTES = 64e3;
+function shQuote(s) {
+  return `'${s.replace(/'/g, `'\\''`)}'`;
+}
 var SshManager = class {
   sessions = /* @__PURE__ */ new Map();
   async createSession(sessionId, host, decryptedPassword, decryptedPassphrase, privateKeyContent) {
@@ -49440,6 +49546,88 @@ var SshManager = class {
       }
       this.sessions.delete(sessionId);
     }
+  }
+  /**
+   * Execute a one-shot non-interactive command over an independent SSH `exec` channel (P1-6)
+   * with mandatory timeout enforcement (P0-B) so interactive shells are never polluted.
+   */
+  async execCommand(sessionId, command, options) {
+    const session = this.sessions.get(sessionId);
+    if (!session || !session.isAlive) {
+      throw new Error("SSH \u4F1A\u8BDD\u672A\u8FDE\u63A5\u6216\u4E0D\u5B58\u5728");
+    }
+    const timeoutMs = Math.max(100, options?.timeoutMs ?? 15e3);
+    const fullCommand = options?.cwd ? `cd ${shQuote(options.cwd)} && ${command}` : command;
+    return new Promise((resolve, reject) => {
+      session.client.exec(fullCommand, (err, stream) => {
+        if (err) {
+          return reject(err);
+        }
+        let stdout = "";
+        let stderr = "";
+        let stdoutBytes = 0;
+        let stderrBytes = 0;
+        let settled = false;
+        let exitCode = 0;
+        const timer = setTimeout(() => {
+          if (settled) return;
+          settled = true;
+          try {
+            stream.close();
+          } catch {
+          }
+          resolve({
+            exitCode: 124,
+            stdout,
+            stderr: stderr ? `${stderr}
+[Timeout after ${timeoutMs}ms]` : `[Timeout after ${timeoutMs}ms]`,
+            timedOut: true
+          });
+        }, timeoutMs);
+        timer.unref?.();
+        stream.on("data", (chunk) => {
+          if (stdoutBytes >= MAX_EXEC_CAPTURE_BYTES) return;
+          const buf = typeof chunk === "string" ? Buffer.from(chunk, "utf-8") : chunk;
+          const remaining = MAX_EXEC_CAPTURE_BYTES - stdoutBytes;
+          const slice = buf.byteLength > remaining ? buf.subarray(0, remaining) : buf;
+          stdoutBytes += slice.byteLength;
+          stdout += slice.toString("utf-8");
+        });
+        stream.stderr.on("data", (chunk) => {
+          if (stderrBytes >= MAX_EXEC_CAPTURE_BYTES) return;
+          const buf = typeof chunk === "string" ? Buffer.from(chunk, "utf-8") : chunk;
+          const remaining = MAX_EXEC_CAPTURE_BYTES - stderrBytes;
+          const slice = buf.byteLength > remaining ? buf.subarray(0, remaining) : buf;
+          stderrBytes += slice.byteLength;
+          stderr += slice.toString("utf-8");
+        });
+        stream.on("exit", (code) => {
+          if (typeof code === "number") {
+            exitCode = code;
+          }
+        });
+        stream.on("close", (code) => {
+          if (settled) return;
+          settled = true;
+          clearTimeout(timer);
+          if (typeof code === "number") {
+            exitCode = code;
+          }
+          resolve({
+            exitCode,
+            stdout,
+            stderr,
+            timedOut: false
+          });
+        });
+        stream.on("error", (streamErr) => {
+          if (settled) return;
+          settled = true;
+          clearTimeout(timer);
+          reject(streamErr);
+        });
+      });
+    });
   }
   async sftpList(sessionId, dirPath) {
     const session = this.sessions.get(sessionId);
@@ -49859,10 +50047,10 @@ var MockTerminalSession = class extends import_events2.default {
   currentDir = "/etc/nginx";
   inputBuffer = "";
   isRawMode = true;
-  constructor(id, fs6) {
+  constructor(id, fs7) {
     super();
     this.id = id;
-    this.fs = fs6;
+    this.fs = fs7;
   }
   init() {
     const banner = [
@@ -50036,36 +50224,93 @@ tmpfs           3.9G     0  3.9G   0% /run/user/0
 // server/localPtyManager.ts
 var import_events3 = require("events");
 var import_fs2 = __toESM(require("fs"), 1);
+var import_module = require("module");
 var import_os2 = __toESM(require("os"), 1);
+var import_path3 = __toESM(require("path"), 1);
+
+// server/infrastructure/terminal/powershellOsc133Hook.ts
 var import_path2 = __toESM(require("path"), 1);
-var import_node_pty = require("node-pty");
+var POWERSHELL_OSC133_HOOK_SCRIPT = [
+  "Import-Module PSReadLine -ErrorAction SilentlyContinue;",
+  "$Global:__MonoOrigPrompt = $function:prompt;",
+  "$h0 = Get-History -Count 1; $Global:__MonoLastHistId = if ($h0) { $h0.Id } else { 0 };",
+  "function Global:prompt {",
+  "  $ec = if ($? -eq $false) { if ($LASTEXITCODE) { $LASTEXITCODE } else { 1 } } else { 0 };",
+  "  $e = [char]27; $bel = [char]7;",
+  "  $h = Get-History -Count 1;",
+  "  $oscE = '';",
+  "  if ($h -and $h.Id -ne $Global:__MonoLastHistId) {",
+  "    $Global:__MonoLastHistId = $h.Id;",
+  "    $cmdText = ($h.CommandLine -replace '[\\r\\n]+', ' ');",
+  "    $oscE = $e + ']133;E;' + $cmdText + $bel;",
+  "  }",
+  "  $p = ($PWD.Path -replace '\\\\', '/' -replace '%', '%25' -replace '#', '%23' -replace '\\?', '%3F');",
+  "  $oscD = $e + ']133;D;' + $ec + $bel;",
+  "  $osc7 = $e + ']7;file://localhost/' + $p + $bel;",
+  "  $oscA = $e + ']133;A' + $bel;",
+  "  $oscB = $e + ']133;B' + $bel;",
+  "  $body = if ($Global:__MonoOrigPrompt) { & $Global:__MonoOrigPrompt } else { 'PS ' + $PWD.Path + '> ' };",
+  "  return $oscE + $oscD + $osc7 + $oscA + $body + $oscB;",
+  "}",
+  "if (Test-Path function:PSConsoleHostReadLine) {",
+  "  $Global:__MonoOrigReadLine = $function:PSConsoleHostReadLine;",
+  "  function Global:PSConsoleHostReadLine {",
+  "    $line = & $Global:__MonoOrigReadLine;",
+  "    $e = [char]27; $bel = [char]7;",
+  "    [Console]::Write($e + ']133;E;' + $line + $bel + $e + ']133;C' + $bel);",
+  "    return $line;",
+  "  }",
+  "}"
+].join(" ");
+function isPowerShellExecutable(command) {
+  const base = import_path2.default.basename(command).toLowerCase();
+  return base === "pwsh" || base === "pwsh.exe" || base === "powershell" || base === "powershell.exe";
+}
+function buildPowerShellOsc133Args(existingArgs = []) {
+  const hasCommandFlag = existingArgs.some((arg) => {
+    const lower = arg.toLowerCase();
+    return lower === "-command" || lower === "-c";
+  });
+  if (hasCommandFlag) {
+    return existingArgs;
+  }
+  return [...existingArgs, "-NoLogo", "-NoExit", "-Command", POWERSHELL_OSC133_HOOK_SCRIPT];
+}
+
+// server/localPtyManager.ts
+var import_meta = {};
+function loadNodePtySpawn() {
+  const req = typeof require === "function" ? require : (0, import_module.createRequire)(import_meta.url);
+  return req("node-pty").spawn;
+}
 function resolveExecutable(name, wellKnown) {
   const isWindows = process.platform === "win32";
   const candidates = isWindows ? [name, ...wellKnown] : [...wellKnown.filter((p) => import_fs2.default.existsSync(p)), name];
   if (!isWindows) {
     for (const c of candidates) {
-      if (import_path2.default.isAbsolute(c) && import_fs2.default.existsSync(c)) return c;
+      if (import_path3.default.isAbsolute(c) && import_fs2.default.existsSync(c)) return c;
     }
     return name;
   }
   for (const p of wellKnown) {
     if (import_fs2.default.existsSync(p)) return p;
   }
-  const pathDirs = (process.env.PATH || "").split(import_path2.default.delimiter).filter(Boolean);
+  const pathDirs = (process.env.PATH || "").split(import_path3.default.delimiter).filter(Boolean);
   for (const dir of pathDirs) {
-    const full = import_path2.default.join(dir, name);
+    const full = import_path3.default.join(dir, name);
     if (import_fs2.default.existsSync(full)) return full;
   }
   return null;
 }
-function detectDefaultShell() {
+function detectDefaultShell(enableOsc133Hook = true) {
   if (process.platform === "win32") {
+    const psArgs = enableOsc133Hook ? buildPowerShellOsc133Args() : [];
     const pwsh = resolveExecutable("pwsh.exe", [
-      import_path2.default.join(process.env.ProgramFiles || "C:\\Program Files", "PowerShell", "7", "pwsh.exe")
+      import_path3.default.join(process.env.ProgramFiles || "C:\\Program Files", "PowerShell", "7", "pwsh.exe")
     ]);
-    if (pwsh) return { command: pwsh, args: [] };
+    if (pwsh) return { command: pwsh, args: psArgs };
     const powershell = resolveExecutable("powershell.exe", [
-      import_path2.default.join(
+      import_path3.default.join(
         process.env.SystemRoot || "C:\\Windows",
         "System32",
         "WindowsPowerShell",
@@ -50073,9 +50318,9 @@ function detectDefaultShell() {
         "powershell.exe"
       )
     ]);
-    if (powershell) return { command: powershell, args: [] };
+    if (powershell) return { command: powershell, args: psArgs };
     const cmd = resolveExecutable("cmd.exe", [
-      import_path2.default.join(process.env.SystemRoot || "C:\\Windows", "System32", "cmd.exe")
+      import_path3.default.join(process.env.SystemRoot || "C:\\Windows", "System32", "cmd.exe")
     ]);
     if (cmd) return { command: cmd, args: [] };
     throw new Error("\u672A\u5728\u672C\u673A\u627E\u5230\u53EF\u7528\u7684 Shell\uFF08pwsh / powershell / cmd \u5747\u4E0D\u53EF\u7528\uFF09");
@@ -50087,7 +50332,7 @@ function expandHome(p) {
   if (!p) return import_os2.default.homedir();
   if (p === "~") return import_os2.default.homedir();
   if (p.startsWith("~/") || p.startsWith("~\\")) {
-    return import_path2.default.join(import_os2.default.homedir(), p.slice(2));
+    return import_path3.default.join(import_os2.default.homedir(), p.slice(2));
   }
   return p;
 }
@@ -50101,7 +50346,8 @@ var LocalPtyManager = class {
     const initialCwd = resolvedCwd && import_fs2.default.existsSync(resolvedCwd) ? resolvedCwd : import_os2.default.homedir();
     let pty;
     try {
-      pty = (0, import_node_pty.spawn)(shell.command, shell.args, {
+      const spawn2 = loadNodePtySpawn();
+      pty = spawn2(shell.command, shell.args, {
         name: "xterm-256color",
         cols: Math.max(1, cols),
         rows: Math.max(1, rows),
@@ -50160,7 +50406,7 @@ var localPtyManager = new LocalPtyManager();
 
 // server/localFsManager.ts
 var import_fs3 = __toESM(require("fs"), 1);
-var import_path3 = __toESM(require("path"), 1);
+var import_path4 = __toESM(require("path"), 1);
 var import_os3 = __toESM(require("os"), 1);
 function formatPermissions(stats) {
   return "0" + (stats.mode & 511).toString(8);
@@ -50168,9 +50414,67 @@ function formatPermissions(stats) {
 function expandHome2(p) {
   if (p === "~") return import_os3.default.homedir();
   if (p.startsWith("~/") || p.startsWith("~\\")) {
-    return import_path3.default.join(import_os3.default.homedir(), p.slice(2));
+    return import_path4.default.join(import_os3.default.homedir(), p.slice(2));
   }
   return p;
+}
+var POSIX_PROTECTED_DIRS = /* @__PURE__ */ new Set([
+  "/etc",
+  "/usr",
+  "/var",
+  "/bin",
+  "/sbin",
+  "/boot",
+  "/lib",
+  "/lib64",
+  "/dev",
+  "/proc",
+  "/sys",
+  "/home",
+  "/root",
+  "/opt",
+  "/srv",
+  "/run"
+]);
+function normalizeForCompare(p) {
+  const resolved = import_path4.default.resolve(p).replace(/[\\/]+$/, "");
+  return process.platform === "win32" ? resolved.toLowerCase() : resolved || "/";
+}
+function isProtectedLocalDeletePath(rawPath) {
+  const trimmed = rawPath.trim();
+  if (!trimmed) {
+    return { blocked: true, reason: "\u62D2\u7EDD\u5220\u9664\u7A7A\u8DEF\u5F84" };
+  }
+  const cleanPosix = trimmed.replace(/\/+$/, "") || "/";
+  if (cleanPosix === "/" || /^[a-zA-Z]:[\\/]?$/.test(trimmed)) {
+    return { blocked: true, reason: `\u62D2\u7EDD\u5220\u9664\u6587\u4EF6\u7CFB\u7EDF\u6839\u76EE\u5F55: ${rawPath}` };
+  }
+  if (POSIX_PROTECTED_DIRS.has(cleanPosix)) {
+    return { blocked: true, reason: `\u62D2\u7EDD\u5220\u9664\u7CFB\u7EDF\u5173\u952E\u76EE\u5F55: ${rawPath}` };
+  }
+  const lowerBackslash = trimmed.replace(/\//g, "\\").replace(/\\+$/, "").toLowerCase();
+  if (/^[a-z]:\\(windows|program files|program files \(x86\)|users|system32)$/.test(lowerBackslash)) {
+    return { blocked: true, reason: `\u62D2\u7EDD\u5220\u9664 Windows \u7CFB\u7EDF\u5173\u952E\u76EE\u5F55: ${rawPath}` };
+  }
+  const expanded = expandHome2(trimmed);
+  const resolved = import_path4.default.resolve(expanded);
+  const parsed = import_path4.default.parse(resolved);
+  if (resolved === parsed.root) {
+    return { blocked: true, reason: `\u62D2\u7EDD\u5220\u9664\u6587\u4EF6\u7CFB\u7EDF\u6839\u76EE\u5F55: ${rawPath}` };
+  }
+  const normTarget = normalizeForCompare(resolved);
+  const homeDir = import_os3.default.homedir();
+  const normHome = normalizeForCompare(homeDir);
+  if (normTarget === normHome) {
+    return { blocked: true, reason: `\u62D2\u7EDD\u76F4\u63A5\u5220\u9664\u7528\u6237\u4E3B\u76EE\u5F55\u6839\u8DEF\u5F84: ${homeDir}` };
+  }
+  const protectedHomeSubdirs = [".ssh", ".gnupg"].map(
+    (sub) => normalizeForCompare(import_path4.default.join(homeDir, sub))
+  );
+  if (protectedHomeSubdirs.includes(normTarget)) {
+    return { blocked: true, reason: `\u62D2\u7EDD\u5220\u9664\u4E3B\u76EE\u5F55\u654F\u611F\u51ED\u636E\u76EE\u5F55: ${rawPath}` };
+  }
+  return { blocked: false };
 }
 var LocalFsManager = class {
   list(dirPath) {
@@ -50180,7 +50484,7 @@ var LocalFsManager = class {
     const limitedEntries = entries.length > MAX_DIR_ENTRIES ? entries.slice(0, MAX_DIR_ENTRIES) : entries;
     const items = [];
     for (const entry of limitedEntries) {
-      const fullPath = import_path3.default.join(dir, entry.name);
+      const fullPath = import_path4.default.join(dir, entry.name);
       try {
         const stats = import_fs3.default.statSync(fullPath);
         items.push({
@@ -50201,6 +50505,19 @@ var LocalFsManager = class {
     });
     return items;
   }
+  stat(targetPath) {
+    const target = import_path4.default.resolve(expandHome2(targetPath));
+    const stats = import_fs3.default.statSync(target);
+    return {
+      name: import_path4.default.basename(target) || target,
+      path: target,
+      isDirectory: stats.isDirectory(),
+      size: stats.size,
+      modifyTime: stats.mtimeMs,
+      permissions: formatPermissions(stats),
+      owner: import_os3.default.userInfo().username
+    };
+  }
   readFile(filePath) {
     const target = expandHome2(filePath);
     const stats = import_fs3.default.statSync(target);
@@ -50214,14 +50531,29 @@ var LocalFsManager = class {
   }
   writeFile(filePath, content) {
     const target = expandHome2(filePath);
-    const dir = import_path3.default.dirname(target);
+    const dir = import_path4.default.dirname(target);
     import_fs3.default.mkdirSync(dir, { recursive: true });
-    const tmp = import_path3.default.join(dir, `.${import_path3.default.basename(target)}.${Date.now()}.${Math.random().toString(36).slice(2)}.tmp`);
+    const tmp = import_path4.default.join(
+      dir,
+      `.${import_path4.default.basename(target)}.${Date.now()}.${Math.random().toString(36).slice(2)}.tmp`
+    );
     import_fs3.default.writeFileSync(tmp, content, "utf8");
     import_fs3.default.renameSync(tmp, target);
   }
-  delete(targetPath, _isDirectory) {
-    import_fs3.default.rmSync(expandHome2(targetPath), { recursive: true, force: false });
+  delete(targetPath, isDirectory) {
+    const check = isProtectedLocalDeletePath(targetPath);
+    if (check.blocked) {
+      throw new Error(check.reason || `\u7981\u6B62\u5220\u9664\u53D7\u4FDD\u62A4\u8DEF\u5F84: ${targetPath}`);
+    }
+    const resolved = import_path4.default.resolve(expandHome2(targetPath));
+    const stats = import_fs3.default.lstatSync(resolved);
+    const actualIsDir = stats.isDirectory();
+    if (actualIsDir !== Boolean(isDirectory)) {
+      throw new Error(
+        actualIsDir ? `\u76EE\u6807\u8DEF\u5F84\u662F\u76EE\u5F55\u800C\u975E\u6587\u4EF6\uFF0C\u5DF2\u62D2\u7EDD\u6309\u666E\u901A\u6587\u4EF6\u5220\u9664: ${targetPath}` : `\u76EE\u6807\u8DEF\u5F84\u662F\u6587\u4EF6\u800C\u975E\u76EE\u5F55\uFF0C\u5DF2\u62D2\u7EDD\u6309\u76EE\u5F55\u5220\u9664: ${targetPath}`
+      );
+    }
+    import_fs3.default.rmSync(resolved, { recursive: actualIsDir, force: false });
   }
   rename(oldPath, newPath) {
     import_fs3.default.renameSync(expandHome2(oldPath), expandHome2(newPath));
@@ -50332,6 +50664,45 @@ function validateWsInboundMessage(value) {
     case "term:close": {
       if (!isId(value.sessionId)) return fail("term:close.sessionId \u975E\u6CD5");
       return { ok: true, msg: { type: "term:close", sessionId: value.sessionId } };
+    }
+    case "term:cmd_event": {
+      if (!isId(value.sessionId)) return fail("term:cmd_event.sessionId \u975E\u6CD5");
+      const kind = value.kind;
+      if (kind !== "started" && kind !== "finished" && kind !== "cwd" && kind !== "heuristic_error") {
+        return fail("term:cmd_event.kind \u5FC5\u987B\u662F started/finished/cwd/heuristic_error");
+      }
+      if (value.commandId !== void 0 && !isId(value.commandId)) {
+        return fail("term:cmd_event.commandId \u975E\u6CD5");
+      }
+      if (value.command !== void 0 && !isStr(value.command, 4e3)) {
+        return fail("term:cmd_event.command \u8FC7\u957F\u6216\u975E\u6CD5");
+      }
+      if (value.cwd !== void 0 && !isStr(value.cwd, MAX_PATH_LEN)) {
+        return fail("term:cmd_event.cwd \u975E\u6CD5");
+      }
+      if (value.exitCode !== void 0 && (typeof value.exitCode !== "number" || !Number.isInteger(value.exitCode))) {
+        return fail("term:cmd_event.exitCode \u5FC5\u987B\u662F\u6574\u6570");
+      }
+      if (value.output !== void 0 && !isStr(value.output, MAX_SNIPPET_LEN)) {
+        return fail("term:cmd_event.output \u8FC7\u957F\u6216\u975E\u6CD5");
+      }
+      if (value.timestamp !== void 0 && (typeof value.timestamp !== "number" || !Number.isFinite(value.timestamp))) {
+        return fail("term:cmd_event.timestamp \u5FC5\u987B\u662F\u6709\u9650\u6570\u503C");
+      }
+      return {
+        ok: true,
+        msg: {
+          type: "term:cmd_event",
+          sessionId: value.sessionId,
+          kind,
+          ...value.commandId !== void 0 ? { commandId: value.commandId } : {},
+          ...value.command !== void 0 ? { command: value.command } : {},
+          ...value.cwd !== void 0 ? { cwd: value.cwd } : {},
+          ...value.exitCode !== void 0 ? { exitCode: value.exitCode } : {},
+          ...value.output !== void 0 ? { output: value.output } : {},
+          ...value.timestamp !== void 0 ? { timestamp: value.timestamp } : {}
+        }
+      };
     }
     case "sftp:list": {
       if (!isId(value.requestId)) return fail("sftp:list.requestId \u975E\u6CD5");
@@ -50445,6 +50816,9 @@ function validateWsInboundMessage(value) {
     }
     case "ai:chat": {
       if (!isId(value.requestId)) return fail("ai:chat.requestId \u975E\u6CD5");
+      if (value.sessionId !== void 0 && !isId(value.sessionId)) {
+        return fail("ai:chat.sessionId \u975E\u6CD5");
+      }
       if (!Array.isArray(value.messages) || value.messages.length > MAX_AI_MESSAGES) {
         return fail(`ai:chat.messages \u5FC5\u987B\u662F \u2264${MAX_AI_MESSAGES} \u6761\u7684\u6570\u7EC4`);
       }
@@ -50464,8 +50838,63 @@ function validateWsInboundMessage(value) {
         msg: {
           type: "ai:chat",
           requestId: value.requestId,
+          ...value.sessionId !== void 0 ? { sessionId: value.sessionId } : {},
           messages,
           opsContext: parseOpsContext(value.opsContext)
+        }
+      };
+    }
+    case "agent:run": {
+      if (!isId(value.requestId)) return fail("agent:run.requestId \u975E\u6CD5");
+      if (!isId(value.sessionId)) return fail("agent:run.sessionId \u975E\u6CD5");
+      if (typeof value.goal !== "string" || !value.goal.trim() || value.goal.length > MAX_AI_MESSAGE_LEN) {
+        return fail("agent:run.goal \u5FC5\u987B\u662F\u975E\u7A7A\u5B57\u7B26\u4E32");
+      }
+      return {
+        ok: true,
+        msg: {
+          type: "agent:run",
+          requestId: value.requestId,
+          sessionId: value.sessionId,
+          goal: value.goal.trim()
+        }
+      };
+    }
+    case "agent:approve": {
+      if (!isId(value.sessionId)) return fail("agent:approve.sessionId \u975E\u6CD5");
+      if (!isId(value.approvalId)) return fail("agent:approve.approvalId \u975E\u6CD5");
+      return {
+        ok: true,
+        msg: {
+          type: "agent:approve",
+          sessionId: value.sessionId,
+          approvalId: value.approvalId
+        }
+      };
+    }
+    case "agent:reject": {
+      if (!isId(value.sessionId)) return fail("agent:reject.sessionId \u975E\u6CD5");
+      if (!isId(value.approvalId)) return fail("agent:reject.approvalId \u975E\u6CD5");
+      if (value.reason !== void 0 && !isStr(value.reason, 2e3)) {
+        return fail("agent:reject.reason \u975E\u6CD5");
+      }
+      return {
+        ok: true,
+        msg: {
+          type: "agent:reject",
+          sessionId: value.sessionId,
+          approvalId: value.approvalId,
+          ...value.reason !== void 0 ? { reason: value.reason } : {}
+        }
+      };
+    }
+    case "agent:cancel": {
+      if (!isId(value.sessionId)) return fail("agent:cancel.sessionId \u975E\u6CD5");
+      return {
+        ok: true,
+        msg: {
+          type: "agent:cancel",
+          sessionId: value.sessionId
         }
       };
     }
@@ -50550,7 +50979,7 @@ function checkWsAuth(req, ctx) {
 }
 
 // server/ws/wsRouter.ts
-var import_os4 = __toESM(require("os"), 1);
+var import_os6 = __toESM(require("os"), 1);
 
 // server/ws/handlers/ping.ts
 var handlePing = (msg, conn) => {
@@ -50574,61 +51003,9 @@ var handleTermInit = async (msg, conn, deps) => {
     });
     return;
   }
-  conn.clientSessions.add(sessionId);
-  if (host.authType === "local") {
-    try {
-      const session = deps.localPtyManager.createSession(
-        sessionId,
-        msg.cols,
-        msg.rows,
-        host.initialDir
-      );
-      session.events.on("data", (data) => {
-        conn.send({ type: "term:data", sessionId, data });
-      });
-      session.events.on("exit", () => {
-        conn.send({ type: "term:close", sessionId });
-      });
-      conn.send({
-        type: "term:ready",
-        sessionId,
-        hostName: host.name,
-        cwd: session.initialCwd
-      });
-    } catch (err) {
-      conn.send({
-        type: "term:error",
-        sessionId,
-        message: `\u672C\u673A\u7EC8\u7AEF\u542F\u52A8\u5931\u8D25: ${errorMessage(err)}`
-      });
-    }
-    return;
-  }
-  if (host.authType === "mock") {
-    let sessionObj = deps.mockSessions.get(sessionId);
-    if (!sessionObj) {
-      sessionObj = deps.createMockSession(sessionId);
-      deps.mockSessions.set(sessionId, sessionObj);
-      sessionObj.term.init();
-    }
-    const onData = (data) => {
-      conn.send({ type: "term:data", sessionId, data });
-    };
-    sessionObj.term.on("data", onData);
-    if (typeof conn.socket?.once === "function") {
-      conn.socket.once("close", () => {
-        sessionObj?.term.off?.("data", onData);
-      });
-    }
-    conn.send({
-      type: "term:ready",
-      sessionId,
-      hostName: host.name,
-      cwd: sessionObj.term.getCurrentDir()
-    });
-    return;
-  }
-  if (deps.storage.isLocked()) {
+  const isLocal = host.authType === "local";
+  const isMock = host.authType === "mock";
+  if (!isLocal && !isMock && deps.storage.isLocked()) {
     conn.send({
       type: "term:error",
       sessionId,
@@ -50637,97 +51014,772 @@ var handleTermInit = async (msg, conn, deps) => {
     return;
   }
   try {
-    const decryptedPass = host.passwordEncrypted ? deps.storage.decrypt(host.passwordEncrypted) : void 0;
-    const decryptedPassphrase = host.passphraseEncrypted ? deps.storage.decrypt(host.passphraseEncrypted) : void 0;
-    let privKey;
-    if (host.privateKeyPath && import_fs4.default.existsSync(host.privateKeyPath)) {
-      privKey = import_fs4.default.readFileSync(host.privateKeyPath, "utf8");
+    let credentials;
+    if (!isLocal && !isMock) {
+      const password = host.passwordEncrypted ? deps.storage.decrypt(host.passwordEncrypted) : void 0;
+      const passphrase = host.passphraseEncrypted ? deps.storage.decrypt(host.passphraseEncrypted) : void 0;
+      let privateKey;
+      if (host.privateKeyPath && import_fs4.default.existsSync(host.privateKeyPath)) {
+        privateKey = import_fs4.default.readFileSync(host.privateKeyPath, "utf8");
+      }
+      credentials = { password, passphrase, privateKey };
     }
-    const session = await deps.sshManager.createSession(
-      sessionId,
+    const session = await deps.sessionManager.getOrCreate({
+      id: sessionId,
       host,
-      decryptedPass,
-      decryptedPassphrase,
-      privKey
-    );
-    session.events.on("data", (data) => {
-      conn.send({ type: "term:data", sessionId, data });
+      cols: msg.cols,
+      rows: msg.rows,
+      credentials
     });
-    session.events.on("close", () => {
-      conn.send({ type: "term:close", sessionId });
-    });
-    session.events.on("error", (err) => {
-      conn.send({ type: "term:error", sessionId, message: errorMessage(err) });
-    });
+    conn.clientSessions.add(sessionId);
+    const connId = conn.connectionId || "default-conn";
+    deps.sessionManager.attach(sessionId, connId, conn.send);
+    if (typeof conn.socket?.once === "function") {
+      conn.socket.once("close", () => {
+        deps.sessionManager.detach(sessionId, connId);
+      });
+    }
     conn.send({
       type: "term:ready",
       sessionId,
       hostName: host.name,
-      cwd: host.initialDir || "/root"
+      cwd: session.terminal.cwd
     });
   } catch (err) {
+    const prefix = isLocal ? "\u672C\u673A\u7EC8\u7AEF\u542F\u52A8\u5931\u8D25" : isMock ? "\u4EFF\u771F\u7EC8\u7AEF\u542F\u52A8\u5931\u8D25" : "SSH \u8FDE\u63A5\u5931\u8D25";
     conn.send({
       type: "term:error",
       sessionId,
-      message: `SSH \u8FDE\u63A5\u5931\u8D25: ${errorMessage(err)}`
+      message: `${prefix}: ${errorMessage(err)}`
     });
   }
 };
-var handleTermInput = (msg, _conn, deps) => {
-  if (deps.localPtyManager.has(msg.sessionId)) {
-    deps.localPtyManager.write(msg.sessionId, msg.data);
+var handleTermInput = (msg, conn, deps) => {
+  const session = deps.sessionManager.get(msg.sessionId);
+  if (!session) {
+    conn.send({
+      type: "term:error",
+      sessionId: msg.sessionId,
+      message: `\u4F1A\u8BDD\u4E0D\u5B58\u5728\u6216\u5DF2\u5173\u95ED (sessionId: "${msg.sessionId}")`
+    });
     return;
   }
-  const mockObj = deps.mockSessions.get(msg.sessionId);
-  if (mockObj) {
-    mockObj.term.write(msg.data);
-  } else {
-    deps.sshManager.writeToShell(msg.sessionId, msg.data);
-  }
+  deps.sessionManager.writeTerminal(msg.sessionId, msg.data);
 };
-var handleTermResize = (msg, _conn, deps) => {
-  if (deps.localPtyManager.has(msg.sessionId)) {
-    deps.localPtyManager.resize(msg.sessionId, msg.cols, msg.rows);
+var handleTermResize = (msg, conn, deps) => {
+  const session = deps.sessionManager.get(msg.sessionId);
+  if (!session) {
+    conn.send({
+      type: "term:error",
+      sessionId: msg.sessionId,
+      message: `\u4F1A\u8BDD\u4E0D\u5B58\u5728\u6216\u5DF2\u5173\u95ED (sessionId: "${msg.sessionId}")`
+    });
     return;
   }
-  const mockObj = deps.mockSessions.get(msg.sessionId);
-  if (mockObj) {
-    mockObj.term.resize(msg.cols, msg.rows);
-  } else {
-    deps.sshManager.resize(msg.sessionId, msg.cols, msg.rows);
-  }
+  deps.sessionManager.resizeTerminal(msg.sessionId, msg.cols, msg.rows);
 };
-var handleTermClose = (msg, conn, deps) => {
-  deps.localPtyManager.closeSession(msg.sessionId);
-  deps.mockSessions.delete(msg.sessionId);
-  deps.sshManager.closeSession(msg.sessionId);
+var handleTermClose = async (msg, conn, deps) => {
+  await deps.sessionManager.close(msg.sessionId);
   conn.clientSessions.delete(msg.sessionId);
 };
 
+// server/ws/handlers/command.ts
+var handleTermCmdEvent = (msg, _conn, deps) => {
+  if (!deps.commandEngine) return;
+  deps.commandEngine.ingestClientEvent({
+    sessionId: msg.sessionId,
+    kind: msg.kind,
+    commandId: msg.commandId,
+    command: msg.command,
+    cwd: msg.cwd,
+    exitCode: msg.exitCode,
+    output: msg.output,
+    timestamp: msg.timestamp
+  });
+};
+
+// server/agent/policy/RiskPolicy.ts
+var DEFAULT_DECISIONS = {
+  SAFE: "allow",
+  LOW: "allow",
+  MEDIUM: "ask",
+  HIGH: "ask",
+  CRITICAL: "deny"
+};
+var RiskPolicy = class {
+  decisions;
+  constructor(options) {
+    this.decisions = {
+      ...DEFAULT_DECISIONS,
+      ...options?.levelDecisions
+    };
+  }
+  evaluate(_action, assessment) {
+    return this.decisions[assessment.level] ?? "ask";
+  }
+};
+
+// server/application/security/ShellRiskAnalyzer.ts
+var import_path5 = __toESM(require("path"), 1);
+var READ_ONLY_SYSTEMCTL_SUBCOMMANDS = /* @__PURE__ */ new Set([
+  "status",
+  "is-active",
+  "is-enabled",
+  "is-failed",
+  "list-units",
+  "list-unit-files",
+  "list-timers",
+  "show",
+  "cat",
+  "help"
+]);
+var READ_ONLY_DOCKER_SUBCOMMANDS = /* @__PURE__ */ new Set([
+  "ps",
+  "logs",
+  "inspect",
+  "stats",
+  "images",
+  "version",
+  "info",
+  "top",
+  "port",
+  "network",
+  "volume"
+]);
+var READ_ONLY_GIT_SUBCOMMANDS = /* @__PURE__ */ new Set([
+  "status",
+  "log",
+  "diff",
+  "branch",
+  "show",
+  "rev-parse",
+  "remote",
+  "tag",
+  "describe"
+]);
+var HIGH_RISK_BINARIES = /* @__PURE__ */ new Set([
+  "rm",
+  "rmdir",
+  "rd",
+  "del",
+  "erase",
+  "remove-item",
+  "ri",
+  "kill",
+  "pkill",
+  "killall",
+  "stop-process",
+  "spps",
+  "taskkill",
+  "reboot",
+  "shutdown",
+  "poweroff",
+  "halt",
+  "init",
+  "restart-computer",
+  "stop-computer",
+  "userdel",
+  "usermod",
+  "passwd",
+  "chown",
+  "icacls",
+  "takeown",
+  // Windows & PowerShell disk/boot/registry/service/policy high-risk commands (P1-2)
+  "format-volume",
+  "clear-disk",
+  "initialize-disk",
+  "diskpart",
+  "bcdedit",
+  "vssadmin",
+  "reg",
+  "sc",
+  "sc.exe",
+  "set-executionpolicy",
+  "invoke-expression",
+  "iex"
+]);
+var WRAPPER_EXECUTORS = /* @__PURE__ */ new Set([
+  "sh",
+  "bash",
+  "zsh",
+  "dash",
+  "ksh",
+  "csh",
+  "cmd",
+  "powershell",
+  "pwsh",
+  "eval",
+  "iex",
+  "invoke-expression",
+  "xargs",
+  "find"
+]);
+var MEDIUM_RISK_BINARIES = /* @__PURE__ */ new Set([
+  "mv",
+  "move",
+  "move-item",
+  "mi",
+  "cp",
+  "copy",
+  "copy-item",
+  "cpi",
+  "chmod",
+  "touch",
+  "mkdir",
+  "md",
+  "new-item",
+  "ni",
+  "set-content",
+  "add-content",
+  "ac",
+  "out-file",
+  "apt",
+  "apt-get",
+  "yum",
+  "dnf",
+  "apk",
+  "pacman",
+  "zypper",
+  "pip",
+  "pip3",
+  "npm",
+  "pnpm",
+  "yarn",
+  "useradd",
+  "groupadd",
+  "crontab",
+  "sed",
+  "tee"
+]);
+function normalizeBinaryName(rawBin) {
+  const base = import_path5.default.posix.basename(rawBin.replace(/\\/g, "/")).toLowerCase();
+  return base.endsWith(".exe") && base !== "sc.exe" ? base.slice(0, -4) : base;
+}
+function hasFileWriteRedirection(segment) {
+  const sanitized = segment.replace(/[0-9]*>&[0-9]+/g, "").replace(/[0-9]*>>?\s*\/dev\/null\b/g, "");
+  return /(?:^|[^<>])>>?\s*[^\s&|;]+/.test(sanitized);
+}
+function normalizeShellClause(segment) {
+  return segment.trim().replace(/^(?:(?:then|do|else)\b\s*|[{}()]\s*)+/i, "").replace(/\s*(?:(?:fi|done|esac)\b|[{}()])+\s*$/i, "").trim();
+}
+function hasWindowsRunAsElevation(bin, args) {
+  if (bin !== "start-process" && bin !== "saps" && bin !== "start") {
+    return false;
+  }
+  for (let i = 0; i < args.length; i++) {
+    const lower = args[i].toLowerCase();
+    if (lower === "-verb" && args[i + 1]?.toLowerCase() === "runas") {
+      return true;
+    }
+    if (lower === "-verbrunas" || lower === "runas") {
+      return true;
+    }
+  }
+  return false;
+}
+function isInlineScriptExecution(bin, args) {
+  if (bin === "python" || bin === "python3" || bin === "py") {
+    return args.includes("-c");
+  }
+  if (bin === "node" || bin === "deno" || bin === "bun") {
+    return args.includes("-e") || args.includes("--eval");
+  }
+  if (bin === "perl" || bin === "ruby" || bin === "php") {
+    return args.includes("-e") || args.includes("-r");
+  }
+  return false;
+}
+var ShellRiskAnalyzer = class {
+  analyze(action) {
+    const command = (action.command || "").trim();
+    if (!command) {
+      return { level: "SAFE" };
+    }
+    const baseCheck = checkCommandSafety(command);
+    if (baseCheck.isDangerous) {
+      return {
+        level: baseCheck.level,
+        reason: baseCheck.reason,
+        matchedRule: baseCheck.matchedRule
+      };
+    }
+    let highestLevel = { level: "SAFE" };
+    const elevate = (candidate) => {
+      const rank = {
+        SAFE: 0,
+        LOW: 1,
+        MEDIUM: 2,
+        HIGH: 3,
+        CRITICAL: 4
+      };
+      if (rank[candidate.level] > rank[highestLevel.level]) {
+        highestLevel = candidate;
+      }
+    };
+    const substitutionPattern = /\$\((?!\()([^()]*)\)|`([^`]*)`|[<>]\(([^()]*)\)/g;
+    let hasSubstitution = false;
+    for (const match of command.matchAll(substitutionPattern)) {
+      hasSubstitution = true;
+      const nestedCommand = (match[1] ?? match[2] ?? match[3] ?? "").trim();
+      if (!nestedCommand) continue;
+      const nestedAssessment = this.analyze({
+        ...action,
+        command: nestedCommand
+      });
+      if (nestedAssessment.level === "CRITICAL") {
+        return {
+          ...nestedAssessment,
+          reason: `\u547D\u4EE4\u66FF\u6362\u4E2D\u5305\u542B\u707E\u96BE\u6027\u64CD\u4F5C\uFF1A${nestedAssessment.reason || nestedCommand}`
+        };
+      }
+      elevate({
+        level: "HIGH",
+        matchedRule: "SHELL_COMMAND_SUBSTITUTION",
+        reason: "\u547D\u4EE4\u5305\u542B\u4F1A\u6267\u884C\u5D4C\u5957 shell \u547D\u4EE4\u7684\u66FF\u6362\u8868\u8FBE\u5F0F\uFF0C\u9700\u8981\u4EBA\u5DE5\u5BA1\u6279\u786E\u8BA4\u3002"
+      });
+    }
+    if (/\$\(\(/.test(command)) {
+      hasSubstitution = true;
+      elevate({
+        level: "HIGH",
+        matchedRule: "SHELL_ARITHMETIC_EXPANSION",
+        reason: "\u547D\u4EE4\u5305\u542B\u65E0\u6CD5\u9759\u6001\u89E3\u6790\u7684 shell \u7B97\u672F\u5C55\u5F00\uFF0C\u9700\u8981\u4EBA\u5DE5\u5BA1\u6279\u786E\u8BA4\u3002"
+      });
+    }
+    if (hasSubstitution && highestLevel.level === "SAFE") {
+      elevate({
+        level: "HIGH",
+        matchedRule: "SHELL_COMMAND_SUBSTITUTION",
+        reason: "\u547D\u4EE4\u5305\u542B\u65E0\u6CD5\u5B89\u5168\u89E3\u6790\u7684\u66FF\u6362\u8868\u8FBE\u5F0F\uFF0C\u9700\u8981\u4EBA\u5DE5\u5BA1\u6279\u786E\u8BA4\u3002"
+      });
+    }
+    for (const rawSegment of splitShellSegments(command)) {
+      const segment = normalizeShellClause(rawSegment);
+      if (!segment) continue;
+      const clauseCheck = checkCommandSafety(segment);
+      if (clauseCheck.isDangerous) {
+        return {
+          level: clauseCheck.level,
+          reason: clauseCheck.reason,
+          matchedRule: clauseCheck.matchedRule
+        };
+      }
+      const tokens = tokenize(segment);
+      if (tokens.length === 0) continue;
+      if (PRIVILEGE_ESCALATORS.has(tokens[0].toLowerCase())) {
+        elevate({
+          level: "HIGH",
+          matchedRule: "PRIVILEGE_ESCALATION",
+          reason: `\u547D\u4EE4\u5305\u542B\u63D0\u6743\u64CD\u4F5C (${tokens[0]})\uFF0C\u9700\u8981\u4EBA\u5DE5\u5BA1\u6279\u786E\u8BA4\u3002`
+        });
+      }
+      if (hasFileWriteRedirection(segment)) {
+        elevate({
+          level: "MEDIUM",
+          matchedRule: "SHELL_REDIRECT_WRITE",
+          reason: "\u547D\u4EE4\u5305\u542B\u91CD\u5B9A\u5411\u5199\u5165\u6587\u4EF6\u64CD\u4F5C\uFF0C\u9700\u8981\u786E\u8BA4\u3002"
+        });
+      }
+      const inv = extractCommandInvocation(segment);
+      if (!inv) continue;
+      const rawBinLower = inv.binary.toLowerCase();
+      const bin = normalizeBinaryName(rawBinLower);
+      const firstSub = inv.args.find((a) => !a.startsWith("-"))?.toLowerCase();
+      if (hasWindowsRunAsElevation(bin, inv.args)) {
+        elevate({
+          level: "HIGH",
+          matchedRule: "PRIVILEGE_ESCALATION",
+          reason: "\u547D\u4EE4\u5305\u542B Windows UAC \u63D0\u6743\u64CD\u4F5C (Start-Process -Verb RunAs)\uFF0C\u9700\u8981\u4EBA\u5DE5\u5BA1\u6279\u786E\u8BA4\u3002"
+        });
+        continue;
+      }
+      if (bin === "systemctl" || bin === "service") {
+        const sub = bin === "systemctl" ? firstSub : inv.args[1]?.toLowerCase() || firstSub;
+        if (!sub || !READ_ONLY_SYSTEMCTL_SUBCOMMANDS.has(sub)) {
+          elevate({
+            level: "MEDIUM",
+            matchedRule: "SERVICE_STATE_MUTATION",
+            reason: `\u53D8\u66F4\u7CFB\u7EDF\u670D\u52A1\u72B6\u6001 (${bin} ${sub || ""})\uFF0C\u9700\u8981\u4EBA\u5DE5\u786E\u8BA4\u3002`
+          });
+        }
+        continue;
+      }
+      if (bin === "docker" || bin === "podman") {
+        if (!firstSub || !READ_ONLY_DOCKER_SUBCOMMANDS.has(firstSub)) {
+          elevate({
+            level: "MEDIUM",
+            matchedRule: "CONTAINER_MUTATION",
+            reason: `\u5BB9\u5668\u53D8\u66F4\u64CD\u4F5C (${bin} ${firstSub || ""})\uFF0C\u9700\u8981\u4EBA\u5DE5\u786E\u8BA4\u3002`
+          });
+        }
+        continue;
+      }
+      if (bin === "git") {
+        if (firstSub && !READ_ONLY_GIT_SUBCOMMANDS.has(firstSub)) {
+          elevate({
+            level: "MEDIUM",
+            matchedRule: "GIT_MUTATION",
+            reason: `Git \u4ED3\u5E93\u53D8\u66F4\u64CD\u4F5C (git ${firstSub})\uFF0C\u9700\u8981\u4EBA\u5DE5\u786E\u8BA4\u3002`
+          });
+        }
+        continue;
+      }
+      if (HIGH_RISK_BINARIES.has(bin) || HIGH_RISK_BINARIES.has(rawBinLower)) {
+        elevate({
+          level: "HIGH",
+          matchedRule: `SHELL_HIGH_RISK_${bin.toUpperCase().replace(/[^A-Z0-9]/g, "_")}`,
+          reason: `\u9AD8\u98CE\u9669\u7CFB\u7EDF\u3001\u78C1\u76D8\u3001\u6CE8\u518C\u8868\u6216\u6587\u4EF6\u5220\u9664\u547D\u4EE4 (${inv.binary})\uFF0C\u9700\u8981\u4EBA\u5DE5\u5BA1\u6279\u3002`
+        });
+        continue;
+      }
+      if (WRAPPER_EXECUTORS.has(bin) || isInlineScriptExecution(bin, inv.args)) {
+        elevate({
+          level: "HIGH",
+          matchedRule: `SHELL_WRAPPER_${bin.toUpperCase().replace(/[^A-Z0-9]/g, "_")}`,
+          reason: `\u547D\u4EE4\u5305\u542B\u5305\u88F9\u6267\u884C\u5668\u6216\u52A8\u6001\u811A\u672C\u6267\u884C (${inv.binary})\uFF0C\u9700\u8981\u4EBA\u5DE5\u5BA1\u6279\u786E\u8BA4\u3002`
+        });
+        continue;
+      }
+      if (MEDIUM_RISK_BINARIES.has(bin)) {
+        if (bin === "sed" && !inv.args.some((a) => a === "-i" || a.startsWith("-i"))) {
+          continue;
+        }
+        elevate({
+          level: "MEDIUM",
+          matchedRule: `SHELL_MUTATION_${bin.toUpperCase().replace(/[^A-Z0-9]/g, "_")}`,
+          reason: `\u72B6\u6001\u6216\u6587\u4EF6\u53D8\u66F4\u547D\u4EE4 (${inv.binary})\uFF0C\u9700\u8981\u4EBA\u5DE5\u786E\u8BA4\u3002`
+        });
+      }
+    }
+    return highestLevel;
+  }
+};
+
+// server/application/security/FileSystemRiskAnalyzer.ts
+var import_os4 = __toESM(require("os"), 1);
+var import_path6 = __toESM(require("path"), 1);
+function normalizePosixLike(rawPath) {
+  const trimmed = (rawPath || "").trim().replace(/\\/g, "/");
+  if (!trimmed) return "";
+  if (trimmed.length > 1 && trimmed.endsWith("/")) {
+    return trimmed.replace(/\/+$/, "");
+  }
+  return trimmed;
+}
+function expandTildePosix(normPath) {
+  const home = normalizePosixLike(import_os4.default.homedir());
+  if (!home) return normPath;
+  if (normPath === "~" || normPath === "$HOME" || normPath === "${HOME}") {
+    return home;
+  }
+  if (normPath.startsWith("~/")) {
+    return `${home}/${normPath.slice(2)}`;
+  }
+  return normPath;
+}
+function canonicalizeActionPath(rawPath, sessionRoot) {
+  const normalized = normalizePosixLike(rawPath);
+  if (!normalized) return normalized;
+  const expanded = expandTildePosix(normalized);
+  const isAbsolute = expanded.startsWith("/") || /^[a-zA-Z]:(?:\/|$)/.test(expanded);
+  if (isAbsolute) {
+    return import_path6.default.posix.normalize(expanded);
+  }
+  if (sessionRoot?.trim()) {
+    const root = expandTildePosix(normalizePosixLike(sessionRoot));
+    if (root.startsWith("/") || /^[a-zA-Z]:(?:\/|$)/.test(root)) {
+      return import_path6.default.posix.resolve(root, expanded);
+    }
+  }
+  return expanded;
+}
+function canonicalizeActionPaths(action) {
+  if (action.kind === "shell:exec") return action;
+  switch (action.kind) {
+    case "fs:rename":
+      return {
+        ...action,
+        oldPath: canonicalizeActionPath(action.oldPath, action.sessionRoot),
+        newPath: canonicalizeActionPath(action.newPath, action.sessionRoot)
+      };
+    default:
+      return { ...action, path: canonicalizeActionPath(action.path, action.sessionRoot) };
+  }
+}
+function hasParentTraversal(rawPath) {
+  return /(?:^|\/)\.\.(?:\/|$)/.test(normalizePosixLike(rawPath));
+}
+function isProtectedSystemOrHomePath(rawPath) {
+  if (!rawPath || !rawPath.trim()) return true;
+  const trimmed = rawPath.trim();
+  if (isRootLikePath(trimmed)) return true;
+  const norm = normalizePosixLike(trimmed);
+  const lower = norm.toLowerCase();
+  if (/^[a-z]:$/i.test(lower) || /^[a-z]:\/\*?$/i.test(lower)) return true;
+  if (lower === "c:/windows" || lower.startsWith("c:/windows/") || lower === "c:/program files" || lower === "c:/program files (x86)" || lower === "c:/system32" || lower === "c:/users") {
+    return true;
+  }
+  for (const dir of CRITICAL_ABSOLUTE_DIRS) {
+    if (lower === `/${dir}`) return true;
+  }
+  if (norm === "~" || norm === "$HOME" || norm === "${HOME}") return true;
+  if (norm === "~/.ssh" || norm.startsWith("~/.ssh/") || norm === "~/.gnupg" || norm.startsWith("~/.gnupg/")) {
+    return true;
+  }
+  if (/^\/root\/\.(ssh|gnupg)(\/|$)/i.test(norm) || /^\/(?:home|users)\/[^/]+\/\.(ssh|gnupg)(\/|$)/i.test(norm) || /^[a-z]:\/users\/[^/]+\/\.(ssh|gnupg)(\/|$)/i.test(lower)) {
+    return true;
+  }
+  const home = normalizePosixLike(import_os4.default.homedir());
+  if (home) {
+    const resolved = normalizePosixLike(import_path6.default.resolve(trimmed));
+    const homeCmp = process.platform === "win32" ? home.toLowerCase() : home;
+    const resCmp = process.platform === "win32" ? resolved.toLowerCase() : resolved;
+    if (resCmp === homeCmp) return true;
+    if (resCmp === `${homeCmp}/.ssh` || resCmp.startsWith(`${homeCmp}/.ssh/`) || resCmp === `${homeCmp}/.gnupg` || resCmp.startsWith(`${homeCmp}/.gnupg/`)) {
+      return true;
+    }
+  }
+  return false;
+}
+function isCriticalAuthFile(rawPath) {
+  const norm = normalizePosixLike(rawPath).toLowerCase();
+  if (norm === "/etc/passwd" || norm === "/etc/shadow" || norm === "/etc/gshadow" || norm === "/etc/sudoers" || norm.startsWith("/etc/sudoers.d/") || norm.startsWith("/etc/ssl/private/")) {
+    return true;
+  }
+  if (norm.endsWith("/.ssh/authorized_keys") || norm.endsWith("/.ssh/id_rsa") || norm.endsWith("/.ssh/id_ed25519") || norm.endsWith("/.ssh/id_ecdsa") || norm.endsWith("/.ssh/id_dsa")) {
+    return true;
+  }
+  return false;
+}
+function isSensitiveCredentialFile(rawPath) {
+  if (isCriticalAuthFile(rawPath)) return true;
+  const norm = normalizePosixLike(rawPath).toLowerCase();
+  if (norm.endsWith("/.aws/credentials") || norm.endsWith("/.kube/config") || norm.endsWith("/.docker/config.json") || norm.endsWith("/.npmrc") || norm.endsWith("/.git-credentials") || norm.endsWith("/.config/gh/hosts.yml") || norm.endsWith(".pem") || norm.endsWith(".key")) {
+    return true;
+  }
+  return false;
+}
+function isSystemConfigArea(rawPath) {
+  const norm = normalizePosixLike(rawPath).toLowerCase();
+  return norm.startsWith("/etc/") || norm.startsWith("/boot/") || norm.startsWith("/usr/") || norm.startsWith("/lib/systemd/") || norm.startsWith("c:/windows/");
+}
+function isOutsideSessionWorkspace(targetPath, sessionRoot) {
+  if (!sessionRoot || !sessionRoot.trim()) return false;
+  const rawRoot = normalizePosixLike(sessionRoot);
+  if (!rawRoot || rawRoot === "~" || rawRoot === "/") return false;
+  const expandedRoot = import_path6.default.posix.normalize(expandTildePosix(rawRoot));
+  const rawTarget = normalizePosixLike(targetPath);
+  if (!rawTarget) return false;
+  let expandedTarget = expandTildePosix(rawTarget);
+  const isAbsoluteTarget = expandedTarget.startsWith("/") || /^[a-zA-Z]:(\/|$)/.test(expandedTarget);
+  if (!isAbsoluteTarget) {
+    expandedTarget = import_path6.default.posix.join(expandedRoot, expandedTarget);
+  }
+  const normalizedTarget = import_path6.default.posix.normalize(expandedTarget);
+  const isWinStyle = /^[a-zA-Z]:/.test(expandedRoot) || /^[a-zA-Z]:/.test(normalizedTarget);
+  const rootCmp = (isWinStyle ? expandedRoot.toLowerCase() : expandedRoot).replace(/\/+$/, "");
+  const targetCmp = (isWinStyle ? normalizedTarget.toLowerCase() : normalizedTarget).replace(
+    /\/+$/,
+    ""
+  );
+  if (targetCmp === rootCmp || targetCmp.startsWith(`${rootCmp}/`)) {
+    return false;
+  }
+  return true;
+}
+var FileSystemRiskAnalyzer = class {
+  analyze(action) {
+    const submittedAction = action;
+    const mutationPaths = submittedAction.kind === "fs:rename" ? [submittedAction.oldPath, submittedAction.newPath] : submittedAction.kind === "fs:write" || submittedAction.kind === "fs:mkdir" || submittedAction.kind === "fs:delete" || submittedAction.kind === "fs:chmod" ? [submittedAction.path] : [];
+    if (mutationPaths.some(hasParentTraversal)) {
+      return {
+        level: "CRITICAL",
+        matchedRule: "FS_PARENT_PATH_TRAVERSAL",
+        reason: "\u62D2\u7EDD\u5305\u542B .. \u8DEF\u5F84\u6BB5\u7684\u6587\u4EF6\u53D8\u66F4\u64CD\u4F5C\uFF1B\u8BF7\u6539\u7528\u660E\u786E\u7684\u7EDD\u5BF9\u8DEF\u5F84\u3002"
+      };
+    }
+    action = canonicalizeActionPaths(action);
+    switch (action.kind) {
+      case "fs:list":
+      case "fs:stat":
+        return { level: "SAFE" };
+      case "fs:read": {
+        if (isSensitiveCredentialFile(action.path)) {
+          return {
+            level: "HIGH",
+            matchedRule: "FS_READ_SENSITIVE_CREDENTIAL",
+            reason: `\u8BFB\u53D6\u654F\u611F\u8BA4\u8BC1\u3001\u51ED\u636E\u6216\u79C1\u94A5\u6587\u4EF6 (${action.path})\uFF0C\u9700\u8981\u4EBA\u5DE5\u5BA1\u6279\u786E\u8BA4\u3002`
+          };
+        }
+        return { level: "SAFE" };
+      }
+      case "fs:mkdir": {
+        if (isProtectedSystemOrHomePath(action.path)) {
+          return {
+            level: "HIGH",
+            matchedRule: "FS_MKDIR_PROTECTED",
+            reason: `\u5728\u53D7\u4FDD\u62A4\u7CFB\u7EDF\u6216\u5BC6\u94A5\u8DEF\u5F84\u521B\u5EFA\u76EE\u5F55 (${action.path})\uFF0C\u9700\u8981\u786E\u8BA4\u3002`
+          };
+        }
+        if (isOutsideSessionWorkspace(action.path, action.sessionRoot)) {
+          return {
+            level: "HIGH",
+            matchedRule: "FS_OUTSIDE_WORKSPACE",
+            reason: `File mutation/deletion outside session workspace (${action.path} \u4E0D\u5728\u4F1A\u8BDD\u5DE5\u4F5C\u533A ${action.sessionRoot} \u5185)\u3002`
+          };
+        }
+        return { level: "LOW", matchedRule: "FS_MKDIR" };
+      }
+      case "fs:write": {
+        if (isCriticalAuthFile(action.path) || isProtectedSystemOrHomePath(action.path)) {
+          return {
+            level: "CRITICAL",
+            matchedRule: "FS_WRITE_CRITICAL_PATH",
+            reason: `\u7981\u6B62\u76F4\u63A5\u8986\u5199\u6838\u5FC3\u8BA4\u8BC1\u6587\u4EF6\u3001\u5BC6\u94A5\u76EE\u5F55\u6216\u7CFB\u7EDF\u53D7\u4FDD\u62A4\u6839\u8DEF\u5F84 (${action.path})\u3002`
+          };
+        }
+        if (isSystemConfigArea(action.path) || isSensitiveCredentialFile(action.path)) {
+          return {
+            level: "HIGH",
+            matchedRule: "FS_WRITE_SYSTEM_CONFIG",
+            reason: `\u5199\u5165\u7CFB\u7EDF\u7EA7\u914D\u7F6E\u6587\u4EF6\u6216\u654F\u611F\u51ED\u636E (${action.path})\uFF0C\u9700\u8981\u4EBA\u5DE5\u5BA1\u6279\u786E\u8BA4\u3002`
+          };
+        }
+        if (isOutsideSessionWorkspace(action.path, action.sessionRoot)) {
+          return {
+            level: "HIGH",
+            matchedRule: "FS_OUTSIDE_WORKSPACE",
+            reason: `File mutation/deletion outside session workspace (${action.path} \u4E0D\u5728\u4F1A\u8BDD\u5DE5\u4F5C\u533A ${action.sessionRoot} \u5185)\u3002`
+          };
+        }
+        return {
+          level: "MEDIUM",
+          matchedRule: "FS_WRITE_FILE",
+          reason: `\u5199\u5165\u6216\u4FEE\u6539\u6587\u4EF6 (${action.path})\uFF0C\u9700\u8981\u786E\u8BA4\u3002`
+        };
+      }
+      case "fs:delete": {
+        if (isCriticalAuthFile(action.path) || isProtectedSystemOrHomePath(action.path)) {
+          return {
+            level: "CRITICAL",
+            matchedRule: "FS_DELETE_PROTECTED_PATH",
+            reason: `\u7981\u6B62\u5220\u9664\u6839\u76EE\u5F55\u3001\u7CFB\u7EDF\u5173\u952E\u76EE\u5F55\u3001\u7528\u6237\u4E3B\u76EE\u5F55\u672C\u8EAB\u6216\u5BC6\u94A5\u6587\u4EF6 (${action.path})\u3002`
+          };
+        }
+        if (isSystemConfigArea(action.path) || isSensitiveCredentialFile(action.path) || action.isDirectory) {
+          return {
+            level: "HIGH",
+            matchedRule: "FS_DELETE_HIGH_RISK",
+            reason: `\u5220\u9664\u76EE\u5F55\u3001\u654F\u611F\u51ED\u636E\u6216\u7CFB\u7EDF\u914D\u7F6E\u6587\u4EF6 (${action.path})\uFF0C\u9700\u8981\u4EBA\u5DE5\u5BA1\u6279\u786E\u8BA4\u3002`
+          };
+        }
+        if (isOutsideSessionWorkspace(action.path, action.sessionRoot)) {
+          return {
+            level: "HIGH",
+            matchedRule: "FS_OUTSIDE_WORKSPACE",
+            reason: `File mutation/deletion outside session workspace (${action.path} \u4E0D\u5728\u4F1A\u8BDD\u5DE5\u4F5C\u533A ${action.sessionRoot} \u5185)\u3002`
+          };
+        }
+        return {
+          level: "MEDIUM",
+          matchedRule: "FS_DELETE_FILE",
+          reason: `\u5220\u9664\u6587\u4EF6 (${action.path})\uFF0C\u9700\u8981\u4EBA\u5DE5\u786E\u8BA4\u3002`
+        };
+      }
+      case "fs:rename": {
+        if (isCriticalAuthFile(action.oldPath) || isCriticalAuthFile(action.newPath) || isProtectedSystemOrHomePath(action.oldPath) || isProtectedSystemOrHomePath(action.newPath)) {
+          return {
+            level: "CRITICAL",
+            matchedRule: "FS_RENAME_PROTECTED_PATH",
+            reason: `\u7981\u6B62\u91CD\u547D\u540D\u6216\u79FB\u52A8\u7CFB\u7EDF\u53D7\u4FDD\u62A4\u8DEF\u5F84\u6216\u6838\u5FC3\u8BA4\u8BC1\u6587\u4EF6 (${action.oldPath} -> ${action.newPath})\u3002`
+          };
+        }
+        if (isSystemConfigArea(action.oldPath) || isSystemConfigArea(action.newPath) || isSensitiveCredentialFile(action.oldPath) || isSensitiveCredentialFile(action.newPath)) {
+          return {
+            level: "HIGH",
+            matchedRule: "FS_RENAME_SYSTEM_CONFIG",
+            reason: `\u79FB\u52A8\u6216\u91CD\u547D\u540D\u7CFB\u7EDF\u914D\u7F6E\u6216\u654F\u611F\u51ED\u636E\u6587\u4EF6 (${action.oldPath} -> ${action.newPath})\uFF0C\u9700\u8981\u4EBA\u5DE5\u5BA1\u6279\u3002`
+          };
+        }
+        if (isOutsideSessionWorkspace(action.oldPath, action.sessionRoot) || isOutsideSessionWorkspace(action.newPath, action.sessionRoot)) {
+          return {
+            level: "HIGH",
+            matchedRule: "FS_OUTSIDE_WORKSPACE",
+            reason: `File mutation/deletion outside session workspace (${action.oldPath} -> ${action.newPath} \u4E0D\u5728\u4F1A\u8BDD\u5DE5\u4F5C\u533A ${action.sessionRoot} \u5185)\u3002`
+          };
+        }
+        return {
+          level: "MEDIUM",
+          matchedRule: "FS_RENAME_FILE",
+          reason: `\u91CD\u547D\u540D\u6587\u4EF6 (${action.oldPath} -> ${action.newPath})\uFF0C\u9700\u8981\u786E\u8BA4\u3002`
+        };
+      }
+      case "fs:chmod": {
+        if (isCriticalAuthFile(action.path) || isProtectedSystemOrHomePath(action.path)) {
+          return {
+            level: "CRITICAL",
+            matchedRule: "FS_CHMOD_PROTECTED_PATH",
+            reason: `\u7981\u6B62\u4FEE\u6539\u7CFB\u7EDF\u53D7\u4FDD\u62A4\u6839\u8DEF\u5F84\u6216\u6838\u5FC3\u8BA4\u8BC1\u6587\u4EF6\u6743\u9650 (${action.path})\u3002`
+          };
+        }
+        const perm = action.mode & 511;
+        if (perm === 511 || perm === 0) {
+          return {
+            level: "HIGH",
+            matchedRule: "FS_CHMOD_EXTREME_MODE",
+            reason: `\u5C06\u6587\u4EF6\u6743\u9650\u4FEE\u6539\u4E3A 0${perm.toString(8).padStart(3, "0")} (${action.path}) \u5B58\u5728\u4E25\u91CD\u98CE\u9669\uFF0C\u9700\u8981\u4EBA\u5DE5\u5BA1\u6279\u3002`
+          };
+        }
+        if (isOutsideSessionWorkspace(action.path, action.sessionRoot)) {
+          return {
+            level: "HIGH",
+            matchedRule: "FS_OUTSIDE_WORKSPACE",
+            reason: `File mutation/deletion outside session workspace (${action.path} \u4E0D\u5728\u4F1A\u8BDD\u5DE5\u4F5C\u533A ${action.sessionRoot} \u5185)\u3002`
+          };
+        }
+        return {
+          level: "MEDIUM",
+          matchedRule: "FS_CHMOD_FILE",
+          reason: `\u4FEE\u6539\u6587\u4EF6\u6743\u9650 (${action.path} -> 0${perm.toString(8).padStart(3, "0")})\uFF0C\u9700\u8981\u786E\u8BA4\u3002`
+        };
+      }
+    }
+  }
+};
+
+// server/application/security/GuardrailPipeline.ts
+var GuardrailPipeline = class {
+  shellAnalyzer;
+  fsAnalyzer;
+  policy;
+  constructor(options) {
+    this.shellAnalyzer = options?.shellAnalyzer ?? new ShellRiskAnalyzer();
+    this.fsAnalyzer = options?.fsAnalyzer ?? new FileSystemRiskAnalyzer();
+    this.policy = options?.policy ?? new RiskPolicy();
+  }
+  assessRisk(action) {
+    if (action.kind === "shell:exec") {
+      return this.shellAnalyzer.analyze(action);
+    }
+    return this.fsAnalyzer.analyze(action);
+  }
+  evaluate(action) {
+    const assessment = this.assessRisk(action);
+    const decision = this.policy.evaluate(action, assessment);
+    return {
+      decision,
+      assessment
+    };
+  }
+};
+
 // server/ws/handlers/sftp.ts
+var defaultGuardrailPipeline = new GuardrailPipeline();
 var handleSftpList = async (msg, conn, deps) => {
   const { requestId, sessionId } = msg;
-  if (deps.localPtyManager.has(sessionId)) {
-    try {
-      const files = deps.localFsManager.list(msg.dirPath);
-      conn.send({ type: "sftp:response", requestId, success: true, data: files });
-    } catch (err) {
-      conn.send({ type: "sftp:response", requestId, success: false, error: errorMessage(err) });
-    }
-    return;
-  }
-  const mockObj = deps.mockSessions.get(sessionId);
-  if (mockObj) {
-    conn.send({
-      type: "sftp:response",
-      requestId,
-      success: true,
-      data: mockObj.fs.list(msg.dirPath)
-    });
-    return;
-  }
   try {
-    const files = await deps.sshManager.sftpList(sessionId, msg.dirPath);
+    const { provider } = deps.sessionManager.getFileSystemProvider(sessionId);
+    const files = await provider.list(sessionId, msg.dirPath);
     conn.send({ type: "sftp:response", requestId, success: true, data: files });
   } catch (err) {
     conn.send({ type: "sftp:response", requestId, success: false, error: errorMessage(err) });
@@ -50735,27 +51787,9 @@ var handleSftpList = async (msg, conn, deps) => {
 };
 var handleSftpRead = async (msg, conn, deps) => {
   const { requestId, sessionId } = msg;
-  if (deps.localPtyManager.has(sessionId)) {
-    try {
-      const content = deps.localFsManager.readFile(msg.filePath);
-      conn.send({ type: "sftp:response", requestId, success: true, data: content });
-    } catch (err) {
-      conn.send({ type: "sftp:response", requestId, success: false, error: errorMessage(err) });
-    }
-    return;
-  }
-  const mockObj = deps.mockSessions.get(sessionId);
-  if (mockObj) {
-    try {
-      const content = mockObj.fs.readFile(msg.filePath);
-      conn.send({ type: "sftp:response", requestId, success: true, data: content });
-    } catch (err) {
-      conn.send({ type: "sftp:response", requestId, success: false, error: errorMessage(err) });
-    }
-    return;
-  }
   try {
-    const content = await deps.sshManager.sftpReadFile(sessionId, msg.filePath);
+    const { provider } = deps.sessionManager.getFileSystemProvider(sessionId);
+    const content = await provider.read(sessionId, msg.filePath);
     conn.send({ type: "sftp:response", requestId, success: true, data: content });
   } catch (err) {
     conn.send({ type: "sftp:response", requestId, success: false, error: errorMessage(err) });
@@ -50763,23 +51797,26 @@ var handleSftpRead = async (msg, conn, deps) => {
 };
 var handleSftpWrite = async (msg, conn, deps) => {
   const { requestId, sessionId } = msg;
-  if (deps.localPtyManager.has(sessionId)) {
-    try {
-      deps.localFsManager.writeFile(msg.filePath, msg.content);
-      conn.send({ type: "sftp:response", requestId, success: true });
-    } catch (err) {
-      conn.send({ type: "sftp:response", requestId, success: false, error: errorMessage(err) });
-    }
-    return;
-  }
-  const mockObj = deps.mockSessions.get(sessionId);
-  if (mockObj) {
-    mockObj.fs.writeFile(msg.filePath, msg.content);
-    conn.send({ type: "sftp:response", requestId, success: true });
-    return;
-  }
   try {
-    await deps.sshManager.sftpWriteFile(sessionId, msg.filePath, msg.content);
+    const { session, provider } = deps.sessionManager.getFileSystemProvider(sessionId);
+    const pipeline = deps.guardrailPipeline ?? defaultGuardrailPipeline;
+    const policy = pipeline.evaluate({
+      kind: "fs:write",
+      sessionId,
+      path: msg.filePath,
+      byteLength: Buffer.byteLength(msg.content || "", "utf-8"),
+      sessionRoot: session.filesystem.rootPath
+    });
+    if (policy.decision === "deny") {
+      conn.send({
+        type: "sftp:response",
+        requestId,
+        success: false,
+        error: policy.assessment.reason || "\u5B89\u5168\u7B56\u7565\u62D2\u7EDD\u8986\u5199\u53D7\u4FDD\u62A4\u6587\u4EF6"
+      });
+      return;
+    }
+    await provider.write(sessionId, msg.filePath, msg.content);
     conn.send({ type: "sftp:response", requestId, success: true });
   } catch (err) {
     conn.send({ type: "sftp:response", requestId, success: false, error: errorMessage(err) });
@@ -50787,23 +51824,26 @@ var handleSftpWrite = async (msg, conn, deps) => {
 };
 var handleSftpDelete = async (msg, conn, deps) => {
   const { requestId, sessionId } = msg;
-  if (deps.localPtyManager.has(sessionId)) {
-    try {
-      deps.localFsManager.delete(msg.targetPath, msg.isDirectory);
-      conn.send({ type: "sftp:response", requestId, success: true });
-    } catch (err) {
-      conn.send({ type: "sftp:response", requestId, success: false, error: errorMessage(err) });
-    }
-    return;
-  }
-  const mockObj = deps.mockSessions.get(sessionId);
-  if (mockObj) {
-    mockObj.fs.delete(msg.targetPath);
-    conn.send({ type: "sftp:response", requestId, success: true });
-    return;
-  }
   try {
-    await deps.sshManager.sftpDelete(sessionId, msg.targetPath, msg.isDirectory);
+    const { session, provider } = deps.sessionManager.getFileSystemProvider(sessionId);
+    const pipeline = deps.guardrailPipeline ?? defaultGuardrailPipeline;
+    const policy = pipeline.evaluate({
+      kind: "fs:delete",
+      sessionId,
+      path: msg.targetPath,
+      isDirectory: msg.isDirectory,
+      sessionRoot: session.filesystem.rootPath
+    });
+    if (policy.decision === "deny") {
+      conn.send({
+        type: "sftp:response",
+        requestId,
+        success: false,
+        error: policy.assessment.reason || "\u5B89\u5168\u7B56\u7565\u62D2\u7EDD\u5220\u9664\u53D7\u4FDD\u62A4\u8DEF\u5F84"
+      });
+      return;
+    }
+    await provider.delete(sessionId, msg.targetPath, msg.isDirectory);
     conn.send({ type: "sftp:response", requestId, success: true });
   } catch (err) {
     conn.send({ type: "sftp:response", requestId, success: false, error: errorMessage(err) });
@@ -50811,23 +51851,26 @@ var handleSftpDelete = async (msg, conn, deps) => {
 };
 var handleSftpRename = async (msg, conn, deps) => {
   const { requestId, sessionId } = msg;
-  if (deps.localPtyManager.has(sessionId)) {
-    try {
-      deps.localFsManager.rename(msg.oldPath, msg.newPath);
-      conn.send({ type: "sftp:response", requestId, success: true });
-    } catch (err) {
-      conn.send({ type: "sftp:response", requestId, success: false, error: errorMessage(err) });
-    }
-    return;
-  }
-  const mockObj = deps.mockSessions.get(sessionId);
-  if (mockObj) {
-    mockObj.fs.rename(msg.oldPath, msg.newPath);
-    conn.send({ type: "sftp:response", requestId, success: true });
-    return;
-  }
   try {
-    await deps.sshManager.sftpRename(sessionId, msg.oldPath, msg.newPath);
+    const { session, provider } = deps.sessionManager.getFileSystemProvider(sessionId);
+    const pipeline = deps.guardrailPipeline ?? defaultGuardrailPipeline;
+    const policy = pipeline.evaluate({
+      kind: "fs:rename",
+      sessionId,
+      oldPath: msg.oldPath,
+      newPath: msg.newPath,
+      sessionRoot: session.filesystem.rootPath
+    });
+    if (policy.decision === "deny") {
+      conn.send({
+        type: "sftp:response",
+        requestId,
+        success: false,
+        error: policy.assessment.reason || "\u5B89\u5168\u7B56\u7565\u62D2\u7EDD\u79FB\u52A8\u6216\u91CD\u547D\u540D\u53D7\u4FDD\u62A4\u8DEF\u5F84"
+      });
+      return;
+    }
+    await provider.rename(sessionId, msg.oldPath, msg.newPath);
     conn.send({ type: "sftp:response", requestId, success: true });
   } catch (err) {
     conn.send({ type: "sftp:response", requestId, success: false, error: errorMessage(err) });
@@ -50835,23 +51878,27 @@ var handleSftpRename = async (msg, conn, deps) => {
 };
 var handleSftpChmod = async (msg, conn, deps) => {
   const { requestId, sessionId } = msg;
-  if (deps.localPtyManager.has(sessionId)) {
-    try {
-      deps.localFsManager.chmod(msg.targetPath, msg.mode);
-      conn.send({ type: "sftp:response", requestId, success: true });
-    } catch (err) {
-      conn.send({ type: "sftp:response", requestId, success: false, error: errorMessage(err) });
-    }
-    return;
-  }
-  const mockObj = deps.mockSessions.get(sessionId);
-  if (mockObj) {
-    mockObj.fs.chmod(msg.targetPath, msg.mode);
-    conn.send({ type: "sftp:response", requestId, success: true });
-    return;
-  }
   try {
-    await deps.sshManager.sftpChmod(sessionId, msg.targetPath, msg.mode);
+    const { session, provider } = deps.sessionManager.getFileSystemProvider(sessionId);
+    const numMode = parseInt(msg.mode, 8);
+    const pipeline = deps.guardrailPipeline ?? defaultGuardrailPipeline;
+    const policy = pipeline.evaluate({
+      kind: "fs:chmod",
+      sessionId,
+      path: msg.targetPath,
+      mode: numMode,
+      sessionRoot: session.filesystem.rootPath
+    });
+    if (policy.decision === "deny") {
+      conn.send({
+        type: "sftp:response",
+        requestId,
+        success: false,
+        error: policy.assessment.reason || "\u5B89\u5168\u7B56\u7565\u62D2\u7EDD\u4FEE\u6539\u53D7\u4FDD\u62A4\u8DEF\u5F84\u6743\u9650"
+      });
+      return;
+    }
+    await provider.chmod(sessionId, msg.targetPath, numMode);
     conn.send({ type: "sftp:response", requestId, success: true });
   } catch (err) {
     conn.send({ type: "sftp:response", requestId, success: false, error: errorMessage(err) });
@@ -50859,23 +51906,25 @@ var handleSftpChmod = async (msg, conn, deps) => {
 };
 var handleSftpMkdir = async (msg, conn, deps) => {
   const { requestId, sessionId } = msg;
-  if (deps.localPtyManager.has(sessionId)) {
-    try {
-      deps.localFsManager.mkdir(msg.dirPath);
-      conn.send({ type: "sftp:response", requestId, success: true });
-    } catch (err) {
-      conn.send({ type: "sftp:response", requestId, success: false, error: errorMessage(err) });
-    }
-    return;
-  }
-  const mockObj = deps.mockSessions.get(sessionId);
-  if (mockObj) {
-    mockObj.fs.mkdir(msg.dirPath);
-    conn.send({ type: "sftp:response", requestId, success: true });
-    return;
-  }
   try {
-    await deps.sshManager.sftpMkdir(sessionId, msg.dirPath);
+    const { session, provider } = deps.sessionManager.getFileSystemProvider(sessionId);
+    const pipeline = deps.guardrailPipeline ?? defaultGuardrailPipeline;
+    const policy = pipeline.evaluate({
+      kind: "fs:mkdir",
+      sessionId,
+      path: msg.dirPath,
+      sessionRoot: session.filesystem.rootPath
+    });
+    if (policy.decision === "deny") {
+      conn.send({
+        type: "sftp:response",
+        requestId,
+        success: false,
+        error: policy.assessment.reason || "\u5B89\u5168\u7B56\u7565\u62D2\u7EDD\u5728\u8BE5\u53D7\u4FDD\u62A4\u8DEF\u5F84\u521B\u5EFA\u76EE\u5F55"
+      });
+      return;
+    }
+    await provider.mkdir(sessionId, msg.dirPath);
     conn.send({ type: "sftp:response", requestId, success: true });
   } catch (err) {
     conn.send({ type: "sftp:response", requestId, success: false, error: errorMessage(err) });
@@ -50893,6 +51942,115 @@ var handleAiChat = async (msg, conn, deps) => {
   });
 };
 
+// server/ws/handlers/agent.ts
+function toPlanPayload(plan) {
+  return {
+    id: plan.id,
+    sessionId: plan.sessionId,
+    goal: plan.goal,
+    status: plan.status,
+    steps: plan.steps.map((s) => ({
+      id: s.id,
+      title: s.title,
+      description: s.description,
+      toolName: s.toolName,
+      input: s.input,
+      status: s.status,
+      outputSummary: s.outputSummary,
+      error: s.error,
+      approvalId: s.approvalId
+    })),
+    createdAt: plan.createdAt,
+    updatedAt: plan.updatedAt,
+    summary: plan.summary
+  };
+}
+function toApprovalPayload(req) {
+  return {
+    id: req.id,
+    sessionId: req.sessionId,
+    planId: req.planId,
+    stepId: req.stepId,
+    toolName: req.toolName,
+    action: req.action,
+    assessment: {
+      level: req.assessment.level,
+      reason: req.assessment.reason,
+      matchedRule: req.assessment.matchedRule
+    },
+    status: req.status,
+    createdAt: req.createdAt,
+    expiresAt: req.expiresAt,
+    resolvedAt: req.resolvedAt,
+    reason: req.reason
+  };
+}
+var handleAgentRun = async (msg, conn, deps) => {
+  if (!deps.agentRuntime) return;
+  const pushTimeline = () => {
+    if (!deps.timelineService) return;
+    conn.send({
+      type: "agent:timeline",
+      sessionId: msg.sessionId,
+      entries: deps.timelineService.getTimeline(msg.sessionId)
+    });
+  };
+  await deps.agentRuntime.runPlan(msg.sessionId, msg.goal, {
+    onPlanUpdate: (plan) => {
+      conn.send({
+        type: "agent:plan",
+        sessionId: msg.sessionId,
+        plan: toPlanPayload(plan)
+      });
+      pushTimeline();
+    },
+    onApprovalRequest: (req) => {
+      conn.send({
+        type: "agent:approval_request",
+        sessionId: msg.sessionId,
+        approval: toApprovalPayload(req)
+      });
+    }
+  });
+  pushTimeline();
+};
+var handleAgentApprove = (msg, conn, deps) => {
+  if (!deps.approvalManager) return;
+  const ok = deps.approvalManager.approve(msg.approvalId);
+  if (ok) {
+    conn.send({
+      type: "agent:approval_resolved",
+      sessionId: msg.sessionId,
+      approvalId: msg.approvalId,
+      status: "approved"
+    });
+  }
+};
+var handleAgentReject = (msg, conn, deps) => {
+  if (!deps.approvalManager) return;
+  const ok = deps.approvalManager.reject(msg.approvalId, msg.reason);
+  if (ok) {
+    conn.send({
+      type: "agent:approval_resolved",
+      sessionId: msg.sessionId,
+      approvalId: msg.approvalId,
+      status: "rejected",
+      reason: msg.reason
+    });
+  }
+};
+var handleAgentCancel = (msg, conn, deps) => {
+  if (!deps.agentRuntime) return;
+  const plan = deps.agentRuntime.cancel(msg.sessionId);
+  if (plan) {
+    conn.send({
+      type: "agent:plan",
+      sessionId: msg.sessionId,
+      plan: toPlanPayload(plan)
+    });
+  }
+};
+
 // server/ws/handlers/index.ts
 var wsHandlers = {
   ping: handlePing,
@@ -50900,6 +52058,7 @@ var wsHandlers = {
   "term:input": handleTermInput,
   "term:resize": handleTermResize,
   "term:close": handleTermClose,
+  "term:cmd_event": handleTermCmdEvent,
   "sftp:list": handleSftpList,
   "sftp:read": handleSftpRead,
   "sftp:write": handleSftpWrite,
@@ -50907,7 +52066,11 @@ var wsHandlers = {
   "sftp:rename": handleSftpRename,
   "sftp:chmod": handleSftpChmod,
   "sftp:mkdir": handleSftpMkdir,
-  "ai:chat": handleAiChat
+  "ai:chat": handleAiChat,
+  "agent:run": handleAgentRun,
+  "agent:approve": handleAgentApprove,
+  "agent:reject": handleAgentReject,
+  "agent:cancel": handleAgentCancel
 };
 async function dispatchWsMessage(msg, conn, deps) {
   const handler = wsHandlers[msg.type];
@@ -50917,6 +52080,3144 @@ async function dispatchWsMessage(msg, conn, deps) {
   }
   await handler(msg, conn, deps);
 }
+
+// server/application/session/DefaultSessionManager.ts
+function resolveSessionType(authType) {
+  if (authType === "local") return "local";
+  if (authType === "mock") return "mock";
+  return "ssh";
+}
+function toHostRef(host) {
+  return {
+    id: host.id,
+    name: host.name,
+    host: host.host,
+    port: host.port,
+    username: host.username,
+    authType: host.authType,
+    initialDir: host.initialDir
+  };
+}
+var DefaultSessionManager = class {
+  sessions = /* @__PURE__ */ new Map();
+  connectionSenders = /* @__PURE__ */ new Map();
+  detachTimers = /* @__PURE__ */ new Map();
+  providerUnsubs = [];
+  terminalProviders;
+  fileSystemProviders;
+  detachGracePeriodMs;
+  hooks;
+  constructor(options) {
+    this.terminalProviders = options.terminalProviders;
+    this.fileSystemProviders = options.fileSystemProviders;
+    this.detachGracePeriodMs = options.detachGracePeriodMs ?? 10 * 60 * 1e3;
+    this.hooks = options.hooks;
+    const types = ["local", "ssh", "mock"];
+    for (const type of types) {
+      const provider = this.terminalProviders[type];
+      if (!provider) continue;
+      this.providerUnsubs.push(
+        provider.onData((sessionId, data) => {
+          const session = this.sessions.get(sessionId);
+          if (session) {
+            session.lastActiveAt = Date.now();
+          }
+          this.hooks?.onTerminalData?.(sessionId, data);
+          this.broadcastToSession(sessionId, { type: "term:data", sessionId, data });
+        }),
+        provider.onExit((sessionId, exitCode) => {
+          this.hooks?.onTerminalExit?.(sessionId, exitCode);
+          this.broadcastToSession(sessionId, { type: "term:close", sessionId });
+          const session = this.sessions.get(sessionId);
+          this.clearDetachTimer(sessionId);
+          this.connectionSenders.delete(sessionId);
+          if (session) {
+            session.status = "closed";
+            session.attachedConnections.clear();
+            this.sessions.delete(sessionId);
+            this.hooks?.onSessionDisconnected?.(session, "closed");
+          }
+        }),
+        provider.onError((sessionId, error) => {
+          const session = this.sessions.get(sessionId);
+          if (session) {
+            session.status = "error";
+          }
+          this.broadcastToSession(sessionId, {
+            type: "term:error",
+            sessionId,
+            message: error.message
+          });
+        })
+      );
+    }
+  }
+  broadcastToSession(sessionId, msg) {
+    const senders = this.connectionSenders.get(sessionId);
+    if (!senders) return;
+    for (const send of senders.values()) {
+      send(msg);
+    }
+  }
+  clearDetachTimer(sessionId) {
+    const timer = this.detachTimers.get(sessionId);
+    if (timer) {
+      clearTimeout(timer);
+      this.detachTimers.delete(sessionId);
+    }
+  }
+  async create(request) {
+    const { id, host, cols, rows, credentials } = request;
+    const existing = this.sessions.get(id);
+    if (existing && existing.status !== "closed") {
+      await this.close(id);
+    }
+    const type = resolveSessionType(host.authType);
+    const provider = this.terminalProviders[type];
+    if (!provider) {
+      throw new Error(`\u4E0D\u652F\u6301\u7684\u4F1A\u8BDD\u7C7B\u578B: ${type}`);
+    }
+    const now = Date.now();
+    const initialDir = host.initialDir || (type === "local" ? "~" : "/root");
+    const session = {
+      id,
+      type,
+      status: "creating",
+      host: toHostRef(host),
+      terminal: {
+        id,
+        providerType: type,
+        cols,
+        rows,
+        cwd: initialDir
+      },
+      filesystem: {
+        id,
+        providerType: type,
+        rootPath: initialDir,
+        ready: false
+      },
+      attachedConnections: /* @__PURE__ */ new Set(),
+      createdAt: now,
+      lastActiveAt: now
+    };
+    this.sessions.set(id, session);
+    try {
+      const handle = await provider.create({
+        sessionId: id,
+        host,
+        cols,
+        rows,
+        cwd: host.initialDir,
+        credentials
+      });
+      session.status = "active";
+      session.terminal.cwd = handle.initialCwd;
+      session.terminal.shell = handle.shellCommand;
+      session.filesystem.rootPath = handle.initialCwd;
+      session.filesystem.ready = true;
+      session.lastActiveAt = Date.now();
+      this.hooks?.onSessionConnected?.(session);
+      return session;
+    } catch (err) {
+      this.sessions.delete(id);
+      this.connectionSenders.delete(id);
+      throw err;
+    }
+  }
+  async getOrCreate(request) {
+    const existing = this.sessions.get(request.id);
+    if (existing && (existing.status === "active" || existing.status === "detached")) {
+      this.clearDetachTimer(request.id);
+      existing.status = "active";
+      existing.lastActiveAt = Date.now();
+      if (request.cols > 0 && request.rows > 0) {
+        this.resizeTerminal(request.id, request.cols, request.rows);
+      }
+      return existing;
+    }
+    return this.create(request);
+  }
+  get(id) {
+    const session = this.sessions.get(id);
+    if (!session || session.status === "closed") {
+      return void 0;
+    }
+    return session;
+  }
+  attach(id, connectionId, send) {
+    const session = this.sessions.get(id);
+    if (!session || session.status === "closed") {
+      return;
+    }
+    this.clearDetachTimer(id);
+    session.attachedConnections.add(connectionId);
+    session.status = "active";
+    session.lastActiveAt = Date.now();
+    if (send) {
+      let senders = this.connectionSenders.get(id);
+      if (!senders) {
+        senders = /* @__PURE__ */ new Map();
+        this.connectionSenders.set(id, senders);
+      }
+      senders.set(connectionId, send);
+    }
+  }
+  detach(id, connectionId) {
+    const session = this.sessions.get(id);
+    if (!session) {
+      return;
+    }
+    session.attachedConnections.delete(connectionId);
+    const senders = this.connectionSenders.get(id);
+    if (senders) {
+      senders.delete(connectionId);
+      if (senders.size === 0) {
+        this.connectionSenders.delete(id);
+      }
+    }
+    if (session.attachedConnections.size === 0 && session.status !== "closed") {
+      session.status = "detached";
+      session.lastActiveAt = Date.now();
+      this.hooks?.onSessionDisconnected?.(session, "detached");
+      this.clearDetachTimer(id);
+      if (this.detachGracePeriodMs <= 0) {
+        void this.close(id);
+      } else {
+        const timer = setTimeout(() => {
+          this.detachTimers.delete(id);
+          const current = this.sessions.get(id);
+          if (current && current.status === "detached" && current.attachedConnections.size === 0) {
+            void this.close(id);
+          }
+        }, this.detachGracePeriodMs);
+        timer.unref?.();
+        this.detachTimers.set(id, timer);
+      }
+    }
+  }
+  async close(id) {
+    this.clearDetachTimer(id);
+    const session = this.sessions.get(id);
+    this.connectionSenders.delete(id);
+    if (!session) {
+      return;
+    }
+    session.status = "closed";
+    session.attachedConnections.clear();
+    this.sessions.delete(id);
+    const provider = this.terminalProviders[session.type];
+    if (provider) {
+      await provider.kill(id);
+    }
+    this.hooks?.onSessionDisconnected?.(session, "closed");
+  }
+  list() {
+    return Array.from(this.sessions.values()).filter((s) => s.status !== "closed");
+  }
+  writeTerminal(id, data) {
+    const session = this.get(id);
+    if (!session || session.status === "error") {
+      return false;
+    }
+    session.lastActiveAt = Date.now();
+    const provider = this.terminalProviders[session.type];
+    return provider ? provider.write(id, data) : false;
+  }
+  resizeTerminal(id, cols, rows) {
+    const session = this.get(id);
+    if (!session || session.status === "error") {
+      return false;
+    }
+    session.terminal.cols = cols;
+    session.terminal.rows = rows;
+    session.lastActiveAt = Date.now();
+    const provider = this.terminalProviders[session.type];
+    if (!provider) {
+      return false;
+    }
+    provider.resize(id, cols, rows);
+    return true;
+  }
+  updateCwd(id, cwd) {
+    const session = this.get(id);
+    if (session && cwd) {
+      session.terminal.cwd = cwd;
+      session.lastActiveAt = Date.now();
+    }
+  }
+  getFileSystemProvider(sessionId) {
+    const session = this.get(sessionId);
+    if (!session) {
+      throw new Error(`\u4F1A\u8BDD\u4E0D\u5B58\u5728\u6216\u5DF2\u5173\u95ED (sessionId: "${sessionId}")`);
+    }
+    const provider = this.fileSystemProviders[session.type];
+    if (!provider) {
+      throw new Error(`\u4E0D\u652F\u6301\u7684\u6587\u4EF6\u7CFB\u7EDF\u4F1A\u8BDD\u7C7B\u578B: ${session.type}`);
+    }
+    return { session, provider };
+  }
+  dispose() {
+    for (const id of this.detachTimers.keys()) {
+      this.clearDetachTimer(id);
+    }
+    for (const unsub of this.providerUnsubs) {
+      unsub();
+    }
+    this.providerUnsubs.length = 0;
+  }
+};
+
+// server/infrastructure/terminal/LocalTerminalProvider.ts
+var LocalTerminalProvider = class {
+  constructor(ptyManager) {
+    this.ptyManager = ptyManager;
+  }
+  ptyManager;
+  type = "local";
+  dataListeners = /* @__PURE__ */ new Set();
+  exitListeners = /* @__PURE__ */ new Set();
+  errorListeners = /* @__PURE__ */ new Set();
+  boundSessions = /* @__PURE__ */ new Map();
+  async create(options) {
+    const { sessionId, cols, rows, cwd, host } = options;
+    try {
+      const ptySession = this.ptyManager.createSession(
+        sessionId,
+        cols,
+        rows,
+        cwd ?? host.initialDir
+      );
+      this.bindSessionEventsOnce(sessionId, ptySession.events);
+      return {
+        id: sessionId,
+        initialCwd: ptySession.initialCwd,
+        shellCommand: ptySession.shellCommand
+      };
+    } catch (err) {
+      const error = toError(err);
+      this.emitError(sessionId, error);
+      throw error;
+    }
+  }
+  bindSessionEventsOnce(sessionId, events) {
+    if (this.boundSessions.has(sessionId)) {
+      return;
+    }
+    const onData = (data) => {
+      const text = typeof data === "string" ? data : String(data ?? "");
+      for (const listener of this.dataListeners) {
+        listener(sessionId, text);
+      }
+    };
+    const onExit = (code) => {
+      const exitCode = typeof code === "number" ? code : void 0;
+      this.unbindSessionEvents(sessionId);
+      for (const listener of this.exitListeners) {
+        listener(sessionId, exitCode);
+      }
+    };
+    const onError = (err) => {
+      this.emitError(sessionId, toError(err));
+    };
+    events.on("data", onData);
+    events.on("exit", onExit);
+    events.on("error", onError);
+    this.boundSessions.set(sessionId, () => {
+      const remove = events.off?.bind(events) ?? events.removeListener?.bind(events);
+      if (remove) {
+        remove("data", onData);
+        remove("exit", onExit);
+        remove("error", onError);
+      }
+    });
+  }
+  unbindSessionEvents(sessionId) {
+    const cleanup = this.boundSessions.get(sessionId);
+    if (cleanup) {
+      this.boundSessions.delete(sessionId);
+      cleanup();
+    }
+  }
+  emitError(sessionId, error) {
+    for (const listener of this.errorListeners) {
+      listener(sessionId, error);
+    }
+  }
+  write(id, data) {
+    if (!this.ptyManager.has(id)) {
+      return false;
+    }
+    this.ptyManager.write(id, data);
+    return true;
+  }
+  resize(id, cols, rows) {
+    if (!this.ptyManager.has(id)) {
+      return;
+    }
+    this.ptyManager.resize(id, cols, rows);
+  }
+  async kill(id, _signal) {
+    this.unbindSessionEvents(id);
+    this.ptyManager.closeSession(id);
+  }
+  onData(listener) {
+    this.dataListeners.add(listener);
+    return () => {
+      this.dataListeners.delete(listener);
+    };
+  }
+  onExit(listener) {
+    this.exitListeners.add(listener);
+    return () => {
+      this.exitListeners.delete(listener);
+    };
+  }
+  onError(listener) {
+    this.errorListeners.add(listener);
+    return () => {
+      this.errorListeners.delete(listener);
+    };
+  }
+};
+
+// server/infrastructure/terminal/SshTerminalProvider.ts
+var SshTerminalProvider = class {
+  constructor(sshManager2) {
+    this.sshManager = sshManager2;
+  }
+  sshManager;
+  type = "ssh";
+  dataListeners = /* @__PURE__ */ new Set();
+  exitListeners = /* @__PURE__ */ new Set();
+  errorListeners = /* @__PURE__ */ new Set();
+  boundSessions = /* @__PURE__ */ new Map();
+  async create(options) {
+    const { sessionId, host, cols, rows, cwd, credentials } = options;
+    this.unbindSessionEvents(sessionId);
+    const sshSession = await this.sshManager.createSession(
+      sessionId,
+      host,
+      credentials?.password,
+      credentials?.passphrase,
+      credentials?.privateKey
+    );
+    if (cols > 0 && rows > 0) {
+      this.sshManager.resize(sessionId, cols, rows);
+    }
+    this.bindSessionEventsOnce(sessionId, sshSession.events);
+    return {
+      id: sessionId,
+      initialCwd: cwd || host.initialDir || "/root"
+    };
+  }
+  bindSessionEventsOnce(sessionId, events) {
+    if (this.boundSessions.has(sessionId)) {
+      return;
+    }
+    const onData = (data) => {
+      const text = typeof data === "string" ? data : String(data ?? "");
+      for (const listener of this.dataListeners) {
+        listener(sessionId, text);
+      }
+    };
+    const onClose = () => {
+      this.unbindSessionEvents(sessionId);
+      for (const listener of this.exitListeners) {
+        listener(sessionId);
+      }
+    };
+    const onError = (err) => {
+      const error = toError(err);
+      for (const listener of this.errorListeners) {
+        listener(sessionId, error);
+      }
+    };
+    events.on("data", onData);
+    events.on("close", onClose);
+    events.on("error", onError);
+    this.boundSessions.set(sessionId, () => {
+      const remove = events.off?.bind(events) ?? events.removeListener?.bind(events);
+      if (remove) {
+        remove("data", onData);
+        remove("close", onClose);
+        remove("error", onError);
+      }
+    });
+  }
+  unbindSessionEvents(sessionId) {
+    const cleanup = this.boundSessions.get(sessionId);
+    if (cleanup) {
+      this.boundSessions.delete(sessionId);
+      cleanup();
+    }
+  }
+  write(id, data) {
+    return this.sshManager.writeToShell(id, data);
+  }
+  resize(id, cols, rows) {
+    this.sshManager.resize(id, cols, rows);
+  }
+  async kill(id, _signal) {
+    this.unbindSessionEvents(id);
+    this.sshManager.closeSession(id);
+  }
+  onData(listener) {
+    this.dataListeners.add(listener);
+    return () => {
+      this.dataListeners.delete(listener);
+    };
+  }
+  onExit(listener) {
+    this.exitListeners.add(listener);
+    return () => {
+      this.exitListeners.delete(listener);
+    };
+  }
+  onError(listener) {
+    this.errorListeners.add(listener);
+    return () => {
+      this.errorListeners.delete(listener);
+    };
+  }
+};
+
+// server/infrastructure/terminal/MockTerminalProvider.ts
+var MockTerminalProvider = class {
+  constructor(mockSessions, createMockSession) {
+    this.mockSessions = mockSessions;
+    this.createMockSession = createMockSession;
+  }
+  mockSessions;
+  createMockSession;
+  type = "mock";
+  dataListeners = /* @__PURE__ */ new Set();
+  exitListeners = /* @__PURE__ */ new Set();
+  errorListeners = /* @__PURE__ */ new Set();
+  boundSessions = /* @__PURE__ */ new Map();
+  async create(options) {
+    const { sessionId, cols, rows } = options;
+    let entry = this.mockSessions.get(sessionId);
+    const isNew = !entry;
+    if (!entry) {
+      entry = this.createMockSession(sessionId);
+      this.mockSessions.set(sessionId, entry);
+    }
+    this.bindSessionEventsOnce(sessionId, entry.term);
+    if (isNew) {
+      entry.term.init();
+    }
+    if (cols > 0 && rows > 0) {
+      entry.term.resize(cols, rows);
+    }
+    return {
+      id: sessionId,
+      initialCwd: entry.term.getCurrentDir(),
+      shellCommand: "/bin/bash"
+    };
+  }
+  bindSessionEventsOnce(sessionId, term) {
+    if (this.boundSessions.has(sessionId)) {
+      return;
+    }
+    const onData = (data) => {
+      const text = typeof data === "string" ? data : String(data ?? "");
+      for (const listener of this.dataListeners) {
+        listener(sessionId, text);
+      }
+    };
+    const onExit = (code) => {
+      const exitCode = typeof code === "number" ? code : void 0;
+      this.unbindSessionEvents(sessionId);
+      for (const listener of this.exitListeners) {
+        listener(sessionId, exitCode);
+      }
+    };
+    const onError = (err) => {
+      const error = toError(err);
+      for (const listener of this.errorListeners) {
+        listener(sessionId, error);
+      }
+    };
+    term.on("data", onData);
+    term.on("exit", onExit);
+    term.on("error", onError);
+    this.boundSessions.set(sessionId, () => {
+      const remove = term.off?.bind(term) ?? term.removeListener?.bind(term);
+      if (remove) {
+        remove("data", onData);
+        remove("exit", onExit);
+        remove("error", onError);
+      }
+    });
+  }
+  unbindSessionEvents(sessionId) {
+    const cleanup = this.boundSessions.get(sessionId);
+    if (cleanup) {
+      this.boundSessions.delete(sessionId);
+      cleanup();
+    }
+  }
+  write(id, data) {
+    const entry = this.mockSessions.get(id);
+    if (!entry) {
+      return false;
+    }
+    entry.term.write(data);
+    return true;
+  }
+  resize(id, cols, rows) {
+    const entry = this.mockSessions.get(id);
+    if (!entry) {
+      return;
+    }
+    entry.term.resize(cols, rows);
+  }
+  async kill(id, _signal) {
+    this.unbindSessionEvents(id);
+    this.mockSessions.delete(id);
+  }
+  onData(listener) {
+    this.dataListeners.add(listener);
+    return () => {
+      this.dataListeners.delete(listener);
+    };
+  }
+  onExit(listener) {
+    this.exitListeners.add(listener);
+    return () => {
+      this.exitListeners.delete(listener);
+    };
+  }
+  onError(listener) {
+    this.errorListeners.add(listener);
+    return () => {
+      this.errorListeners.delete(listener);
+    };
+  }
+};
+
+// server/infrastructure/filesystem/LocalFileSystemProvider.ts
+var import_path7 = __toESM(require("path"), 1);
+var LocalFileSystemProvider = class {
+  constructor(localFsManager2) {
+    this.localFsManager = localFsManager2;
+  }
+  localFsManager;
+  type = "local";
+  async list(_sessionId, dirPath) {
+    return this.localFsManager.list(dirPath);
+  }
+  async stat(_sessionId, targetPath) {
+    if (typeof this.localFsManager.stat === "function") {
+      const item = this.localFsManager.stat(targetPath);
+      return {
+        path: item.path,
+        isDirectory: item.isDirectory,
+        size: item.size,
+        modifyTime: item.modifyTime,
+        permissions: item.permissions
+      };
+    }
+    const parentDir = import_path7.default.dirname(targetPath);
+    const baseName = import_path7.default.basename(targetPath);
+    const entries = this.localFsManager.list(parentDir);
+    const found = entries.find((e) => e.name === baseName || e.path === targetPath);
+    if (!found) {
+      throw new Error(`\u6587\u4EF6\u4E0D\u5B58\u5728: ${targetPath}`);
+    }
+    return {
+      path: found.path,
+      isDirectory: found.isDirectory,
+      size: found.size,
+      modifyTime: found.modifyTime,
+      permissions: found.permissions
+    };
+  }
+  async read(_sessionId, filePath, _options) {
+    return this.localFsManager.readFile(filePath);
+  }
+  async write(_sessionId, filePath, content) {
+    this.localFsManager.writeFile(filePath, content);
+  }
+  async mkdir(_sessionId, dirPath) {
+    this.localFsManager.mkdir(dirPath);
+  }
+  async delete(_sessionId, targetPath, isDirectory) {
+    this.localFsManager.delete(targetPath, isDirectory);
+  }
+  async rename(_sessionId, from, to) {
+    this.localFsManager.rename(from, to);
+  }
+  async chmod(_sessionId, targetPath, mode) {
+    const modeOctal = mode.toString(8).padStart(4, "0");
+    this.localFsManager.chmod(targetPath, modeOctal);
+  }
+};
+
+// server/infrastructure/filesystem/SftpFileSystemProvider.ts
+var SftpFileSystemProvider = class {
+  constructor(sshManager2) {
+    this.sshManager = sshManager2;
+  }
+  sshManager;
+  type = "ssh";
+  async list(sessionId, dirPath) {
+    return this.sshManager.sftpList(sessionId, dirPath);
+  }
+  async stat(sessionId, targetPath) {
+    const clean = targetPath.replace(/\/+$/, "") || "/";
+    if (clean === "/") {
+      return {
+        path: "/",
+        isDirectory: true,
+        size: 4096,
+        modifyTime: Date.now(),
+        permissions: "0755"
+      };
+    }
+    const lastSlash = clean.lastIndexOf("/");
+    const parentDir = lastSlash <= 0 ? "/" : clean.slice(0, lastSlash);
+    const baseName = clean.slice(lastSlash + 1);
+    const list = await this.sshManager.sftpList(sessionId, parentDir);
+    const found = list.find((item) => item.name === baseName || item.path === clean);
+    if (!found) {
+      throw new Error(`\u8FDC\u7AEF\u8DEF\u5F84\u4E0D\u5B58\u5728: ${targetPath}`);
+    }
+    return {
+      path: found.path,
+      isDirectory: found.isDirectory,
+      size: found.size,
+      modifyTime: found.modifyTime,
+      permissions: found.permissions
+    };
+  }
+  async read(sessionId, filePath, _options) {
+    return this.sshManager.sftpReadFile(sessionId, filePath);
+  }
+  async write(sessionId, filePath, content) {
+    await this.sshManager.sftpWriteFile(sessionId, filePath, content);
+  }
+  async mkdir(sessionId, dirPath) {
+    await this.sshManager.sftpMkdir(sessionId, dirPath);
+  }
+  async delete(sessionId, targetPath, isDirectory) {
+    await this.sshManager.sftpDelete(sessionId, targetPath, isDirectory);
+  }
+  async rename(sessionId, from, to) {
+    await this.sshManager.sftpRename(sessionId, from, to);
+  }
+  async chmod(sessionId, targetPath, mode) {
+    const modeOctal = mode.toString(8);
+    await this.sshManager.sftpChmod(sessionId, targetPath, modeOctal);
+  }
+};
+
+// server/infrastructure/filesystem/MockFileSystemProvider.ts
+var MockFileSystemProvider = class {
+  constructor(mockSessions) {
+    this.mockSessions = mockSessions;
+  }
+  mockSessions;
+  type = "mock";
+  getFs(sessionId) {
+    const entry = this.mockSessions.get(sessionId);
+    if (!entry) {
+      throw new Error(`\u4EFF\u771F\u4F1A\u8BDD\u4E0D\u5B58\u5728: ${sessionId}`);
+    }
+    return entry.fs;
+  }
+  async list(sessionId, dirPath) {
+    return this.getFs(sessionId).list(dirPath);
+  }
+  async stat(sessionId, targetPath) {
+    const fs7 = this.getFs(sessionId);
+    const clean = targetPath.replace(/\/+$/, "") || "/";
+    if (clean === "/") {
+      return {
+        path: "/",
+        isDirectory: true,
+        size: 4096,
+        modifyTime: Date.now(),
+        permissions: "0755"
+      };
+    }
+    const lastSlash = clean.lastIndexOf("/");
+    const parentDir = lastSlash <= 0 ? "/" : clean.slice(0, lastSlash);
+    const baseName = clean.slice(lastSlash + 1);
+    const items = fs7.list(parentDir);
+    const found = items.find((i) => i.name === baseName || i.path === clean);
+    if (!found) {
+      throw new Error(`\u6587\u4EF6\u4E0D\u5B58\u5728: ${targetPath}`);
+    }
+    return {
+      path: found.path,
+      isDirectory: found.isDirectory,
+      size: found.size,
+      modifyTime: found.modifyTime,
+      permissions: found.permissions
+    };
+  }
+  async read(sessionId, filePath, _options) {
+    return this.getFs(sessionId).readFile(filePath);
+  }
+  async write(sessionId, filePath, content) {
+    this.getFs(sessionId).writeFile(filePath, content);
+  }
+  async mkdir(sessionId, dirPath) {
+    this.getFs(sessionId).mkdir(dirPath);
+  }
+  async delete(sessionId, targetPath, _isDirectory) {
+    this.getFs(sessionId).delete(targetPath);
+  }
+  async rename(sessionId, from, to) {
+    this.getFs(sessionId).rename(from, to);
+  }
+  async chmod(sessionId, targetPath, mode) {
+    const modeOctal = "0" + (mode & 511).toString(8).padStart(3, "0");
+    this.getFs(sessionId).chmod(targetPath, modeOctal);
+  }
+};
+
+// server/infrastructure/filesystem/EventEmittingFsProvider.ts
+var EventEmittingFsProvider = class {
+  constructor(inner, eventBus) {
+    this.inner = inner;
+    this.eventBus = eventBus;
+    this.type = inner.type;
+  }
+  inner;
+  eventBus;
+  type;
+  async list(sessionId, path11) {
+    return this.inner.list(sessionId, path11);
+  }
+  async stat(sessionId, path11) {
+    return this.inner.stat(sessionId, path11);
+  }
+  async read(sessionId, path11, options) {
+    const content = await this.inner.read(sessionId, path11, options);
+    if (!options?.internal) {
+      this.eventBus.publish({
+        type: "file:opened",
+        sessionId,
+        path: path11,
+        timestamp: Date.now()
+      });
+    }
+    return content;
+  }
+  async write(sessionId, path11, content) {
+    await this.inner.write(sessionId, path11, content);
+    this.eventBus.publish({
+      type: "file:saved",
+      sessionId,
+      path: path11,
+      byteLength: Buffer.byteLength(content, "utf8"),
+      timestamp: Date.now()
+    });
+  }
+  async mkdir(sessionId, path11) {
+    await this.inner.mkdir(sessionId, path11);
+    this.eventBus.publish({
+      type: "file:changed",
+      sessionId,
+      path: path11,
+      operation: "mkdir",
+      timestamp: Date.now()
+    });
+  }
+  async delete(sessionId, path11, isDirectory) {
+    await this.inner.delete(sessionId, path11, isDirectory);
+    this.eventBus.publish({
+      type: "file:changed",
+      sessionId,
+      path: path11,
+      operation: "delete",
+      timestamp: Date.now()
+    });
+  }
+  async rename(sessionId, from, to) {
+    await this.inner.rename(sessionId, from, to);
+    this.eventBus.publish({
+      type: "file:changed",
+      sessionId,
+      path: from,
+      targetPath: to,
+      operation: "rename",
+      timestamp: Date.now()
+    });
+  }
+  async chmod(sessionId, path11, mode) {
+    await this.inner.chmod(sessionId, path11, mode);
+    this.eventBus.publish({
+      type: "file:changed",
+      sessionId,
+      path: path11,
+      operation: "chmod",
+      timestamp: Date.now()
+    });
+  }
+};
+
+// server/application/events/InMemoryEventBus.ts
+var InMemoryEventBus = class {
+  typedListeners = /* @__PURE__ */ new Map();
+  allListeners = /* @__PURE__ */ new Set();
+  publish(event) {
+    const set = this.typedListeners.get(event.type);
+    if (set) {
+      for (const listener of Array.from(set)) {
+        try {
+          listener(event);
+        } catch (err) {
+          console.error(`[InMemoryEventBus] Error in listener for ${event.type}:`, err);
+        }
+      }
+    }
+    for (const listener of Array.from(this.allListeners)) {
+      try {
+        listener(event);
+      } catch (err) {
+        console.error(`[InMemoryEventBus] Error in global listener for ${event.type}:`, err);
+      }
+    }
+  }
+  subscribe(type, listener) {
+    let set = this.typedListeners.get(type);
+    if (!set) {
+      set = /* @__PURE__ */ new Set();
+      this.typedListeners.set(type, set);
+    }
+    const wrapped = listener;
+    set.add(wrapped);
+    return () => {
+      const current = this.typedListeners.get(type);
+      if (current) {
+        current.delete(wrapped);
+        if (current.size === 0) {
+          this.typedListeners.delete(type);
+        }
+      }
+    };
+  }
+  subscribeAll(listener) {
+    this.allListeners.add(listener);
+    return () => {
+      this.allListeners.delete(listener);
+    };
+  }
+};
+
+// server/application/command/CommandEngine.ts
+var MAX_RECENT_COMMANDS = 100;
+var MAX_OUTPUT_CHARS = 32e3;
+var CommandEngine = class {
+  constructor(eventBus, onCwdUpdate) {
+    this.eventBus = eventBus;
+    this.onCwdUpdate = onCwdUpdate;
+  }
+  eventBus;
+  onCwdUpdate;
+  sessions = /* @__PURE__ */ new Map();
+  getOrCreateState(sessionId) {
+    let state = this.sessions.get(sessionId);
+    if (!state) {
+      state = {
+        hasSemanticIntegration: false,
+        recentCommands: [],
+        byIdMap: /* @__PURE__ */ new Map(),
+        seq: 0
+      };
+      this.sessions.set(sessionId, state);
+    }
+    return state;
+  }
+  startCommand(params) {
+    const state = this.getOrCreateState(params.sessionId);
+    state.seq += 1;
+    const id = params.id || `cmd-${params.sessionId}-${state.seq}`;
+    const startedAt = params.startedAt ?? Date.now();
+    const cwd = params.cwd || state.currentCwd;
+    const record = {
+      id,
+      sessionId: params.sessionId,
+      command: params.command,
+      cwd,
+      startedAt,
+      stdout: "",
+      stderr: "",
+      status: "running"
+    };
+    state.currentCommand = record;
+    state.byIdMap.set(id, record);
+    this.pushRecent(state, record);
+    this.eventBus.publish({
+      type: "command:started",
+      sessionId: params.sessionId,
+      commandId: id,
+      command: params.command,
+      cwd,
+      timestamp: startedAt
+    });
+    return record;
+  }
+  appendOutput(sessionId, commandId, chunk, stream = "stdout") {
+    const state = this.sessions.get(sessionId);
+    const record = state?.byIdMap.get(commandId) ?? state?.currentCommand;
+    if (!record) return;
+    if (stream === "stderr") {
+      record.stderr = (record.stderr + chunk).slice(-MAX_OUTPUT_CHARS);
+    } else {
+      record.stdout = (record.stdout + chunk).slice(-MAX_OUTPUT_CHARS);
+    }
+    this.eventBus.publish({
+      type: "command:output",
+      sessionId,
+      commandId: record.id,
+      stream,
+      chunk,
+      timestamp: Date.now()
+    });
+  }
+  finishCommand(params) {
+    const state = this.getOrCreateState(params.sessionId);
+    const endedAt = params.endedAt ?? Date.now();
+    let record = (params.commandId ? state.byIdMap.get(params.commandId) : void 0) ?? state.currentCommand;
+    if (!record) {
+      state.seq += 1;
+      const id = params.commandId || `cmd-${params.sessionId}-${state.seq}`;
+      record = {
+        id,
+        sessionId: params.sessionId,
+        command: params.command || "",
+        cwd: params.cwd || state.currentCwd,
+        startedAt: endedAt,
+        stdout: "",
+        stderr: "",
+        status: "running"
+      };
+      state.byIdMap.set(id, record);
+      this.pushRecent(state, record);
+    }
+    if (params.command && !record.command) {
+      record.command = params.command;
+    }
+    if (params.cwd) {
+      record.cwd = params.cwd;
+      state.currentCwd = params.cwd;
+    }
+    if (params.stdout !== void 0) {
+      record.stdout = params.stdout.slice(-MAX_OUTPUT_CHARS);
+    }
+    if (params.stderr !== void 0) {
+      record.stderr = params.stderr.slice(-MAX_OUTPUT_CHARS);
+    }
+    record.exitCode = params.exitCode;
+    record.endedAt = endedAt;
+    record.status = params.exitCode === 0 ? "success" : "failed";
+    if (state.currentCommand?.id === record.id) {
+      state.currentCommand = void 0;
+    }
+    const durationMs = Math.max(0, endedAt - record.startedAt);
+    this.eventBus.publish({
+      type: "command:finished",
+      sessionId: params.sessionId,
+      commandId: record.id,
+      command: record.command,
+      exitCode: params.exitCode,
+      cwd: record.cwd,
+      durationMs,
+      timestamp: endedAt
+    });
+    if (params.exitCode !== 0) {
+      state.lastFailedCommand = record;
+      this.eventBus.publish({
+        type: "command:failed",
+        sessionId: params.sessionId,
+        commandId: record.id,
+        command: record.command,
+        exitCode: params.exitCode,
+        stdout: record.stdout,
+        stderr: record.stderr,
+        cwd: record.cwd,
+        timestamp: endedAt
+      });
+    } else {
+      state.lastFailedCommand = void 0;
+      state.lastHeuristicError = void 0;
+    }
+    return record;
+  }
+  cancelCommand(sessionId, commandId, partialOutput) {
+    const state = this.sessions.get(sessionId);
+    if (!state) return void 0;
+    const record = (commandId ? state.byIdMap.get(commandId) : void 0) ?? state.currentCommand;
+    if (!record) return void 0;
+    record.status = "cancelled";
+    record.endedAt = Date.now();
+    if (partialOutput?.stdout !== void 0) {
+      record.stdout = partialOutput.stdout.slice(-MAX_OUTPUT_CHARS);
+    }
+    if (partialOutput?.stderr !== void 0) {
+      record.stderr = partialOutput.stderr.slice(-MAX_OUTPUT_CHARS);
+    }
+    if (state.currentCommand?.id === record.id) {
+      state.currentCommand = void 0;
+    }
+    return record;
+  }
+  updateCwd(sessionId, cwd) {
+    if (!cwd) return;
+    const state = this.getOrCreateState(sessionId);
+    const changed = state.currentCwd !== cwd;
+    state.currentCwd = cwd;
+    this.onCwdUpdate?.(sessionId, cwd);
+    if (changed) {
+      this.eventBus.publish({
+        type: "directory:changed",
+        sessionId,
+        cwd,
+        timestamp: Date.now()
+      });
+    }
+  }
+  /**
+   * Graceful degradation when OSC 133 is not enabled in the target shell (P0-A):
+   * records heuristic error snippets without fabricating fake CommandRecords on `\r`.
+   */
+  noteHeuristicError(sessionId, snippet) {
+    const state = this.getOrCreateState(sessionId);
+    state.lastHeuristicError = { snippet, timestamp: Date.now() };
+  }
+  /**
+   * Ingest a semantic command event reported by the frontend xterm.js OSC 133/7 parser.
+   */
+  ingestClientEvent(payload) {
+    const state = this.getOrCreateState(payload.sessionId);
+    switch (payload.kind) {
+      case "cwd":
+        state.hasSemanticIntegration = true;
+        if (payload.cwd) {
+          this.updateCwd(payload.sessionId, payload.cwd);
+        }
+        break;
+      case "started":
+        state.hasSemanticIntegration = true;
+        if (payload.command !== void 0) {
+          this.startCommand({
+            id: payload.commandId,
+            sessionId: payload.sessionId,
+            command: payload.command,
+            cwd: payload.cwd,
+            startedAt: payload.timestamp
+          });
+        }
+        break;
+      case "finished":
+        state.hasSemanticIntegration = true;
+        this.finishCommand({
+          sessionId: payload.sessionId,
+          commandId: payload.commandId,
+          command: payload.command,
+          exitCode: payload.exitCode ?? 0,
+          stdout: payload.output,
+          cwd: payload.cwd,
+          endedAt: payload.timestamp
+        });
+        break;
+      case "heuristic_error":
+        if (payload.output) {
+          this.noteHeuristicError(payload.sessionId, payload.output);
+        }
+        break;
+    }
+  }
+  pushRecent(state, record) {
+    const existingIdx = state.recentCommands.findIndex((r) => r.id === record.id);
+    if (existingIdx >= 0) {
+      state.recentCommands[existingIdx] = record;
+      return;
+    }
+    state.recentCommands.push(record);
+    if (state.recentCommands.length > MAX_RECENT_COMMANDS) {
+      const evicted = state.recentCommands.shift();
+      if (evicted) {
+        state.byIdMap.delete(evicted.id);
+      }
+    }
+  }
+  current(sessionId) {
+    return this.sessions.get(sessionId)?.currentCommand;
+  }
+  recent(sessionId, limit = 20) {
+    const list = this.sessions.get(sessionId)?.recentCommands ?? [];
+    return list.slice(-limit);
+  }
+  failed(sessionId) {
+    return this.sessions.get(sessionId)?.lastFailedCommand;
+  }
+  byId(sessionId, commandId) {
+    return this.sessions.get(sessionId)?.byIdMap.get(commandId);
+  }
+  getCwd(sessionId) {
+    return this.sessions.get(sessionId)?.currentCwd;
+  }
+  hasSemanticIntegration(sessionId) {
+    return Boolean(this.sessions.get(sessionId)?.hasSemanticIntegration);
+  }
+  getHeuristicError(sessionId) {
+    return this.sessions.get(sessionId)?.lastHeuristicError;
+  }
+  restoreHistory(sessionId, records, cwd) {
+    const state = this.getOrCreateState(sessionId);
+    if (cwd) {
+      state.currentCwd = cwd;
+    }
+    for (const r of records) {
+      state.byIdMap.set(r.id, r);
+      this.pushRecent(state, r);
+      if (r.status === "failed") {
+        state.lastFailedCommand = r;
+      }
+    }
+  }
+};
+
+// server/application/context/ContextEngine.ts
+var import_os5 = __toESM(require("os"), 1);
+var MAX_OPEN_FILES_PER_SESSION = 20;
+var ContextEngine = class {
+  constructor(sessionManager, commandEngine, eventBus) {
+    this.sessionManager = sessionManager;
+    this.commandEngine = commandEngine;
+    this.eventBus = eventBus;
+    this.unsubs.push(
+      this.eventBus.subscribe("file:opened", (evt) => {
+        const list = this.openFilesMap.get(evt.sessionId) ?? [];
+        const filtered = list.filter((p) => p !== evt.path);
+        filtered.push(evt.path);
+        if (filtered.length > MAX_OPEN_FILES_PER_SESSION) {
+          filtered.shift();
+        }
+        this.openFilesMap.set(evt.sessionId, filtered);
+        this.selectedFileMap.set(evt.sessionId, {
+          ...this.selectedFileMap.get(evt.sessionId),
+          file: evt.path
+        });
+      })
+    );
+  }
+  sessionManager;
+  commandEngine;
+  eventBus;
+  openFilesMap = /* @__PURE__ */ new Map();
+  selectedFileMap = /* @__PURE__ */ new Map();
+  unsubs = [];
+  setSelection(sessionId, selectedFile, selectedText) {
+    this.selectedFileMap.set(sessionId, { file: selectedFile, text: selectedText });
+  }
+  getFileContext(sessionId) {
+    const openFiles = this.openFilesMap.get(sessionId) ?? [];
+    const sel = this.selectedFileMap.get(sessionId);
+    return {
+      openFiles: [...openFiles],
+      selectedFile: sel?.file,
+      selectedText: sel?.text
+    };
+  }
+  /**
+   * Probe `.git/HEAD` using `{ internal: true }` so EventEmittingFsProvider
+   * never emits a `FileOpenedEvent` (prevents self-excitation loop per P1-E).
+   */
+  async probeGitContext(sessionId, cwd) {
+    if (!cwd) return void 0;
+    try {
+      const { provider } = this.sessionManager.getFileSystemProvider(sessionId);
+      const sep = cwd.includes("\\") ? "\\" : "/";
+      const cleanCwd = cwd.replace(/[\\/]+$/, "");
+      const headPath = `${cleanCwd}${sep}.git${sep}HEAD`;
+      const raw = (await provider.read(sessionId, headPath, { internal: true })).trim();
+      if (!raw) return void 0;
+      if (raw.startsWith("ref:")) {
+        const ref = raw.slice(4).trim();
+        const branch = ref.replace(/^refs\/heads\//, "");
+        return { branch, headRef: ref };
+      }
+      return { branch: raw.slice(0, 7), headRef: raw };
+    } catch {
+      return void 0;
+    }
+  }
+  async buildContext(sessionId, fallbackOps) {
+    const session = this.sessionManager.get(sessionId);
+    const now = Date.now();
+    const cwd = this.commandEngine.getCwd(sessionId) || session?.terminal.cwd || fallbackOps?.currentDir || "/root";
+    let failedRecord = this.commandEngine.failed(sessionId);
+    if (!failedRecord && fallbackOps?.failedCommand) {
+      failedRecord = {
+        id: `fallback-failed-${sessionId}`,
+        sessionId,
+        command: fallbackOps.failedCommand.command || "",
+        cwd,
+        startedAt: now,
+        endedAt: now,
+        exitCode: fallbackOps.failedCommand.exitCode,
+        stdout: fallbackOps.failedCommand.output || "",
+        stderr: "",
+        status: "failed"
+      };
+    }
+    const recent = this.commandEngine.recent(sessionId, 20);
+    const current = this.commandEngine.current(sessionId);
+    const heuristicErr = this.commandEngine.getHeuristicError(sessionId);
+    const git = session ? await this.probeGitContext(sessionId, cwd) : void 0;
+    return {
+      session: {
+        id: session?.id ?? sessionId,
+        type: session?.type ?? "local",
+        status: session?.status ?? "active",
+        hostId: session?.host.id ?? "unknown",
+        hostName: session?.host.name ?? "Unknown Host",
+        createdAt: session?.createdAt ?? now,
+        lastActiveAt: session?.lastActiveAt ?? now
+      },
+      terminal: {
+        cwd,
+        shell: session?.terminal.shell,
+        user: session?.host.username || fallbackOps?.currentUser || "root",
+        host: session?.host.host || "localhost",
+        os: fallbackOps?.osInfo || (session?.type === "local" ? `${import_os5.default.platform()} ${import_os5.default.arch()} ${import_os5.default.release()}` : "Linux x86_64"),
+        hasSemanticIntegration: this.commandEngine.hasSemanticIntegration(sessionId),
+        terminalSnippet: fallbackOps?.terminalSnippet || heuristicErr?.snippet
+      },
+      command: {
+        current,
+        failed: failedRecord,
+        recent
+      },
+      filesystem: this.getFileContext(sessionId),
+      git,
+      system: {
+        platform: process.platform,
+        arch: process.arch,
+        timestamp: now
+      }
+    };
+  }
+  dispose() {
+    for (const unsub of this.unsubs) {
+      unsub();
+    }
+    this.unsubs.length = 0;
+  }
+};
+
+// server/application/security/ApprovalManager.ts
+var import_crypto3 = __toESM(require("crypto"), 1);
+var DEFAULT_APPROVAL_TIMEOUT_MS = 5 * 60 * 1e3;
+var ApprovalManager = class {
+  requests = /* @__PURE__ */ new Map();
+  resolvers = /* @__PURE__ */ new Map();
+  timers = /* @__PURE__ */ new Map();
+  listeners = /* @__PURE__ */ new Set();
+  defaultTimeoutMs;
+  constructor(options) {
+    this.defaultTimeoutMs = options?.defaultTimeoutMs ?? DEFAULT_APPROVAL_TIMEOUT_MS;
+  }
+  onApprovalChange(listener) {
+    this.listeners.add(listener);
+    return () => {
+      this.listeners.delete(listener);
+    };
+  }
+  notify(request) {
+    for (const listener of Array.from(this.listeners)) {
+      try {
+        listener(request);
+      } catch (err) {
+        console.error("[ApprovalManager] Error in approval listener:", err);
+      }
+    }
+  }
+  requestApproval(params) {
+    const now = Date.now();
+    const timeoutMs = params.timeoutMs ?? this.defaultTimeoutMs;
+    const id = params.id || `appr-${import_crypto3.default.randomUUID()}`;
+    const request = {
+      id,
+      sessionId: params.sessionId,
+      planId: params.planId,
+      stepId: params.stepId,
+      toolName: params.toolName,
+      action: params.action,
+      assessment: params.assessment,
+      status: "pending",
+      createdAt: now,
+      expiresAt: now + timeoutMs
+    };
+    this.requests.set(id, request);
+    const decisionPromise = new Promise((resolve) => {
+      this.resolvers.set(id, resolve);
+      const timer = setTimeout(() => {
+        this.timers.delete(id);
+        const current = this.requests.get(id);
+        if (current && current.status === "pending") {
+          current.status = "expired";
+          current.resolvedAt = Date.now();
+          current.reason = "\u5BA1\u6279\u8D85\u65F6\u672A\u786E\u8BA4";
+          const res = this.resolvers.get(id);
+          this.resolvers.delete(id);
+          this.notify(current);
+          res?.(false);
+        }
+      }, timeoutMs);
+      timer.unref?.();
+      this.timers.set(id, timer);
+    });
+    this.notify(request);
+    return { request, decisionPromise };
+  }
+  approve(approvalId) {
+    const request = this.requests.get(approvalId);
+    if (!request || request.status !== "pending") {
+      return false;
+    }
+    this.clearTimer(approvalId);
+    request.status = "approved";
+    request.resolvedAt = Date.now();
+    const resolve = this.resolvers.get(approvalId);
+    this.resolvers.delete(approvalId);
+    this.notify(request);
+    resolve?.(true);
+    return true;
+  }
+  reject(approvalId, reason) {
+    const request = this.requests.get(approvalId);
+    if (!request || request.status !== "pending") {
+      return false;
+    }
+    this.clearTimer(approvalId);
+    request.status = "rejected";
+    request.resolvedAt = Date.now();
+    request.reason = reason || "\u7528\u6237\u62D2\u7EDD\u6267\u884C";
+    const resolve = this.resolvers.get(approvalId);
+    this.resolvers.delete(approvalId);
+    this.notify(request);
+    resolve?.(false);
+    return true;
+  }
+  get(approvalId) {
+    return this.requests.get(approvalId);
+  }
+  listPending(sessionId) {
+    const all = Array.from(this.requests.values()).filter((r) => r.status === "pending");
+    if (sessionId) {
+      return all.filter((r) => r.sessionId === sessionId);
+    }
+    return all;
+  }
+  cancelSessionApprovals(sessionId) {
+    for (const req of this.requests.values()) {
+      if (req.sessionId === sessionId && req.status === "pending") {
+        this.reject(req.id, "\u4F1A\u8BDD\u5DF2\u53D6\u6D88\u6216\u5173\u95ED");
+      }
+    }
+  }
+  clearTimer(approvalId) {
+    const timer = this.timers.get(approvalId);
+    if (timer) {
+      clearTimeout(timer);
+      this.timers.delete(approvalId);
+    }
+  }
+};
+
+// server/agent/tools/ShellTool.ts
+var import_child_process = require("child_process");
+var import_path8 = __toESM(require("path"), 1);
+
+// server/agent/tools/Tool.ts
+function isPlainObject(v) {
+  return typeof v === "object" && v !== null && !Array.isArray(v);
+}
+
+// server/agent/tools/ShellTool.ts
+var DEFAULT_TIMEOUT_MS = 15e3;
+var MAX_TIMEOUT_MS = 12e4;
+var MAX_CAPTURE_BYTES = 64e3;
+var PWD_SENTINEL_REGEX = /__MONO_PWD__:([^\r\n]*):__END_PWD__\r?\n?$/;
+function resolveCommandCwdChange(command, currentCwd) {
+  let workingCwd = currentCwd;
+  for (const seg of splitShellSegments(command)) {
+    const tokens = tokenize(seg);
+    if (tokens.length === 0) continue;
+    const cmd = tokens[0].toLowerCase();
+    if (cmd !== "cd" && cmd !== "chdir" && cmd !== "set-location" && cmd !== "sl") {
+      continue;
+    }
+    let target;
+    for (let i = 1; i < tokens.length; i++) {
+      const tok = tokens[i];
+      if (tok.toLowerCase() === "-path" || tok.toLowerCase() === "-literalpath") {
+        target = tokens[i + 1];
+        break;
+      }
+      if (!tok.startsWith("-")) {
+        target = tok;
+        break;
+      }
+    }
+    if (!target) continue;
+    const isWinStyle = /^[a-zA-Z]:/.test(target) || target.includes("\\") || (workingCwd ? /^[a-zA-Z]:/.test(workingCwd) || workingCwd.includes("\\") : false);
+    if (isWinStyle) {
+      if (/^[a-zA-Z]:[\\/]/.test(target)) {
+        workingCwd = import_path8.default.win32.normalize(target);
+      } else if (workingCwd && workingCwd !== "~") {
+        workingCwd = import_path8.default.win32.resolve(workingCwd, target);
+      } else {
+        workingCwd = target;
+      }
+    } else {
+      if (target.startsWith("/")) {
+        workingCwd = import_path8.default.posix.normalize(target);
+      } else if (workingCwd && workingCwd.startsWith("/")) {
+        workingCwd = import_path8.default.posix.resolve(workingCwd, target);
+      } else {
+        workingCwd = target;
+      }
+    }
+  }
+  return workingCwd;
+}
+var shellToolSchema = {
+  jsonSchema: {
+    type: "object",
+    required: ["command"],
+    properties: {
+      command: { type: "string", description: "Non-interactive shell command to execute" },
+      cwd: { type: "string", description: "Optional working directory override" },
+      timeoutMs: {
+        type: "number",
+        description: "Execution timeout in milliseconds (default 15000, max 120000)"
+      }
+    }
+  },
+  validate(raw) {
+    if (!isPlainObject(raw)) {
+      return { ok: false, error: "ShellTool \u53C2\u6570\u5FC5\u987B\u662F\u5BF9\u8C61" };
+    }
+    if (typeof raw.command !== "string" || !raw.command.trim()) {
+      return { ok: false, error: "ShellTool.command \u5FC5\u987B\u662F\u975E\u7A7A\u5B57\u7B26\u4E32" };
+    }
+    if (raw.cwd !== void 0 && typeof raw.cwd !== "string") {
+      return { ok: false, error: "ShellTool.cwd \u5FC5\u987B\u662F\u5B57\u7B26\u4E32" };
+    }
+    if (raw.timeoutMs !== void 0 && (typeof raw.timeoutMs !== "number" || !Number.isFinite(raw.timeoutMs) || raw.timeoutMs <= 0)) {
+      return { ok: false, error: "ShellTool.timeoutMs \u5FC5\u987B\u662F\u6B63\u6570" };
+    }
+    return {
+      ok: true,
+      data: {
+        command: raw.command.trim(),
+        cwd: raw.cwd,
+        timeoutMs: raw.timeoutMs !== void 0 ? Math.min(MAX_TIMEOUT_MS, Math.max(50, Math.floor(raw.timeoutMs))) : void 0
+      }
+    };
+  }
+};
+var ShellTool = class {
+  constructor(deps) {
+    this.deps = deps;
+  }
+  deps;
+  name = "shell";
+  description = "Execute a non-interactive shell command in an isolated background channel with timeout protection.";
+  schema = shellToolSchema;
+  toGuardrailAction(input, ctx) {
+    return {
+      kind: "shell:exec",
+      sessionId: ctx.sessionId,
+      command: input.command,
+      cwd: input.cwd || ctx.cwd
+    };
+  }
+  async execute(input, ctx) {
+    const startMs = Date.now();
+    const session = this.deps.sessionManager.get(ctx.sessionId);
+    const sessionType = session?.type ?? "local";
+    const cwd = input.cwd || ctx.cwd || session?.terminal.cwd;
+    const timeoutMs = input.timeoutMs ?? DEFAULT_TIMEOUT_MS;
+    const cmdRecord = this.deps.commandEngine?.startCommand({
+      sessionId: ctx.sessionId,
+      command: input.command,
+      cwd,
+      startedAt: startMs
+    });
+    try {
+      let result;
+      if (sessionType === "ssh") {
+        if (!this.deps.sshManager) {
+          throw new Error("SSH \u6267\u884C\u5668\u672A\u914D\u7F6E");
+        }
+        const execRes = await this.deps.sshManager.execCommand(ctx.sessionId, input.command, {
+          cwd,
+          timeoutMs
+        });
+        const nextCwd = execRes.exitCode === 0 && !execRes.timedOut ? resolveCommandCwdChange(input.command, cwd) : cwd;
+        result = {
+          command: input.command,
+          cwd: nextCwd,
+          exitCode: execRes.exitCode,
+          stdout: execRes.stdout,
+          stderr: execRes.stderr,
+          timedOut: Boolean(execRes.timedOut)
+        };
+      } else if (sessionType === "mock") {
+        result = await this.executeMockCommand(ctx.sessionId, input.command, cwd);
+      } else {
+        result = await this.executeLocalCommand(input.command, cwd, timeoutMs, ctx.abortSignal);
+      }
+      if (result.exitCode === 0 && !result.timedOut && result.cwd) {
+        ctx.onCwdChange?.(result.cwd);
+        this.deps.sessionManager.updateCwd(ctx.sessionId, result.cwd);
+      }
+      const endedAt = Date.now();
+      this.deps.commandEngine?.finishCommand({
+        sessionId: ctx.sessionId,
+        commandId: cmdRecord?.id,
+        command: input.command,
+        exitCode: result.exitCode,
+        stdout: result.stdout,
+        stderr: result.stderr,
+        cwd: result.cwd || cwd,
+        endedAt
+      });
+      const success = result.exitCode === 0 && !result.timedOut;
+      return {
+        success,
+        output: result,
+        error: !success ? result.timedOut ? `\u547D\u4EE4\u6267\u884C\u8D85\u65F6 (${timeoutMs}ms)` : result.stderr || result.stdout || `Exit code ${result.exitCode}` : void 0,
+        durationMs: Math.max(0, endedAt - startMs)
+      };
+    } catch (err) {
+      const endedAt = Date.now();
+      const msg = errorMessage(err);
+      this.deps.commandEngine?.finishCommand({
+        sessionId: ctx.sessionId,
+        commandId: cmdRecord?.id,
+        command: input.command,
+        exitCode: 1,
+        stderr: msg,
+        cwd,
+        endedAt
+      });
+      return {
+        success: false,
+        error: msg,
+        durationMs: Math.max(0, endedAt - startMs)
+      };
+    }
+  }
+  executeLocalCommand(command, cwd, timeoutMs, abortSignal) {
+    return new Promise((resolve) => {
+      const isWin = process.platform === "win32";
+      let shellBin = "/bin/sh";
+      let shellArgs;
+      if (isWin) {
+        try {
+          const detected = detectDefaultShell(false);
+          shellBin = detected.command;
+        } catch {
+          shellBin = "powershell.exe";
+        }
+        if (isPowerShellExecutable(shellBin)) {
+          const wrappedPs = `${command}; $__mono_ec = if ($? -eq $false) { if ($LASTEXITCODE) { $LASTEXITCODE } else { 1 } } else { 0 }; [Console]::Out.Write("__MONO_PWD__:" + $PWD.Path + ":__END_PWD__"); exit $__mono_ec`;
+          shellArgs = ["-NoProfile", "-NonInteractive", "-Command", wrappedPs];
+        } else {
+          shellArgs = ["/d", "/s", "/c", command];
+        }
+      } else {
+        const wrappedSh = `${command}
+__mono_ec=$?
+printf "__MONO_PWD__:%s:__END_PWD__" "$PWD"
+exit $__mono_ec`;
+        shellArgs = ["-c", wrappedSh];
+      }
+      const validCwd = cwd && cwd !== "~" ? cwd : void 0;
+      const child = (0, import_child_process.spawn)(shellBin, shellArgs, {
+        cwd: validCwd,
+        stdio: ["ignore", "pipe", "pipe"],
+        windowsHide: true
+      });
+      let stdout = "";
+      let stderr = "";
+      let stdoutBytes = 0;
+      let stderrBytes = 0;
+      let tailBuffer = "";
+      let timedOut = false;
+      let settled = false;
+      const extractFinalOutputAndCwd = () => {
+        const match = stdout.match(PWD_SENTINEL_REGEX) || tailBuffer.match(PWD_SENTINEL_REGEX);
+        const cleanStdout = stdout.replace(PWD_SENTINEL_REGEX, "");
+        const detectedCwd = match?.[1]?.trim() || resolveCommandCwdChange(command, cwd);
+        return { cleanStdout, detectedCwd };
+      };
+      const killChild = () => {
+        try {
+          if (process.platform === "win32" && child.pid) {
+            (0, import_child_process.spawn)("taskkill", ["/pid", String(child.pid), "/t", "/f"], {
+              windowsHide: true,
+              stdio: "ignore"
+            }).unref?.();
+          }
+          child.kill("SIGTERM");
+          setTimeout(() => {
+            try {
+              child.kill("SIGKILL");
+            } catch {
+            }
+          }, 100).unref?.();
+        } catch {
+        }
+      };
+      const timer = setTimeout(() => {
+        if (settled) return;
+        timedOut = true;
+        killChild();
+        settled = true;
+        const { cleanStdout } = extractFinalOutputAndCwd();
+        resolve({
+          command,
+          cwd,
+          exitCode: 124,
+          stdout: cleanStdout,
+          stderr: stderr ? `${stderr}
+[Timeout after ${timeoutMs}ms]` : `[Timeout after ${timeoutMs}ms]`,
+          timedOut: true
+        });
+      }, timeoutMs);
+      timer.unref?.();
+      const onAbort = () => {
+        if (settled) return;
+        timedOut = true;
+        killChild();
+        settled = true;
+        clearTimeout(timer);
+        const { cleanStdout } = extractFinalOutputAndCwd();
+        resolve({
+          command,
+          cwd,
+          exitCode: 130,
+          stdout: cleanStdout,
+          stderr: stderr ? `${stderr}
+[Aborted]` : "[Aborted]",
+          timedOut: true
+        });
+      };
+      abortSignal?.addEventListener("abort", onAbort, { once: true });
+      child.stdout?.on("data", (chunk) => {
+        const text = chunk.toString("utf-8");
+        tailBuffer = (tailBuffer + text).slice(-512);
+        if (stdoutBytes >= MAX_CAPTURE_BYTES) return;
+        const remaining = MAX_CAPTURE_BYTES - stdoutBytes;
+        const slice = chunk.byteLength > remaining ? chunk.subarray(0, remaining) : chunk;
+        stdoutBytes += slice.byteLength;
+        stdout += slice.toString("utf-8");
+      });
+      child.stderr?.on("data", (chunk) => {
+        if (stderrBytes >= MAX_CAPTURE_BYTES) return;
+        const remaining = MAX_CAPTURE_BYTES - stderrBytes;
+        const slice = chunk.byteLength > remaining ? chunk.subarray(0, remaining) : chunk;
+        stderrBytes += slice.byteLength;
+        stderr += slice.toString("utf-8");
+      });
+      child.on("error", (err) => {
+        if (settled) return;
+        settled = true;
+        clearTimeout(timer);
+        abortSignal?.removeEventListener("abort", onAbort);
+        const { cleanStdout } = extractFinalOutputAndCwd();
+        resolve({
+          command,
+          cwd,
+          exitCode: 1,
+          stdout: cleanStdout,
+          stderr: err.message,
+          timedOut: false
+        });
+      });
+      child.on("close", (code) => {
+        if (settled) return;
+        settled = true;
+        clearTimeout(timer);
+        abortSignal?.removeEventListener("abort", onAbort);
+        const exitCode = typeof code === "number" ? code : timedOut ? 124 : 1;
+        const { cleanStdout, detectedCwd } = extractFinalOutputAndCwd();
+        resolve({
+          command,
+          cwd: exitCode === 0 ? detectedCwd || cwd : cwd,
+          exitCode,
+          stdout: cleanStdout,
+          stderr,
+          timedOut
+        });
+      });
+    });
+  }
+  async executeMockCommand(sessionId, command, cwd) {
+    const trimmed = command.trim();
+    const lower = trimmed.toLowerCase();
+    const nextCwd = resolveCommandCwdChange(command, cwd) || cwd;
+    if (lower === "pwd") {
+      return {
+        command,
+        cwd: nextCwd,
+        exitCode: 0,
+        stdout: `${nextCwd || "/etc/nginx"}
+`,
+        stderr: "",
+        timedOut: false
+      };
+    }
+    if (lower.startsWith("cd ") || lower.startsWith("set-location ") || lower.startsWith("sl ")) {
+      return {
+        command,
+        cwd: nextCwd,
+        exitCode: 0,
+        stdout: "",
+        stderr: "",
+        timedOut: false
+      };
+    }
+    if (lower === "nginx -t") {
+      try {
+        const { provider } = this.deps.sessionManager.getFileSystemProvider(sessionId);
+        const conf = await provider.read(sessionId, "/etc/nginx/nginx.conf", { internal: true });
+        if (conf.includes("invalid_directive")) {
+          return {
+            command,
+            cwd: nextCwd,
+            exitCode: 1,
+            stdout: "",
+            stderr: 'nginx: [emerg] unknown directive "invalid_directive" in /etc/nginx/nginx.conf\nnginx: configuration file /etc/nginx/nginx.conf test failed\n',
+            timedOut: false
+          };
+        }
+      } catch {
+      }
+      return {
+        command,
+        cwd: nextCwd,
+        exitCode: 0,
+        stdout: "nginx: the configuration file /etc/nginx/nginx.conf syntax is ok\nnginx: configuration file /etc/nginx/nginx.conf test is successful\n",
+        stderr: "",
+        timedOut: false
+      };
+    }
+    if (lower.startsWith("systemctl is-active") || lower.startsWith("systemctl status")) {
+      return {
+        command,
+        cwd: nextCwd,
+        exitCode: 0,
+        stdout: "active (running)\n",
+        stderr: "",
+        timedOut: false
+      };
+    }
+    if (lower.startsWith("cat ")) {
+      const targetPath = trimmed.slice(4).trim();
+      try {
+        const { provider } = this.deps.sessionManager.getFileSystemProvider(sessionId);
+        const content = await provider.read(sessionId, targetPath, { internal: true });
+        return {
+          command,
+          cwd: nextCwd,
+          exitCode: 0,
+          stdout: content,
+          stderr: "",
+          timedOut: false
+        };
+      } catch (err) {
+        return {
+          command,
+          cwd: nextCwd,
+          exitCode: 1,
+          stdout: "",
+          stderr: errorMessage(err),
+          timedOut: false
+        };
+      }
+    }
+    if (lower === "false" || lower.startsWith("exit 1")) {
+      return {
+        command,
+        cwd,
+        exitCode: 1,
+        stdout: "",
+        stderr: "Command exited with status 1",
+        timedOut: false
+      };
+    }
+    return {
+      command,
+      cwd: nextCwd,
+      exitCode: 0,
+      stdout: `[mock exec] ${trimmed}: OK
+`,
+      stderr: "",
+      timedOut: false
+    };
+  }
+};
+
+// server/agent/tools/FileTool.ts
+var VALID_OPS = /* @__PURE__ */ new Set([
+  "list",
+  "stat",
+  "read",
+  "write",
+  "mkdir",
+  "delete",
+  "rename",
+  "chmod"
+]);
+var fileToolSchema = {
+  jsonSchema: {
+    type: "object",
+    required: ["operation", "path"],
+    properties: {
+      operation: {
+        type: "string",
+        enum: ["list", "stat", "read", "write", "mkdir", "delete", "rename", "chmod"]
+      },
+      path: { type: "string" },
+      content: { type: "string" },
+      newPath: { type: "string" },
+      isDirectory: { type: "boolean" },
+      mode: { type: ["number", "string"] }
+    }
+  },
+  validate(raw) {
+    if (!isPlainObject(raw)) {
+      return { ok: false, error: "FileTool \u53C2\u6570\u5FC5\u987B\u662F\u5BF9\u8C61" };
+    }
+    const op = raw.operation;
+    if (typeof op !== "string" || !VALID_OPS.has(op)) {
+      return { ok: false, error: "FileTool.operation \u975E\u6CD5" };
+    }
+    if (typeof raw.path !== "string" || !raw.path.trim()) {
+      return { ok: false, error: "FileTool.path \u5FC5\u987B\u662F\u975E\u7A7A\u5B57\u7B26\u4E32" };
+    }
+    if (op === "write" && typeof raw.content !== "string") {
+      return { ok: false, error: "FileTool write \u64CD\u4F5C\u5FC5\u987B\u63D0\u4F9B\u5B57\u7B26\u4E32 content" };
+    }
+    if (op === "rename" && (typeof raw.newPath !== "string" || !raw.newPath.trim())) {
+      return { ok: false, error: "FileTool rename \u64CD\u4F5C\u5FC5\u987B\u63D0\u4F9B\u975E\u7A7A\u5B57\u7B26\u4E32 newPath" };
+    }
+    if (op === "chmod" && typeof raw.mode !== "number" && (typeof raw.mode !== "string" || !/^[0-7]{3,4}$/.test(raw.mode))) {
+      return { ok: false, error: "FileTool chmod \u64CD\u4F5C\u5FC5\u987B\u63D0\u4F9B\u6709\u6548\u7684\u6743\u9650 mode" };
+    }
+    return {
+      ok: true,
+      data: {
+        operation: op,
+        path: raw.path.trim(),
+        content: typeof raw.content === "string" ? raw.content : void 0,
+        newPath: typeof raw.newPath === "string" ? raw.newPath.trim() : void 0,
+        isDirectory: typeof raw.isDirectory === "boolean" ? raw.isDirectory : void 0,
+        mode: raw.mode
+      }
+    };
+  }
+};
+function parseNumericMode(mode) {
+  if (typeof mode === "number") return mode;
+  if (typeof mode === "string") return parseInt(mode, 8);
+  return 420;
+}
+var FileTool = class {
+  constructor(sessionManager) {
+    this.sessionManager = sessionManager;
+  }
+  sessionManager;
+  name = "file";
+  description = "Perform unified file system operations (list, stat, read, write, mkdir, delete, rename, chmod) on the active session.";
+  schema = fileToolSchema;
+  toGuardrailAction(input, ctx) {
+    const sessionRoot = this.sessionManager.get(ctx.sessionId)?.filesystem.rootPath;
+    switch (input.operation) {
+      case "list":
+        return { kind: "fs:list", sessionId: ctx.sessionId, path: input.path, sessionRoot };
+      case "stat":
+        return { kind: "fs:stat", sessionId: ctx.sessionId, path: input.path, sessionRoot };
+      case "read":
+        return { kind: "fs:read", sessionId: ctx.sessionId, path: input.path, sessionRoot };
+      case "write":
+        return {
+          kind: "fs:write",
+          sessionId: ctx.sessionId,
+          path: input.path,
+          byteLength: Buffer.byteLength(input.content || "", "utf-8"),
+          sessionRoot
+        };
+      case "mkdir":
+        return { kind: "fs:mkdir", sessionId: ctx.sessionId, path: input.path, sessionRoot };
+      case "delete":
+        return {
+          kind: "fs:delete",
+          sessionId: ctx.sessionId,
+          path: input.path,
+          isDirectory: input.isDirectory,
+          sessionRoot
+        };
+      case "rename":
+        return {
+          kind: "fs:rename",
+          sessionId: ctx.sessionId,
+          oldPath: input.path,
+          newPath: input.newPath || "",
+          sessionRoot
+        };
+      case "chmod":
+        return {
+          kind: "fs:chmod",
+          sessionId: ctx.sessionId,
+          path: input.path,
+          mode: parseNumericMode(input.mode),
+          sessionRoot
+        };
+    }
+  }
+  async execute(input, ctx) {
+    const startMs = Date.now();
+    try {
+      const { provider } = this.sessionManager.getFileSystemProvider(ctx.sessionId);
+      switch (input.operation) {
+        case "list": {
+          const entries = await provider.list(ctx.sessionId, input.path);
+          return { success: true, output: entries, durationMs: Date.now() - startMs };
+        }
+        case "stat": {
+          const stat = await provider.stat(ctx.sessionId, input.path);
+          return { success: true, output: stat, durationMs: Date.now() - startMs };
+        }
+        case "read": {
+          const content = await provider.read(ctx.sessionId, input.path);
+          return { success: true, output: content, durationMs: Date.now() - startMs };
+        }
+        case "write": {
+          await provider.write(ctx.sessionId, input.path, input.content || "");
+          return {
+            success: true,
+            output: { path: input.path, written: true },
+            durationMs: Date.now() - startMs
+          };
+        }
+        case "mkdir": {
+          await provider.mkdir(ctx.sessionId, input.path);
+          return {
+            success: true,
+            output: { path: input.path, created: true },
+            durationMs: Date.now() - startMs
+          };
+        }
+        case "delete": {
+          let isDir = input.isDirectory;
+          if (isDir === void 0) {
+            try {
+              const st = await provider.stat(ctx.sessionId, input.path);
+              isDir = st.isDirectory;
+            } catch {
+              isDir = false;
+            }
+          }
+          await provider.delete(ctx.sessionId, input.path, isDir);
+          return {
+            success: true,
+            output: { path: input.path, deleted: true },
+            durationMs: Date.now() - startMs
+          };
+        }
+        case "rename": {
+          await provider.rename(ctx.sessionId, input.path, input.newPath);
+          return {
+            success: true,
+            output: { oldPath: input.path, newPath: input.newPath, renamed: true },
+            durationMs: Date.now() - startMs
+          };
+        }
+        case "chmod": {
+          const numMode = parseNumericMode(input.mode);
+          await provider.chmod(ctx.sessionId, input.path, numMode);
+          return {
+            success: true,
+            output: { path: input.path, mode: numMode, updated: true },
+            durationMs: Date.now() - startMs
+          };
+        }
+      }
+    } catch (err) {
+      return {
+        success: false,
+        error: errorMessage(err),
+        durationMs: Date.now() - startMs
+      };
+    }
+  }
+};
+
+// server/agent/tools/GitTool.ts
+var VALID_GIT_OPS = /* @__PURE__ */ new Set(["status", "diff", "log", "branch"]);
+var gitToolSchema = {
+  jsonSchema: {
+    type: "object",
+    required: ["operation"],
+    properties: {
+      operation: { type: "string", enum: ["status", "diff", "log", "branch"] },
+      cwd: { type: "string" },
+      args: { type: "array", items: { type: "string" } }
+    }
+  },
+  validate(raw) {
+    if (!isPlainObject(raw)) {
+      return { ok: false, error: "GitTool \u53C2\u6570\u5FC5\u987B\u662F\u5BF9\u8C61" };
+    }
+    const op = raw.operation;
+    if (typeof op !== "string" || !VALID_GIT_OPS.has(op)) {
+      return { ok: false, error: "GitTool.operation \u5FC5\u987B\u662F status/diff/log/branch" };
+    }
+    if (raw.cwd !== void 0 && typeof raw.cwd !== "string") {
+      return { ok: false, error: "GitTool.cwd \u5FC5\u987B\u662F\u5B57\u7B26\u4E32" };
+    }
+    const safeArgs = Array.isArray(raw.args) ? raw.args.filter((a) => typeof a === "string" && /^[A-Za-z0-9_./:-]+$/.test(a)) : void 0;
+    return {
+      ok: true,
+      data: {
+        operation: op,
+        cwd: raw.cwd,
+        args: safeArgs
+      }
+    };
+  }
+};
+function buildGitCommand(input) {
+  switch (input.operation) {
+    case "status":
+      return "git status --short --branch";
+    case "diff":
+      return "git diff --stat";
+    case "log":
+      return "git log -n 10 --oneline";
+    case "branch":
+      return "git branch -a";
+  }
+}
+var GitTool = class {
+  constructor(shellTool) {
+    this.shellTool = shellTool;
+  }
+  shellTool;
+  name = "git";
+  description = "Inspect Git repository status, branches, recent commits, and diff summary.";
+  schema = gitToolSchema;
+  toGuardrailAction(input, ctx) {
+    return {
+      kind: "shell:exec",
+      sessionId: ctx.sessionId,
+      command: buildGitCommand(input),
+      cwd: input.cwd || ctx.cwd
+    };
+  }
+  async execute(input, ctx) {
+    return this.shellTool.execute(
+      {
+        command: buildGitCommand(input),
+        cwd: input.cwd || ctx.cwd,
+        timeoutMs: 1e4
+      },
+      ctx
+    );
+  }
+};
+
+// server/agent/tools/SshTool.ts
+var sshToolSchema = {
+  jsonSchema: {
+    type: "object",
+    required: ["command"],
+    properties: {
+      command: { type: "string", description: "Remote command to execute via SSH exec channel" },
+      cwd: { type: "string" },
+      timeoutMs: { type: "number" }
+    }
+  },
+  validate(raw) {
+    if (!isPlainObject(raw)) {
+      return { ok: false, error: "SshTool \u53C2\u6570\u5FC5\u987B\u662F\u5BF9\u8C61" };
+    }
+    if (typeof raw.command !== "string" || !raw.command.trim()) {
+      return { ok: false, error: "SshTool.command \u5FC5\u987B\u662F\u975E\u7A7A\u5B57\u7B26\u4E32" };
+    }
+    return {
+      ok: true,
+      data: {
+        command: raw.command.trim(),
+        cwd: typeof raw.cwd === "string" ? raw.cwd : void 0,
+        timeoutMs: typeof raw.timeoutMs === "number" ? raw.timeoutMs : void 0
+      }
+    };
+  }
+};
+var SshTool = class {
+  constructor(shellTool) {
+    this.shellTool = shellTool;
+  }
+  shellTool;
+  name = "ssh";
+  description = "Execute a remote command over an isolated SSH exec channel on the active session.";
+  schema = sshToolSchema;
+  toGuardrailAction(input, ctx) {
+    return {
+      kind: "shell:exec",
+      sessionId: ctx.sessionId,
+      command: input.command,
+      cwd: input.cwd || ctx.cwd
+    };
+  }
+  async execute(input, ctx) {
+    return this.shellTool.execute(input, ctx);
+  }
+};
+
+// server/agent/runtime/Verifier.ts
+var CommandExitCodeVerifier = class {
+  constructor(shellTool) {
+    this.shellTool = shellTool;
+  }
+  shellTool;
+  async verify(spec, ctx) {
+    const expectedCode = spec.expectedExitCode ?? 0;
+    const res = await this.shellTool.execute(
+      { command: spec.command, cwd: ctx.cwd, timeoutMs: 1e4 },
+      ctx
+    );
+    const actualCode = res.output?.exitCode ?? (res.success ? 0 : 1);
+    if (actualCode !== expectedCode) {
+      return {
+        passed: false,
+        message: `\u9A8C\u8BC1\u547D\u4EE4 "${spec.command}" \u9000\u51FA\u7801\u4E3A ${actualCode}\uFF0C\u9884\u671F\u4E3A ${expectedCode}`,
+        details: res.output
+      };
+    }
+    if (spec.expectedOutputContains) {
+      const combined = `${res.output?.stdout || ""}
+${res.output?.stderr || ""}`;
+      if (!combined.includes(spec.expectedOutputContains)) {
+        return {
+          passed: false,
+          message: `\u9A8C\u8BC1\u547D\u4EE4 "${spec.command}" \u8F93\u51FA\u672A\u5305\u542B\u9884\u671F\u5185\u5BB9 "${spec.expectedOutputContains}"`,
+          details: res.output
+        };
+      }
+    }
+    return {
+      passed: true,
+      message: `\u9A8C\u8BC1\u547D\u4EE4 "${spec.command}" \u901A\u8FC7 (exitCode=${actualCode})`
+    };
+  }
+};
+var FileMutationVerifier = class {
+  constructor(sessionManager) {
+    this.sessionManager = sessionManager;
+  }
+  sessionManager;
+  async verify(spec, ctx) {
+    try {
+      const { provider } = this.sessionManager.getFileSystemProvider(ctx.sessionId);
+      const content = await provider.read(ctx.sessionId, spec.path, { internal: true });
+      if (spec.mustContain && !content.includes(spec.mustContain)) {
+        return {
+          passed: false,
+          message: `\u6587\u4EF6 ${spec.path} \u672A\u5305\u542B\u9884\u671F\u5185\u5BB9 "${spec.mustContain}"`
+        };
+      }
+      if (spec.mustNotContain && content.includes(spec.mustNotContain)) {
+        return {
+          passed: false,
+          message: `\u6587\u4EF6 ${spec.path} \u4ECD\u5305\u542B\u5E94\u79FB\u9664\u7684\u5185\u5BB9 "${spec.mustNotContain}"`
+        };
+      }
+      return {
+        passed: true,
+        message: `\u6587\u4EF6 ${spec.path} \u53D8\u66F4\u9A8C\u8BC1\u901A\u8FC7`
+      };
+    } catch (err) {
+      return {
+        passed: false,
+        message: `\u65E0\u6CD5\u8BFB\u53D6\u9A8C\u8BC1\u76EE\u6807\u6587\u4EF6 ${spec.path}: ${errorMessage(err)}`
+      };
+    }
+  }
+};
+var ServiceActiveVerifier = class {
+  constructor(shellTool) {
+    this.shellTool = shellTool;
+  }
+  shellTool;
+  async verify(spec, ctx) {
+    const safeName = spec.serviceName.replace(/[^A-Za-z0-9_.@-]/g, "");
+    const res = await this.shellTool.execute(
+      { command: `systemctl is-active ${safeName}`, cwd: ctx.cwd, timeoutMs: 1e4 },
+      ctx
+    );
+    const stdout = (res.output?.stdout || "").trim().toLowerCase();
+    const isActive = res.output?.exitCode === 0 && stdout.startsWith("active");
+    if (!isActive) {
+      return {
+        passed: false,
+        message: `\u670D\u52A1 ${safeName} \u672A\u5904\u4E8E active \u72B6\u6001 (\u5B9E\u9645: ${stdout || res.error || "unknown"})`,
+        details: res.output
+      };
+    }
+    return {
+      passed: true,
+      message: `\u670D\u52A1 ${safeName} \u8FD0\u884C\u72B6\u6001\u9A8C\u8BC1\u4E3A active`
+    };
+  }
+};
+var VerifierRegistry = class {
+  cmdVerifier;
+  fileVerifier;
+  serviceVerifier;
+  constructor(deps) {
+    this.cmdVerifier = new CommandExitCodeVerifier(deps.shellTool);
+    this.fileVerifier = new FileMutationVerifier(deps.sessionManager);
+    this.serviceVerifier = new ServiceActiveVerifier(deps.shellTool);
+  }
+  async verify(spec, ctx) {
+    switch (spec.type) {
+      case "command_exit_code":
+        return this.cmdVerifier.verify(spec, ctx);
+      case "file_mutation":
+        return this.fileVerifier.verify(spec, ctx);
+      case "service_active":
+        return this.serviceVerifier.verify(spec, ctx);
+    }
+  }
+};
+
+// server/agent/runtime/AgentRuntime.ts
+var import_crypto5 = __toESM(require("crypto"), 1);
+
+// server/agent/planner/Planner.ts
+var import_crypto4 = __toESM(require("crypto"), 1);
+
+// server/agent/planner/Plan.ts
+function derivePlanStatus(steps, flags = {}) {
+  if (flags.isCancelled) {
+    return "cancelled";
+  }
+  if (flags.isPlanning || steps.length === 0) {
+    return "planning";
+  }
+  if (steps.some((s) => s.status === "awaiting_approval")) {
+    return "awaiting_approval";
+  }
+  if (flags.isVerifying) {
+    return "verifying";
+  }
+  if (steps.some((s) => s.status === "running")) {
+    return "running";
+  }
+  if (steps.some((s) => s.status === "failed")) {
+    return "failed";
+  }
+  if (steps.every((s) => s.status === "completed" || s.status === "skipped")) {
+    return "completed";
+  }
+  return "running";
+}
+function withDerivedPlanStatus(plan, flags = {}) {
+  return {
+    ...plan,
+    status: derivePlanStatus(plan.steps, flags),
+    updatedAt: Date.now()
+  };
+}
+
+// server/agent/planner/Planner.ts
+var Planner = class {
+  /**
+   * Build a structured `AgentPlan` for a user goal based on `WorkspaceContext`.
+   */
+  createPlan(goal, context) {
+    const planId = `plan-${import_crypto4.default.randomUUID()}`;
+    const now = Date.now();
+    const steps = this.synthesizeSteps(goal, context);
+    return withDerivedPlanStatus({
+      id: planId,
+      sessionId: context.session.id,
+      goal,
+      steps,
+      createdAt: now,
+      updatedAt: now
+    });
+  }
+  synthesizeSteps(goal, context) {
+    const lowerGoal = goal.toLowerCase();
+    const failedCmd = context.command.failed?.command?.toLowerCase() || "";
+    const combined = `${lowerGoal} ${failedCmd}`;
+    const cwd = context.terminal.cwd || "/etc/nginx";
+    if (combined.includes("nginx")) {
+      return [
+        {
+          id: "step-1",
+          title: "\u68C0\u67E5 Nginx \u914D\u7F6E\u6587\u4EF6\u8BED\u6CD5",
+          description: "\u6267\u884C nginx -t \u9A8C\u8BC1\u914D\u7F6E\u6587\u4EF6\u662F\u5426\u5B58\u5728\u8BED\u6CD5\u9519\u8BEF",
+          toolName: "shell",
+          input: { command: "nginx -t", cwd },
+          status: "pending"
+        },
+        {
+          id: "step-2",
+          title: "\u8BFB\u53D6 Nginx \u4E3B\u914D\u7F6E\u6587\u4EF6",
+          description: "\u8BFB\u53D6 /etc/nginx/nginx.conf \u68C0\u67E5\u76D1\u542C\u7AEF\u53E3\u4E0E\u4E0A\u6E38\u914D\u7F6E",
+          toolName: "file",
+          input: { operation: "read", path: "/etc/nginx/nginx.conf" },
+          status: "pending"
+        },
+        {
+          id: "step-3",
+          title: "\u68C0\u67E5 Nginx \u670D\u52A1\u72B6\u6001\u5E76\u9A8C\u8BC1",
+          description: "\u67E5\u8BE2 systemd \u4E2D nginx \u670D\u52A1\u662F\u5426\u5904\u4E8E\u8FD0\u884C\u72B6\u6001",
+          toolName: "shell",
+          input: { command: "systemctl status nginx", cwd },
+          status: "pending",
+          verifier: {
+            type: "service_active",
+            serviceName: "nginx"
+          }
+        }
+      ];
+    }
+    if (combined.includes("git")) {
+      return [
+        {
+          id: "step-1",
+          title: "\u68C0\u67E5 Git \u5DE5\u4F5C\u533A\u72B6\u6001",
+          description: "\u67E5\u770B\u5F53\u524D\u5206\u652F\u53CA\u672A\u63D0\u4EA4\u53D8\u66F4",
+          toolName: "git",
+          input: { operation: "status", cwd },
+          status: "pending"
+        },
+        {
+          id: "step-2",
+          title: "\u67E5\u770B\u6700\u8FD1\u63D0\u4EA4\u8BB0\u5F55",
+          description: "\u83B7\u53D6\u6700\u8FD1 10 \u6761 Git \u63D0\u4EA4\u5386\u53F2",
+          toolName: "git",
+          input: { operation: "log", cwd },
+          status: "pending"
+        }
+      ];
+    }
+    const backtickMatch = goal.match(/`([^`]+)`/);
+    if (backtickMatch && backtickMatch[1].trim()) {
+      const cmd = backtickMatch[1].trim();
+      return [
+        {
+          id: "step-1",
+          title: `\u6267\u884C\u547D\u4EE4: ${cmd}`,
+          description: `\u5728 ${cwd} \u4E0B\u6267\u884C\u76EE\u6807\u547D\u4EE4`,
+          toolName: "shell",
+          input: { command: cmd, cwd },
+          status: "pending"
+        }
+      ];
+    }
+    return [
+      {
+        id: "step-1",
+        title: "\u68C0\u67E5\u5F53\u524D\u5DE5\u4F5C\u76EE\u5F55\u5185\u5BB9",
+        description: `\u5217\u51FA ${cwd} \u4E0B\u7684\u6587\u4EF6\u6761\u76EE`,
+        toolName: "file",
+        input: { operation: "list", path: cwd },
+        status: "pending"
+      },
+      {
+        id: "step-2",
+        title: "\u6267\u884C\u5DE5\u4F5C\u7A7A\u95F4\u72B6\u6001\u68C0\u67E5",
+        description: "\u9A8C\u8BC1\u5F53\u524D\u5DE5\u4F5C\u76EE\u5F55\u8DEF\u5F84",
+        toolName: "shell",
+        input: { command: "pwd", cwd },
+        status: "pending",
+        verifier: {
+          type: "command_exit_code",
+          command: "pwd",
+          expectedExitCode: 0
+        }
+      }
+    ];
+  }
+};
+
+// server/agent/runtime/AgentSession.ts
+var AgentSession = class {
+  constructor(sessionId) {
+    this.sessionId = sessionId;
+    this.state = {
+      sessionId,
+      status: "idle",
+      updatedAt: Date.now()
+    };
+  }
+  sessionId;
+  state;
+  abortController = null;
+  getState() {
+    return { ...this.state };
+  }
+  getCwd() {
+    return this.state.cwd;
+  }
+  setCwd(cwd) {
+    if (!cwd || !cwd.trim()) return;
+    this.state = {
+      ...this.state,
+      cwd: cwd.trim(),
+      updatedAt: Date.now()
+    };
+  }
+  getActivePlan() {
+    return this.state.activePlan;
+  }
+  startRun(plan, initialCwd) {
+    this.abortController?.abort();
+    this.abortController = new AbortController();
+    const updatedPlan = withDerivedPlanStatus(plan);
+    this.state = {
+      sessionId: this.sessionId,
+      status: updatedPlan.status,
+      activePlan: updatedPlan,
+      cwd: this.state.cwd || initialCwd,
+      updatedAt: Date.now(),
+      lastError: void 0
+    };
+    return this.abortController.signal;
+  }
+  updatePlanSteps(updater, flags = {}, summary) {
+    if (!this.state.activePlan) return void 0;
+    const nextSteps = updater(this.state.activePlan.steps.map((s) => ({ ...s })));
+    const updatedPlan = withDerivedPlanStatus(
+      {
+        ...this.state.activePlan,
+        steps: nextSteps,
+        ...summary !== void 0 ? { summary } : {}
+      },
+      flags
+    );
+    this.state = {
+      ...this.state,
+      status: updatedPlan.status,
+      activePlan: updatedPlan,
+      updatedAt: Date.now()
+    };
+    return updatedPlan;
+  }
+  restorePlan(plan) {
+    this.state = {
+      ...this.state,
+      sessionId: this.sessionId,
+      status: plan.status,
+      activePlan: plan,
+      updatedAt: Date.now()
+    };
+  }
+  cancel() {
+    this.abortController?.abort();
+    this.abortController = null;
+    if (!this.state.activePlan) {
+      this.state = {
+        ...this.state,
+        status: "idle",
+        updatedAt: Date.now()
+      };
+      return void 0;
+    }
+    return this.updatePlanSteps(
+      (steps) => steps.map(
+        (s) => s.status === "pending" || s.status === "running" || s.status === "awaiting_approval" ? { ...s, status: "skipped" } : s
+      ),
+      { isCancelled: true },
+      "\u4EFB\u52A1\u5DF2\u7531\u7528\u6237\u53D6\u6D88"
+    );
+  }
+};
+
+// server/agent/runtime/AgentRuntime.ts
+function summarizeToolOutput(output) {
+  if (output === void 0 || output === null) return "\u6267\u884C\u5B8C\u6210";
+  if (typeof output === "string") {
+    return output.length > 240 ? `${output.slice(0, 240)}...` : output;
+  }
+  if (typeof output === "object") {
+    const rec = output;
+    if (typeof rec.stdout === "string" && rec.stdout.trim()) {
+      const s = rec.stdout.trim();
+      return s.length > 240 ? `${s.slice(0, 240)}...` : s;
+    }
+    if (Array.isArray(output)) {
+      return `\u5171 ${output.length} \u9879\u6761\u76EE`;
+    }
+  }
+  const str = JSON.stringify(output);
+  return str.length > 240 ? `${str.slice(0, 240)}...` : str;
+}
+var AgentRuntime = class {
+  constructor(deps) {
+    this.deps = deps;
+    this.planner = deps.planner ?? new Planner();
+    this.verifierRegistry = deps.verifierRegistry;
+    for (const tool of deps.tools) {
+      this.toolMap.set(tool.name, tool);
+    }
+  }
+  deps;
+  agentSessions = /* @__PURE__ */ new Map();
+  toolMap = /* @__PURE__ */ new Map();
+  planner;
+  verifierRegistry;
+  getOrCreateAgentSession(sessionId) {
+    let sess = this.agentSessions.get(sessionId);
+    if (!sess) {
+      sess = new AgentSession(sessionId);
+      this.agentSessions.set(sessionId, sess);
+    }
+    return sess;
+  }
+  getActivePlan(sessionId) {
+    return this.agentSessions.get(sessionId)?.getActivePlan();
+  }
+  restoreSessionPlan(sessionId, plan) {
+    this.getOrCreateAgentSession(sessionId).restorePlan(plan);
+  }
+  /**
+   * Execute a single tool call through the mandatory security pipeline:
+   * Schema Validation -> GuardrailAction -> GuardrailPipeline -> (Allow / Ask Approval / Deny) -> Execute
+   */
+  async executeToolCall(sessionId, toolName, rawInput, options) {
+    const tool = this.toolMap.get(toolName);
+    if (!tool) {
+      return {
+        success: false,
+        error: `\u672A\u77E5\u5DE5\u5177: ${toolName}`,
+        durationMs: 0
+      };
+    }
+    const validation = tool.schema.validate(rawInput);
+    if (!validation.ok) {
+      return {
+        success: false,
+        error: validation.error,
+        durationMs: 0
+      };
+    }
+    const agentSession = this.getOrCreateAgentSession(sessionId);
+    const session = this.deps.sessionManager.get(sessionId);
+    const effectiveCwd = agentSession.getCwd() || session?.terminal.cwd;
+    const ctx = {
+      sessionId,
+      cwd: effectiveCwd,
+      abortSignal: options?.abortSignal,
+      onCwdChange: (newCwd) => {
+        agentSession.setCwd(newCwd);
+        this.deps.sessionManager.updateCwd(sessionId, newCwd);
+      }
+    };
+    const action = tool.toGuardrailAction(validation.data, ctx);
+    const policyResult = this.deps.guardrailPipeline.evaluate(action);
+    if (policyResult.decision === "deny") {
+      return {
+        success: false,
+        error: policyResult.assessment.reason || `\u5B89\u5168\u7B56\u7565\u62D2\u7EDD\u6267\u884C\u9AD8\u5371\u64CD\u4F5C (${policyResult.assessment.level})`,
+        durationMs: 0
+      };
+    }
+    if (policyResult.decision === "ask") {
+      const { request, decisionPromise } = this.deps.approvalManager.requestApproval({
+        sessionId,
+        planId: options?.planId,
+        stepId: options?.stepId,
+        toolName,
+        action,
+        assessment: policyResult.assessment
+      });
+      options?.onApprovalPending?.(request);
+      const approved = await decisionPromise;
+      if (!approved) {
+        return {
+          success: false,
+          error: request.reason || "\u64CD\u4F5C\u672A\u7ECF\u4EBA\u5DE5\u6279\u51C6\u6216\u5DF2\u62D2\u7EDD",
+          durationMs: 0
+        };
+      }
+    }
+    const toolCallId = `tc-${import_crypto5.default.randomUUID()}`;
+    this.deps.eventBus.publish({
+      type: "agent:tool_call",
+      sessionId,
+      planId: options?.planId,
+      toolCallId,
+      toolName,
+      input: validation.data,
+      timestamp: Date.now()
+    });
+    const result = await tool.execute(validation.data, ctx);
+    this.deps.eventBus.publish({
+      type: "agent:tool_result",
+      sessionId,
+      planId: options?.planId,
+      toolCallId,
+      toolName,
+      success: result.success,
+      output: result.output,
+      error: result.error,
+      timestamp: Date.now()
+    });
+    return result;
+  }
+  /**
+   * Run a full Plan-Execute-Verify loop for a given session and goal (or pre-built AgentPlan).
+   */
+  async runPlan(sessionId, goalOrPlan, callbacks) {
+    const context = await this.deps.contextEngine.buildContext(sessionId);
+    const initialPlan = typeof goalOrPlan === "string" ? this.planner.createPlan(goalOrPlan, context) : goalOrPlan;
+    const agentSession = this.getOrCreateAgentSession(sessionId);
+    const abortSignal = agentSession.startRun(initialPlan, context.terminal.cwd);
+    this.deps.eventBus.publish({
+      type: "agent:started",
+      sessionId,
+      planId: initialPlan.id,
+      goal: initialPlan.goal,
+      timestamp: Date.now()
+    });
+    const emitPlan = (plan) => {
+      if (plan) {
+        callbacks?.onPlanUpdate?.(plan);
+      }
+    };
+    emitPlan(agentSession.getActivePlan());
+    for (const step of initialPlan.steps) {
+      if (abortSignal.aborted) {
+        break;
+      }
+      emitPlan(
+        agentSession.updatePlanSteps(
+          (steps) => steps.map((s) => s.id === step.id ? { ...s, status: "running" } : s)
+        )
+      );
+      const res = await this.executeToolCall(sessionId, step.toolName, step.input, {
+        planId: initialPlan.id,
+        stepId: step.id,
+        abortSignal,
+        onApprovalPending: (req) => {
+          emitPlan(
+            agentSession.updatePlanSteps(
+              (steps) => steps.map(
+                (s) => s.id === step.id ? { ...s, status: "awaiting_approval", approvalId: req.id } : s
+              )
+            )
+          );
+          callbacks?.onApprovalRequest?.(req);
+        }
+      });
+      if (abortSignal.aborted) {
+        break;
+      }
+      if (!res.success) {
+        emitPlan(
+          agentSession.updatePlanSteps(
+            (steps) => steps.map((s) => {
+              if (s.id === step.id) {
+                return { ...s, status: "failed", error: res.error || "\u6267\u884C\u5931\u8D25" };
+              }
+              if (s.status === "pending") {
+                return { ...s, status: "skipped" };
+              }
+              return s;
+            }),
+            {},
+            `\u6B65\u9AA4 "${step.title}" \u5931\u8D25: ${res.error || "\u672A\u77E5\u9519\u8BEF"}`
+          )
+        );
+        break;
+      }
+      let stepOutputSummary = summarizeToolOutput(res.output);
+      if (step.verifier && this.verifierRegistry) {
+        emitPlan(
+          agentSession.updatePlanSteps((steps) => steps, { isVerifying: true })
+        );
+        const verifyRes = await this.verifierRegistry.verify(step.verifier, {
+          sessionId,
+          cwd: agentSession.getCwd() || context.terminal.cwd,
+          abortSignal
+        });
+        if (!verifyRes.passed) {
+          emitPlan(
+            agentSession.updatePlanSteps(
+              (steps) => steps.map((s) => {
+                if (s.id === step.id) {
+                  return {
+                    ...s,
+                    status: "failed",
+                    outputSummary: stepOutputSummary,
+                    error: verifyRes.message
+                  };
+                }
+                if (s.status === "pending") {
+                  return { ...s, status: "skipped" };
+                }
+                return s;
+              }),
+              { isVerifying: false },
+              `\u9A8C\u8BC1\u672A\u901A\u8FC7: ${verifyRes.message}`
+            )
+          );
+          break;
+        }
+        stepOutputSummary = `${stepOutputSummary} (${verifyRes.message})`;
+      }
+      callbacks?.onStepOutput?.(step.id, stepOutputSummary);
+      emitPlan(
+        agentSession.updatePlanSteps(
+          (steps) => steps.map(
+            (s) => s.id === step.id ? { ...s, status: "completed", outputSummary: stepOutputSummary } : s
+          ),
+          { isVerifying: false }
+        )
+      );
+    }
+    const finalPlan = agentSession.getActivePlan();
+    this.deps.eventBus.publish({
+      type: "agent:finished",
+      sessionId,
+      planId: finalPlan.id,
+      status: finalPlan.status === "completed" ? "completed" : finalPlan.status === "cancelled" ? "cancelled" : "failed",
+      summary: finalPlan.summary,
+      timestamp: Date.now()
+    });
+    return finalPlan;
+  }
+  cancel(sessionId) {
+    this.deps.approvalManager.cancelSessionApprovals(sessionId);
+    const plan = this.agentSessions.get(sessionId)?.cancel();
+    if (plan) {
+      this.deps.eventBus.publish({
+        type: "agent:finished",
+        sessionId,
+        planId: plan.id,
+        status: "cancelled",
+        summary: plan.summary,
+        timestamp: Date.now()
+      });
+    }
+    return plan;
+  }
+};
+
+// server/application/session/SessionStore.ts
+var import_fs5 = __toESM(require("fs"), 1);
+var import_path9 = __toESM(require("path"), 1);
+var SessionStore = class {
+  snapshots = /* @__PURE__ */ new Map();
+  filePath;
+  maxCommandsPerSession;
+  constructor(options) {
+    this.filePath = options?.filePath;
+    this.maxCommandsPerSession = options?.maxCommandsPerSession ?? 30;
+    if (this.filePath) {
+      this.loadFromDisk();
+    }
+  }
+  saveSnapshot(snapshot) {
+    const trimmedCommands = snapshot.recentCommands.slice(-this.maxCommandsPerSession).map((c) => ({
+      ...c,
+      // Cap persisted stdout/stderr per command to keep snapshots compact
+      stdout: c.stdout.slice(-4e3),
+      stderr: c.stderr.slice(-4e3)
+    }));
+    const clean = {
+      ...snapshot,
+      recentCommands: trimmedCommands,
+      savedAt: Date.now()
+    };
+    this.snapshots.set(snapshot.sessionId, clean);
+    this.flushToDisk();
+  }
+  captureFromEngines(sessionId, deps) {
+    const session = deps.sessionManager.get(sessionId);
+    if (!session) return void 0;
+    const fileCtx = deps.contextEngine?.getFileContext(sessionId);
+    const recentCommands = deps.commandEngine?.recent(sessionId, this.maxCommandsPerSession) ?? [];
+    const activePlan = deps.agentRuntime?.getActivePlan(sessionId);
+    const cwd = deps.commandEngine?.getCwd(sessionId) || session.terminal.cwd;
+    const snapshot = {
+      sessionId: session.id,
+      type: session.type,
+      status: session.status,
+      host: { ...session.host },
+      cwd,
+      openFiles: fileCtx?.openFiles ?? [],
+      selectedFile: fileCtx?.selectedFile,
+      recentCommands,
+      activePlan,
+      savedAt: Date.now()
+    };
+    this.saveSnapshot(snapshot);
+    return snapshot;
+  }
+  restoreIntoEngines(sessionId, deps) {
+    const snapshot = this.snapshots.get(sessionId);
+    if (!snapshot) return void 0;
+    deps.sessionManager?.updateCwd(sessionId, snapshot.cwd);
+    deps.commandEngine?.restoreHistory(sessionId, snapshot.recentCommands, snapshot.cwd);
+    if (snapshot.selectedFile) {
+      deps.contextEngine?.setSelection(sessionId, snapshot.selectedFile);
+    }
+    if (snapshot.activePlan) {
+      deps.agentRuntime?.restoreSessionPlan(sessionId, snapshot.activePlan);
+    }
+    return snapshot;
+  }
+  getSnapshot(sessionId) {
+    return this.snapshots.get(sessionId);
+  }
+  listSnapshots() {
+    return Array.from(this.snapshots.values());
+  }
+  deleteSnapshot(sessionId) {
+    const existed = this.snapshots.delete(sessionId);
+    if (existed) {
+      this.flushToDisk();
+    }
+    return existed;
+  }
+  loadFromDisk() {
+    if (!this.filePath) return;
+    try {
+      if (!import_fs5.default.existsSync(this.filePath)) return;
+      const raw = import_fs5.default.readFileSync(this.filePath, "utf-8");
+      const parsed = JSON.parse(raw);
+      if (Array.isArray(parsed)) {
+        for (const item of parsed) {
+          if (item && typeof item === "object" && typeof item.sessionId === "string") {
+            this.snapshots.set(item.sessionId, item);
+          }
+        }
+      }
+    } catch {
+    }
+  }
+  flushToDisk() {
+    if (!this.filePath) return;
+    try {
+      const dir = import_path9.default.dirname(this.filePath);
+      if (!import_fs5.default.existsSync(dir)) {
+        import_fs5.default.mkdirSync(dir, { recursive: true });
+      }
+      const data = JSON.stringify(Array.from(this.snapshots.values()), null, 2);
+      import_fs5.default.writeFileSync(this.filePath, data, "utf-8");
+    } catch {
+    }
+  }
+};
+
+// server/application/command/CommandTimelineService.ts
+var MAX_TIMELINE_ENTRIES_PER_SESSION = 200;
+var CommandTimelineService = class {
+  constructor(eventBus) {
+    this.eventBus = eventBus;
+    this.unsub = this.eventBus.subscribeAll((evt) => this.handleEvent(evt));
+  }
+  eventBus;
+  entriesBySession = /* @__PURE__ */ new Map();
+  listeners = /* @__PURE__ */ new Set();
+  unsub;
+  seq = 0;
+  onTimelineUpdate(listener) {
+    this.listeners.add(listener);
+    return () => {
+      this.listeners.delete(listener);
+    };
+  }
+  getTimeline(sessionId, limit = 50) {
+    const list = this.entriesBySession.get(sessionId) ?? [];
+    return list.slice(-limit);
+  }
+  clear(sessionId) {
+    this.entriesBySession.delete(sessionId);
+  }
+  dispose() {
+    this.unsub();
+    this.listeners.clear();
+  }
+  pushEntry(sessionId, entry) {
+    let list = this.entriesBySession.get(sessionId);
+    if (!list) {
+      list = [];
+      this.entriesBySession.set(sessionId, list);
+    }
+    const existingIdx = list.findIndex((e) => e.id === entry.id);
+    if (existingIdx >= 0) {
+      list[existingIdx] = entry;
+    } else {
+      list.push(entry);
+      if (list.length > MAX_TIMELINE_ENTRIES_PER_SESSION) {
+        list.shift();
+      }
+    }
+    const snapshot = [...list];
+    for (const listener of Array.from(this.listeners)) {
+      try {
+        listener(sessionId, snapshot);
+      } catch (err) {
+        console.error("[CommandTimelineService] Error in listener:", err);
+      }
+    }
+  }
+  nextId(prefix) {
+    this.seq += 1;
+    return `${prefix}-${this.seq}`;
+  }
+  handleEvent(event) {
+    const { sessionId, timestamp } = event;
+    switch (event.type) {
+      case "command:started":
+        this.pushEntry(sessionId, {
+          id: `tl-cmd-${event.commandId}`,
+          sessionId,
+          kind: "command",
+          title: event.command || "(shell command)",
+          cwd: event.cwd,
+          status: "running",
+          timestamp
+        });
+        break;
+      case "command:finished":
+        this.pushEntry(sessionId, {
+          id: `tl-cmd-${event.commandId}`,
+          sessionId,
+          kind: "command",
+          title: event.command || "(shell command)",
+          detail: `exit ${event.exitCode} (${event.durationMs}ms)`,
+          status: event.exitCode === 0 ? "success" : "failed",
+          exitCode: event.exitCode,
+          cwd: event.cwd,
+          durationMs: event.durationMs,
+          timestamp
+        });
+        break;
+      case "file:opened":
+        this.pushEntry(sessionId, {
+          id: this.nextId("tl-file-open"),
+          sessionId,
+          kind: "file",
+          title: `\u8BFB\u53D6\u6587\u4EF6: ${event.path}`,
+          status: "info",
+          timestamp
+        });
+        break;
+      case "file:saved":
+        this.pushEntry(sessionId, {
+          id: this.nextId("tl-file-save"),
+          sessionId,
+          kind: "file",
+          title: `\u4FDD\u5B58\u6587\u4EF6: ${event.path}`,
+          detail: `${event.byteLength} bytes`,
+          status: "success",
+          timestamp
+        });
+        break;
+      case "file:changed":
+        this.pushEntry(sessionId, {
+          id: this.nextId("tl-file-chg"),
+          sessionId,
+          kind: "file",
+          title: `\u6587\u4EF6\u53D8\u66F4 (${event.operation}): ${event.path}`,
+          detail: event.targetPath ? `-> ${event.targetPath}` : void 0,
+          status: "info",
+          timestamp
+        });
+        break;
+      case "agent:started":
+        this.pushEntry(sessionId, {
+          id: `tl-plan-${event.planId}`,
+          sessionId,
+          kind: "agent",
+          title: `Agent \u89C4\u5212\u542F\u52A8: ${event.goal}`,
+          status: "running",
+          timestamp
+        });
+        break;
+      case "agent:tool_call":
+        this.pushEntry(sessionId, {
+          id: `tl-tc-${event.toolCallId}`,
+          sessionId,
+          kind: "agent",
+          title: `\u8C03\u7528\u5DE5\u5177 [${event.toolName}]`,
+          detail: JSON.stringify(event.input).slice(0, 120),
+          status: "running",
+          timestamp
+        });
+        break;
+      case "agent:tool_result":
+        this.pushEntry(sessionId, {
+          id: `tl-tc-${event.toolCallId}`,
+          sessionId,
+          kind: "agent",
+          title: `\u5DE5\u5177\u5B8C\u6210 [${event.toolName}]`,
+          detail: event.error || (event.success ? "\u6210\u529F" : "\u5931\u8D25"),
+          status: event.success ? "success" : "failed",
+          timestamp
+        });
+        break;
+      case "agent:finished":
+        this.pushEntry(sessionId, {
+          id: `tl-plan-${event.planId}`,
+          sessionId,
+          kind: "agent",
+          title: `Agent \u4EFB\u52A1\u7ED3\u675F (${event.status})`,
+          detail: event.summary,
+          status: event.status === "completed" ? "success" : event.status === "cancelled" ? "info" : "failed",
+          timestamp
+        });
+        break;
+      case "session:connected":
+        this.pushEntry(sessionId, {
+          id: this.nextId("tl-sess-conn"),
+          sessionId,
+          kind: "session",
+          title: `\u4F1A\u8BDD\u5DF2\u8FDE\u63A5 (${event.sessionType})`,
+          cwd: event.cwd,
+          status: "success",
+          timestamp
+        });
+        break;
+      case "session:disconnected":
+        this.pushEntry(sessionId, {
+          id: this.nextId("tl-sess-disc"),
+          sessionId,
+          kind: "session",
+          title: `\u4F1A\u8BDD\u5DF2\u65AD\u5F00 (${event.reason})`,
+          status: "info",
+          timestamp
+        });
+        break;
+      default:
+        break;
+    }
+  }
+};
 
 // server/ws/wsRouter.ts
 function rawToText(raw) {
@@ -50931,34 +55232,119 @@ var DEMO_HOST = {
   group: "\u672C\u5730",
   host: "localhost",
   port: 0,
-  username: import_os4.default.userInfo().username || "local",
+  username: import_os6.default.userInfo().username || "local",
   authType: "local",
-  initialDir: import_os4.default.homedir(),
+  initialDir: import_os6.default.homedir(),
   createdAt: 0
 };
+function wrapFsProvider(provider, eventBus) {
+  if (!eventBus) return provider;
+  return new EventEmittingFsProvider(provider, eventBus);
+}
+function createDefaultSessionManager(params) {
+  const { eventBus } = params;
+  return new DefaultSessionManager({
+    terminalProviders: {
+      local: new LocalTerminalProvider(params.localPtyManager),
+      ssh: new SshTerminalProvider(params.sshManager),
+      mock: new MockTerminalProvider(params.mockSessions, params.createMockSession)
+    },
+    fileSystemProviders: {
+      local: wrapFsProvider(new LocalFileSystemProvider(params.localFsManager), eventBus),
+      ssh: wrapFsProvider(new SftpFileSystemProvider(params.sshManager), eventBus),
+      mock: wrapFsProvider(new MockFileSystemProvider(params.mockSessions), eventBus)
+    },
+    detachGracePeriodMs: params.detachGracePeriodMs,
+    hooks: eventBus ? {
+      onSessionConnected: (session) => {
+        eventBus.publish({
+          type: "session:connected",
+          sessionId: session.id,
+          sessionType: session.type,
+          hostId: session.host.id,
+          cwd: session.terminal.cwd,
+          timestamp: Date.now()
+        });
+      },
+      onSessionDisconnected: (session, reason) => {
+        eventBus.publish({
+          type: "session:disconnected",
+          sessionId: session.id,
+          reason,
+          timestamp: Date.now()
+        });
+      }
+    } : void 0
+  });
+}
 function setupWsRouter(wss, aiService, auth) {
   const mockSessions = /* @__PURE__ */ new Map();
+  const localPtyManager2 = new LocalPtyManager();
+  const localFsManager2 = new LocalFsManager();
+  const eventBus = new InMemoryEventBus();
+  const createMockSession = (sessionId) => {
+    const mockFs = new MockFileSystem();
+    const term = new MockTerminalSession(sessionId, mockFs);
+    return { term, fs: mockFs };
+  };
+  const sessionManager = createDefaultSessionManager({
+    localPtyManager: localPtyManager2,
+    localFsManager: localFsManager2,
+    sshManager,
+    mockSessions,
+    createMockSession,
+    eventBus
+  });
+  const commandEngine = new CommandEngine(eventBus, (sessionId, cwd) => {
+    sessionManager.updateCwd(sessionId, cwd);
+  });
+  const contextEngine = new ContextEngine(sessionManager, commandEngine, eventBus);
+  const guardrailPipeline = new GuardrailPipeline();
+  const approvalManager = new ApprovalManager();
+  const sessionStore = new SessionStore();
+  const timelineService = new CommandTimelineService(eventBus);
+  const shellTool = new ShellTool({ sessionManager, sshManager, commandEngine });
+  const fileTool = new FileTool(sessionManager);
+  const gitTool = new GitTool(shellTool);
+  const sshTool = new SshTool(shellTool);
+  const verifierRegistry = new VerifierRegistry({ sessionManager, shellTool });
+  const agentRuntime = new AgentRuntime({
+    sessionManager,
+    contextEngine,
+    eventBus,
+    guardrailPipeline,
+    approvalManager,
+    tools: [shellTool, fileTool, gitTool, sshTool],
+    verifierRegistry
+  });
   const deps = {
     aiService,
     sshManager,
     storage: localStorageManager,
     mockSessions,
     demoHost: DEMO_HOST,
-    createMockSession: (sessionId) => {
-      const mockFs = new MockFileSystem();
-      const term = new MockTerminalSession(sessionId, mockFs);
-      return { term, fs: mockFs };
-    },
-    localPtyManager: new LocalPtyManager(),
-    localFsManager: new LocalFsManager()
+    createMockSession,
+    localPtyManager: localPtyManager2,
+    localFsManager: localFsManager2,
+    sessionManager,
+    eventBus,
+    commandEngine,
+    contextEngine,
+    agentRuntime,
+    approvalManager,
+    guardrailPipeline,
+    sessionStore,
+    timelineService
   };
   wss.on("connection", (ws, req) => {
     if (!checkWsAuth(req, auth)) {
       ws.close(4401, "unauthorized");
       return;
     }
+    const connectionId = `conn-${import_crypto6.default.randomUUID()}`;
     const clientSessions = /* @__PURE__ */ new Set();
     const conn = {
+      connectionId,
       clientSessions,
       socket: ws,
       send: (msg) => {
@@ -50989,9 +55375,7 @@ function setupWsRouter(wss, aiService, auth) {
     });
     ws.on("close", () => {
       for (const sid of clientSessions) {
-        mockSessions.delete(sid);
-        sshManager.closeSession(sid);
-        deps.localPtyManager.closeSession(sid);
+        sessionManager.detach(sid, connectionId);
       }
     });
   });
@@ -51008,7 +55392,7 @@ function isPortFree(port) {
     probe.once("listening", () => {
       probe.close(() => resolve(true));
     });
-    probe.listen(port);
+    probe.listen(port, "127.0.0.1");
   });
 }
 async function resolvePort(preferred) {
@@ -51028,13 +55412,13 @@ async function resolvePort(preferred) {
 }
 function resolveDistPath() {
   const candidates = [
-    process.env.RESOURCES_PATH ? import_path4.default.join(process.env.RESOURCES_PATH, "app.asar.unpacked/dist") : "",
-    process.env.RESOURCES_PATH ? import_path4.default.join(process.env.RESOURCES_PATH, "dist") : "",
-    import_path4.default.resolve(process.cwd(), "dist"),
-    import_path4.default.resolve(process.cwd(), "../dist"),
-    typeof __dirname !== "undefined" ? import_path4.default.resolve(__dirname, "../dist") : ""
+    process.env.RESOURCES_PATH ? import_path10.default.join(process.env.RESOURCES_PATH, "app.asar.unpacked/dist") : "",
+    process.env.RESOURCES_PATH ? import_path10.default.join(process.env.RESOURCES_PATH, "dist") : "",
+    import_path10.default.resolve(process.cwd(), "dist"),
+    import_path10.default.resolve(process.cwd(), "../dist"),
+    typeof __dirname !== "undefined" ? import_path10.default.resolve(__dirname, "../dist") : ""
   ].filter(Boolean);
-  return candidates.find((p) => import_fs5.default.existsSync(p)) || candidates[0];
+  return candidates.find((p) => import_fs6.default.existsSync(p)) || candidates[0];
 }
 async function main() {
   const PORT = await resolvePort(PREFERRED_PORT);
@@ -51054,7 +55438,7 @@ async function main() {
     allowedPorts: ALLOWED_PORTS
   };
   try {
-    import_fs5.default.writeFileSync(import_path4.default.join(localStorageManager.getDataDir(), "server_token"), authContext.token, {
+    import_fs6.default.writeFileSync(import_path10.default.join(localStorageManager.getDataDir(), "server_token"), authContext.token, {
       mode: 384
     });
   } catch {
@@ -51069,10 +55453,10 @@ async function main() {
   app.use("/api/security", securityRouter);
   setupWsRouter(wss, aiService, authContext);
   const distPath = resolveDistPath();
-  if (import_fs5.default.existsSync(distPath)) {
+  if (import_fs6.default.existsSync(distPath)) {
     app.use(import_express5.default.static(distPath));
     app.get("*", (req, res) => {
-      res.sendFile(import_path4.default.join(distPath, "index.html"));
+      res.sendFile(import_path10.default.join(distPath, "index.html"));
     });
   } else {
     console.warn(
@@ -51104,8 +55488,8 @@ async function main() {
     }
     process.exit(1);
   });
-  server.listen(PORT, () => {
-    console.log(`\x1B[32m[MonoTerminal Server]\x1B[0m \u540E\u7AEF\u670D\u52A1\u5DF2\u5C31\u7EEA: http://localhost:${PORT}`);
+  server.listen(PORT, "127.0.0.1", () => {
+    console.log(`\x1B[32m[MonoTerminal Server]\x1B[0m \u540E\u7AEF\u670D\u52A1\u5DF2\u5C31\u7EEA: http://127.0.0.1:${PORT}`);
     console.log(`MONOTERMINAL_READY port=${PORT}`);
   });
 }

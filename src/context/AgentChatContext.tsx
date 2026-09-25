@@ -1,6 +1,11 @@
 import React, { createContext, useCallback, useContext, useEffect, useRef, useState } from 'react';
 import { ChatMessage } from '../types';
 import { generateId } from '../../shared/id';
+import type {
+  AgentPlanPayload,
+  ApprovalRequestPayload,
+  TimelineEntryPayload
+} from '../../shared/wsProtocol';
 import { useSession } from './SessionContext';
 import { useWebSocket } from './WebSocketContext';
 import { cleanCommandForExecution } from '../utils/commandCleaner';
@@ -32,6 +37,9 @@ interface ChatState {
   expandedThinking: Record<string, boolean>;
   commandExplanations: Record<string, string>;
   input: string;
+  activePlan: AgentPlanPayload | null;
+  pendingApprovals: ApprovalRequestPayload[];
+  timeline: TimelineEntryPayload[];
 }
 
 interface AgentChatContextType extends ChatState {
@@ -41,10 +49,14 @@ interface AgentChatContextType extends ChatState {
   runCommand: (cmd: string) => void;
   fillCommand: (cmd: string) => void;
   explainCommand: (cmd: string) => void;
+  runAgentGoal: (goal: string) => void;
+  approveAgentAction: (approvalId: string) => void;
+  rejectAgentAction: (approvalId: string, reason?: string) => void;
+  cancelAgentPlan: () => void;
 }
 
 const GREETING_CONTENT =
-  '👋 您好！我是 MonoTerminal 智能运维助手。\n已就绪连接至当前服务器。您可以随时向我咨询故障排查、日志分析或命令生成。按 **[Ctrl + \\]** 可随时在同一窗口展开或收起助手！';
+  '👋 您好！我是 MonoTerminal 智能运维助手。\n已就绪连接至当前服务器。您可以随时向我咨询故障排查、日志分析或命令生成。按 **[Ctrl + \\\\]** 可随时在同一窗口展开或收起助手！';
 
 const createEmptyState = (): ChatState => ({
   messages: [
@@ -58,7 +70,10 @@ const createEmptyState = (): ChatState => ({
   isStreaming: false,
   expandedThinking: {},
   commandExplanations: {},
-  input: ''
+  input: '',
+  activePlan: null,
+  pendingApprovals: [],
+  timeline: []
 });
 
 const EMPTY_STATE: ChatState = createEmptyState();
@@ -68,7 +83,7 @@ const AgentChatContext = createContext<AgentChatContextType | null>(null);
 export const AgentChatProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   const { activeSession, activeSessionId, sessions, hosts, executeCommandWithGuardrail } =
     useSession();
-  const { streamAI, sendTermInput } = useWebSocket();
+  const { send, streamAI, sendTermInput, registerAgentEventHandler } = useWebSocket();
 
   const [store, setStore] = useState<Record<string, ChatState>>({});
   // Mirror of `store` for synchronous reads inside callbacks (avoids stale
@@ -94,6 +109,34 @@ export const AgentChatProvider: React.FC<{ children: React.ReactNode }> = ({ chi
       return { ...prev, [sid]: next };
     });
   }, []);
+
+  // Subscribe to agent:* outbound events for all live sessions
+  useEffect(() => {
+    const unsubs = sessions.map(s =>
+      registerAgentEventHandler(s.id, msg => {
+        updateSession(s.id, cur => {
+          switch (msg.type) {
+            case 'agent:plan':
+              return { ...cur, activePlan: msg.plan };
+            case 'agent:approval_request': {
+              const filtered = cur.pendingApprovals.filter(a => a.id !== msg.approval.id);
+              return { ...cur, pendingApprovals: [...filtered, msg.approval] };
+            }
+            case 'agent:approval_resolved':
+              return {
+                ...cur,
+                pendingApprovals: cur.pendingApprovals.filter(a => a.id !== msg.approvalId)
+              };
+            case 'agent:timeline':
+              return { ...cur, timeline: msg.entries };
+          }
+        });
+      })
+    );
+    return () => {
+      unsubs.forEach(u => u());
+    };
+  }, [sessions, registerAgentEventHandler, updateSession]);
 
   // Lazily seed state for the active session so first paint already shows the
   // greeting rather than an empty array.
@@ -343,6 +386,53 @@ export const AgentChatProvider: React.FC<{ children: React.ReactNode }> = ({ chi
     [activeSessionId, updateSession]
   );
 
+  const runAgentGoal = useCallback(
+    (goal: string) => {
+      const trimmed = goal.trim();
+      if (!trimmed || !activeSessionId) return;
+      send({
+        type: 'agent:run',
+        requestId: generateId('agent-'),
+        sessionId: activeSessionId,
+        goal: trimmed
+      });
+    },
+    [activeSessionId, send]
+  );
+
+  const approveAgentAction = useCallback(
+    (approvalId: string) => {
+      if (!activeSessionId || !approvalId) return;
+      send({
+        type: 'agent:approve',
+        sessionId: activeSessionId,
+        approvalId
+      });
+    },
+    [activeSessionId, send]
+  );
+
+  const rejectAgentAction = useCallback(
+    (approvalId: string, reason?: string) => {
+      if (!activeSessionId || !approvalId) return;
+      send({
+        type: 'agent:reject',
+        sessionId: activeSessionId,
+        approvalId,
+        reason
+      });
+    },
+    [activeSessionId, send]
+  );
+
+  const cancelAgentPlan = useCallback(() => {
+    if (!activeSessionId) return;
+    send({
+      type: 'agent:cancel',
+      sessionId: activeSessionId
+    });
+  }, [activeSessionId, send]);
+
   const current: ChatState = (activeSessionId && store[activeSessionId]) || EMPTY_STATE;
 
   return (
@@ -353,12 +443,19 @@ export const AgentChatProvider: React.FC<{ children: React.ReactNode }> = ({ chi
         expandedThinking: current.expandedThinking,
         commandExplanations: current.commandExplanations,
         input: current.input,
+        activePlan: current.activePlan,
+        pendingApprovals: current.pendingApprovals,
+        timeline: current.timeline,
         setInput,
         toggleThinking,
         sendMessage,
         runCommand,
         fillCommand,
-        explainCommand
+        explainCommand,
+        runAgentGoal,
+        approveAgentAction,
+        rejectAgentAction,
+        cancelAgentPlan
       }}
     >
       {children}

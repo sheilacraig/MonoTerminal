@@ -93,7 +93,8 @@ export function parseOsc7(data: string): string | null {
     const trimmed = data.trim();
     if (trimmed.startsWith('file://')) {
       const url = new URL(trimmed);
-      let pathname = decodeURIComponent(url.pathname);
+      const rawPath = `${url.pathname}${url.search}${url.hash}`;
+      let pathname = decodeURIComponent(rawPath);
       // On Windows: file:///C:/path -> C:/path
       if (/^\/[a-zA-Z]:/.test(pathname)) {
         pathname = pathname.slice(1);
@@ -199,8 +200,17 @@ export class ShellIntegrationTracker {
 
       case 'E': {
         // Explicit command text passed via OSC 133;E;<cmd>
-        if (state.activeCommand && payload.value) {
-          state.activeCommand.command = payload.value;
+        if (payload.value) {
+          if (state.activeCommand) {
+            state.activeCommand.command = payload.value;
+          } else if (state.lastCompletedCommand && !state.lastCompletedCommand.command) {
+            state.lastCompletedCommand.command = payload.value;
+            if (state.lastFailedCommand && !state.lastFailedCommand.command) {
+              state.lastFailedCommand.command = payload.value;
+            }
+          } else {
+            state.pendingCommandText = payload.value;
+          }
         }
         break;
       }

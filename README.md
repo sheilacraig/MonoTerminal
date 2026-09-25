@@ -29,28 +29,28 @@ MonoTerminal 将这三件事整合到了同一个界面中：
   - 启动后默认进入本机终端，无需预先准备云服务器；
   - 基于 `node-pty` 原生伪终端，Windows 下自动探测匹配 PowerShell 7 / PowerShell 5 / CMD，macOS/Linux 自动匹配 Bash / Zsh；
   - 完整支持 ANSI 真彩与 Tab 补全，左侧文件树自动联动本机用户目录。
-- **双栏界面设计**：
-  - **左栏**：远程 SFTP / 本地文件管理器，支持拖拽调整宽度、在线查看/编辑文件、修改文件权限（chmod）以及上传下载。按 `Ctrl + B` 可以快速收起。
-  - **主视窗**：基于 xterm.js 的全功能终端。按 `Ctrl + \` 可以在终端与 AI 对话界面之间无缝切换，后台会话长连接不会中断。
+- **同窗双栏与自适应布局**：
+  - **左栏**：远程 SFTP / 本地文件管理器，默认收起为精简侧边条以最大化终端视野，可点击展开按钮或按 `Ctrl + B` 随时唤出；支持拖拽调整宽度、在线查看/编辑文件、修改文件权限（chmod）以及上传下载。
+  - **主视窗**：基于 xterm.js 的全功能终端与 **MonoTerminal Ops Agent** 同窗并列协作。按 `Ctrl + \` 可在同一窗口随时展开或收起 AI 助手，支持自由拖拽调节终端与助手分栏宽度及提问输入框高度，后台会话长连接不会中断。
 - **语义感知 Shell Integration (OSC 133 / OSC 7)**：
   - 深度支持现代终端语义协议，实时监听命令执行生命周期、当前工作目录（CWD）与退出码；
   - **100% 基于真实 Exit Code != 0 判定报错**，彻底告别传统正则表达式匹配带来的误报与漏报；
   - 自动提取当前失败命令及其专属输出作为提问背景，排障上下文更精准，无协议环境平滑降级。
-- **终端与 AI 协同**：
-  - 终端出现异常报错时，右下角会自动弹出提示；
-  - 呼出 AI 时会自动提取终端最近的输出日志作为提问背景；
-  - AI 给出的命令卡片支持 **回车直接运行**、**Tab 填入编辑** 或 **查看命令解释**。
+- **终端与 AI 协同 & 自主运维 Agent**：
+  - 终端出现异常报错时自动感知，呼出 AI 时自动带入失败命令、退出码与最近终端输出；
+  - AI 给出的命令卡片支持 **一键运行**、**填入终端** 或 **查看命令解析**；
+  - 内置 **Plan-Execute-Verify 自主执行计划**、**高危工具调用人工审批 (Human-in-the-Loop)** 与 **会话统一时间线 (Command / File / Agent)**，形成可观测、可中止、可验证的排障闭环。
 - **Sudo 提权安全防护与密码浮层**：
   - 终端执行提权命令（如 `sudo`）时自动呼出专属密码输入浮层，也可按 `Alt + P` 手动随时呼出；
   - 针对多行脚本和 heredoc 块，内置前置 `sudo -v` 探测验证，杜绝密码在终端明文回显或被后续脚本管道消费，消除 PAM 时延竞态风险。
 - **无感顺滑的剪贴板体验**：
   - 终端鼠标划选文字**自动复制**至剪贴板（基于 mouseup 优化，拖选无卡顿）；
-  - 终端支持**鼠标右键一键粘贴**；原生 `Ctrl + V` 零权限直通；
+  - 终端与 AI 面板均支持**鼠标右键一键粘贴**；原生 `Ctrl + V` 零权限直通；
   - AI 诊断面板文字全域支持自由选中复制。
-- **多种模型灵活接入**：
-  - 支持 **Ollama 本地大模型** 直连（全离线内网环境秒通）；
-  - 支持填入自己的 API Key（DeepSeek、OpenAI、Claude、通义千问等）；
-  - 未配置模型时，自带本地离线规则引擎提供基础诊断建议。
+- **多种模型灵活接入 (BYOK)**：
+  - 内置 **DeepSeek 官方 API**、**Qwen (通义千问) 官方 API**、**Ollama 本地直连** 与 **OpenAI 兼容接口** 配置端点，支持自定义添加任意兼容端点；
+  - API Key 在本地经 AES-256-GCM 加密存储（可选开启 PBKDF2-SHA512 主密码保护）；
+  - 未配置 API Key 时，自动回退至本地离线诊断规则引擎提供基础排障建议。
 - **高危命令安全防护**：
   - 内置危险命令检测，对 `rm -rf /`、`mkfs`、误写磁盘（`dd`）等破坏性指令进行拦截；
   - 拦截后需手动输入确认或按 `Alt + Y` 方可继续执行，降低手滑风险。
@@ -143,7 +143,7 @@ npm run verify:source
 ```bash
 npm test
 ```
-内置 140 项覆盖率完备的自动化单元与集成测试（涵盖 Guardrail 规则、Shell Integration 语义感知、TerminalAuth 提权状态机、AES 加密存储等核心逻辑）。
+内置 168 项覆盖率完备的自动化单元与集成测试（涵盖 Guardrail 规则、Shell Integration 语义感知、Agent 自主规划与验证、TerminalAuth 提权状态机、AES 加密存储等核心逻辑）。
 
 ---
 
@@ -167,21 +167,25 @@ npm test
 ```
 MonoTerminal/
 ├── src/                      # 前端界面 (React + Tailwind CSS + xterm.js)
-│   ├── components/           # 界面组件 (终端视图、AI 对话窗、SFTP/本地文件树、提权浮层等)
-│   ├── context/              # 全局状态 (会话管理、系统设置、WebSocket 通信、AI 状态)
+│   ├── components/           # 界面组件 (终端视图、MonoTerminal Ops Agent、SFTP/本地文件树、提权浮层等)
+│   ├── context/              # 全局状态 (会话管理、系统设置、WebSocket 通信、Agent 会话状态)
 │   ├── services/             # 业务服务 (terminalAuth 提权状态机与敏感凭据管控)
 │   └── utils/                # 工具函数 (OSC 133/7 语义感知、剪贴板作用域、命令清洗)
 ├── shared/                   # 前后端共享代码 (高危命令规则、ID 生成、WebSocket 协议定义)
 ├── server/                   # 后端服务 (Node.js + Express + WebSocket)
+│   ├── agent/                # Agent 运行时 (Planner、AgentRuntime、Verifier、Shell/File/Git/Ssh 工具与模型适配)
+│   ├── application/          # 应用编排层 (SessionManager、CommandEngine、ContextEngine、GuardrailPipeline、ApprovalManager)
+│   ├── domain/               # 领域模型与接口契约 (Session、TerminalProvider、FileSystemProvider)
+│   ├── infrastructure/       # 基础设施实现 (Local / SSH / Mock 终端与文件系统 Provider)
 │   ├── localPtyManager.ts    # 本机伪终端管理器 (基于 node-pty)
 │   ├── localFsManager.ts     # 本机文件系统管理器 (Local FS 读写与原子保存)
 │   ├── sshManager.ts         # SSH2 连接池与 SFTP 管理
 │   ├── mockServer.ts         # 内置虚拟 Linux 沙盒
-│   ├── aiService.ts          # 大模型中继接口 (Ollama / DeepSeek / OpenAI 等)
-│   ├── storage.ts            # 本地 AES-256-GCM 硬件派生加密存储与配置持久化
+│   ├── aiService.ts          # 大模型中继接口 (DeepSeek / Qwen / Ollama / OpenAI 等)
+│   ├── storage.ts            # 本地 AES-256-GCM 加密存储与主密码保护
 │   ├── guardrail.ts          # 高危命令拦截规则定义
 │   ├── auth.ts               # HTTP / WebSocket 安全与鉴权中间件
-│   ├── ws/                   # WebSocket 消息路由与分发处理 (term, sftp, ai)
+│   ├── ws/                   # WebSocket 消息路由与分发处理 (term, sftp, ai, command, agent)
 │   └── routes/               # REST API 路由 (hosts, settings, guardrail, security)
 ├── electron/                 # Electron 桌面客户端外壳
 ├── scripts/                  # 维护脚本 (环境诊断 doctor / 源码链路验证 / 打包产物校验)
@@ -193,15 +197,15 @@ MonoTerminal/
 
 ## 🏗️ 架构概览
 
-前端通过 REST（配置/主机管理）与 WebSocket（终端流、SFTP/本地文件、AI 对话）两条通道与本地后端通信；所有请求先经过 `auth` 中间件的 Host/Origin 白名单与 Bearer Token 校验。高危命令规则、ID 生成与消息协议位于 `shared/`，前后端共用同一份定义，避免规则漂移。
+前端通过 REST（配置/主机管理）与 WebSocket（终端流、SFTP/本地文件、AI 对话与自主 Agent 事件）两条通道与本地后端通信；所有请求先经过 `auth` 中间件的 Host/Origin 白名单与 Bearer Token 校验。高危命令规则、ID 生成与消息协议位于 `shared/`，前后端共用同一份定义，避免规则漂移。
 
 ```mermaid
 flowchart TB
     subgraph Client["前端 · React + Vite"]
-        UI["双栏界面<br/>TerminalView / SftpSidebar / AgentView"]
+        UI["同窗工作区<br/>TerminalView / SftpSidebar / AgentView"]
         AUTH_BAR["TerminalAuthBar<br/>Sudo 提权状态机 (Alt+P)"]
         OSC["Shell Integration<br/>OSC 133/7 退出码感知"]
-        CTX["Context 层<br/>Session · Settings · WebSocket · Agent"]
+        CTX["Context 层<br/>Session · Settings · WebSocket · AgentChat"]
         UI --> CTX
         AUTH_BAR --> CTX
         OSC --> CTX
@@ -216,7 +220,8 @@ flowchart TB
     subgraph Server["后端 · Node.js + Express + ws"]
         AUTH["auth 中间件<br/>Host/Origin 白名单 + Bearer Token"]
         ROUTES["REST routes<br/>hosts / settings / guardrail / security"]
-        WSR["wsRouter<br/>term / sftp / ai:chat"]
+        WSR["wsRouter<br/>term / sftp / ai:chat / command / agent"]
+        AGENT["AgentRuntime & Planner<br/>Plan-Execute-Verify + Approval"]
         PTY["localPtyManager<br/>本机 PTY (node-pty)"]
         LFS["localFsManager<br/>本机文件管理与原子写"]
         SSH["sshManager<br/>SSH2 连接池 + SFTP"]
@@ -227,13 +232,14 @@ flowchart TB
 
     EXT_LOCAL["本机 Shell & 磁盘目录"]
     EXT_SSH["远程 SSH 服务器"]
-    EXT_AI["AI 提供方<br/>Ollama / DeepSeek / OpenAI"]
+    EXT_AI["AI 提供方<br/>DeepSeek / Qwen / Ollama / OpenAI"]
 
     CTX -->|"REST + Bearer"| AUTH
     CTX -->|"WebSocket + token"| AUTH
     AUTH --> ROUTES
     AUTH --> WSR
     ROUTES --> STORE
+    WSR --> AGENT
     WSR --> PTY
     WSR --> LFS
     WSR --> SSH

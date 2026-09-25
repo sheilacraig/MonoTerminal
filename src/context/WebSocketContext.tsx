@@ -10,6 +10,17 @@ import {
 } from '../../shared/wsProtocol';
 import { getAuthToken, invalidateAuthToken } from '../utils/api';
 
+export type AgentOutboundEvent = Extract<
+  WsOutboundMessage,
+  {
+    type:
+      | 'agent:plan'
+      | 'agent:approval_request'
+      | 'agent:approval_resolved'
+      | 'agent:timeline';
+  }
+>;
+
 interface WebSocketContextType {
   isConnected: boolean;
   rtt: number;
@@ -24,6 +35,10 @@ interface WebSocketContextType {
   ) => () => void;
   registerTermHandler: (sessionId: string, handler: (data: string) => void) => () => void;
   registerTermErrorHandler: (sessionId: string, handler: (err: string) => void) => () => void;
+  registerAgentEventHandler: (
+    sessionId: string,
+    handler: (msg: AgentOutboundEvent) => void
+  ) => () => void;
 }
 
 interface PendingRequest {
@@ -53,6 +68,7 @@ export const WebSocketProvider: React.FC<{ children: React.ReactNode }> = ({ chi
   const pendingRequests = useRef<Map<string, PendingRequest>>(new Map());
   const termHandlers = useRef<Map<string, Set<(data: string) => void>>>(new Map());
   const termErrorHandlers = useRef<Map<string, Set<(err: string) => void>>>(new Map());
+  const agentEventHandlers = useRef<Map<string, Set<(msg: AgentOutboundEvent) => void>>>(new Map());
   const aiCallbacks = useRef<Map<string, AiStreamCallbacks>>(new Map());
   // Messages emitted while the socket is still CONNECTING (or between
   // reconnect attempts) are parked here and flushed on `ws.onopen` in FIFO
@@ -259,6 +275,15 @@ export const WebSocketProvider: React.FC<{ children: React.ReactNode }> = ({ chi
                 aiCallbacks.current.delete(msg.requestId);
                 break;
             }
+            return;
+          }
+
+          case 'agent:plan':
+          case 'agent:approval_request':
+          case 'agent:approval_resolved':
+          case 'agent:timeline': {
+            const handlers = agentEventHandlers.current.get(msg.sessionId);
+            handlers?.forEach(h => h(msg));
             return;
           }
 
@@ -516,6 +541,19 @@ sudo systemctl restart nginx
     []
   );
 
+  const registerAgentEventHandler = useCallback(
+    (sessionId: string, handler: (msg: AgentOutboundEvent) => void) => {
+      if (!agentEventHandlers.current.has(sessionId)) {
+        agentEventHandlers.current.set(sessionId, new Set());
+      }
+      agentEventHandlers.current.get(sessionId)!.add(handler);
+      return () => {
+        agentEventHandlers.current.get(sessionId)?.delete(handler);
+      };
+    },
+    []
+  );
+
   return (
     <WebSocketContext.Provider
       value={{
@@ -527,7 +565,8 @@ sudo systemctl restart nginx
         requestSftp,
         streamAI,
         registerTermHandler,
-        registerTermErrorHandler
+        registerTermErrorHandler,
+        registerAgentEventHandler
       }}
     >
       {children}

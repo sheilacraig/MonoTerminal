@@ -28,7 +28,7 @@ export const TerminalView: React.FC<TerminalViewProps> = ({ sessionId, isVisible
   const xtermInstance = useRef<Terminal | null>(null);
   const fitAddonRef = useRef<FitAddon | null>(null);
 
-  const { sendTermInput, resizeTerm, registerTermHandler, registerTermErrorHandler } =
+  const { send, sendTermInput, resizeTerm, registerTermHandler, registerTermErrorHandler } =
     useWebSocket();
   const {
     activeSession,
@@ -61,6 +61,7 @@ export const TerminalView: React.FC<TerminalViewProps> = ({ sessionId, isVisible
   // would tear down xterm and lose the scrollback buffer.
   const ctxRef = useRef({
     settings,
+    send,
     sendTermInput,
     resizeTerm,
     registerTermHandler,
@@ -77,6 +78,7 @@ export const TerminalView: React.FC<TerminalViewProps> = ({ sessionId, isVisible
   });
   ctxRef.current = {
     settings,
+    send,
     sendTermInput,
     resizeTerm,
     registerTermHandler,
@@ -281,22 +283,22 @@ export const TerminalView: React.FC<TerminalViewProps> = ({ sessionId, isVisible
     });
 
     const unbindCmd = shellIntegrationTracker.onCommandFinished(sessionId, cmd => {
+      let output = cmd.output.trim();
+      if (!output && cmd.exitCode !== null && cmd.exitCode !== 0) {
+        // Fallback to active terminal buffer lines if stream batching completed before noteOutput
+        const buffer = term.buffer.active;
+        const lines: string[] = [];
+        const start = Math.max(0, buffer.cursorY - 20);
+        for (let i = start; i <= buffer.cursorY; i++) {
+          const line = buffer.getLine(i)?.translateToString(true);
+          if (line) lines.push(line);
+        }
+        output = lines.join('\n');
+      }
+
       if (cmd.exitCode !== null && cmd.exitCode !== 0) {
         const displayCmd = cmd.command ? ` \`${cmd.command}\`` : '';
         const snippet = `Exit ${cmd.exitCode}:${displayCmd} 执行失败`;
-
-        let output = cmd.output.trim();
-        if (!output) {
-          // Fallback to active terminal buffer lines if stream batching completed before noteOutput
-          const buffer = term.buffer.active;
-          const lines: string[] = [];
-          const start = Math.max(0, buffer.cursorY - 20);
-          for (let i = start; i <= buffer.cursorY; i++) {
-            const line = buffer.getLine(i)?.translateToString(true);
-            if (line) lines.push(line);
-          }
-          output = lines.join('\n');
-        }
 
         ctxRef.current.updateSessionFailedCommand(
           sessionId,
@@ -312,10 +314,29 @@ export const TerminalView: React.FC<TerminalViewProps> = ({ sessionId, isVisible
       } else if (cmd.exitCode === 0) {
         ctxRef.current.updateSessionFailedCommand(sessionId, null, null);
       }
+
+      // Report semantic command completion to backend CommandEngine (P0-2)
+      ctxRef.current.send({
+        type: 'term:cmd_event',
+        sessionId,
+        kind: 'finished',
+        command: cmd.command || undefined,
+        cwd: cmd.cwd,
+        exitCode: cmd.exitCode ?? 0,
+        output: output || undefined,
+        timestamp: cmd.endTime || Date.now()
+      });
     });
 
     const unbindCwd = shellIntegrationTracker.onCwdChanged(sessionId, newCwd => {
       ctxRef.current.updateSessionCwd(sessionId, newCwd);
+      ctxRef.current.send({
+        type: 'term:cmd_event',
+        sessionId,
+        kind: 'cwd',
+        cwd: newCwd,
+        timestamp: Date.now()
+      });
     });
 
     // Receive data from server

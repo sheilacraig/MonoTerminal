@@ -1,9 +1,14 @@
 import { EventEmitter } from 'events';
 import fs from 'fs';
+import { createRequire } from 'module';
 import os from 'os';
 import path from 'path';
-import { spawn } from 'node-pty';
-import type { IPty } from 'node-pty';
+import type { IPty, spawn as spawnFn } from 'node-pty';
+
+function loadNodePtySpawn(): typeof spawnFn {
+  const req = typeof require === 'function' ? require : createRequire(import.meta.url);
+  return (req('node-pty') as { spawn: typeof spawnFn }).spawn;
+}
 
 /**
  * A live local pseudo-terminal (PTY). Mirrors the shape of an SSH shell
@@ -59,17 +64,20 @@ function resolveExecutable(name: string, wellKnown: string[]): string | null {
   return null;
 }
 
+import { buildPowerShellOsc133Args } from './infrastructure/terminal/powershellOsc133Hook';
+
 /**
  * Detect the best interactive shell available on this machine.
- * Windows: pwsh.exe → powershell.exe → cmd.exe
+ * Windows: pwsh.exe → powershell.exe → cmd.exe (with OSC 133/7 prompt hook for PowerShell)
  * Linux / macOS: $SHELL → /bin/bash → /bin/sh
  */
-export function detectDefaultShell(): { command: string; args: string[] } {
+export function detectDefaultShell(enableOsc133Hook = true): { command: string; args: string[] } {
   if (process.platform === 'win32') {
+    const psArgs = enableOsc133Hook ? buildPowerShellOsc133Args() : [];
     const pwsh = resolveExecutable('pwsh.exe', [
       path.join(process.env.ProgramFiles || 'C:\\Program Files', 'PowerShell', '7', 'pwsh.exe')
     ]);
-    if (pwsh) return { command: pwsh, args: [] };
+    if (pwsh) return { command: pwsh, args: psArgs };
     const powershell = resolveExecutable('powershell.exe', [
       path.join(
         process.env.SystemRoot || 'C:\\Windows',
@@ -79,7 +87,7 @@ export function detectDefaultShell(): { command: string; args: string[] } {
         'powershell.exe'
       )
     ]);
-    if (powershell) return { command: powershell, args: [] };
+    if (powershell) return { command: powershell, args: psArgs };
     const cmd = resolveExecutable('cmd.exe', [
       path.join(process.env.SystemRoot || 'C:\\Windows', 'System32', 'cmd.exe')
     ]);
@@ -123,6 +131,7 @@ export class LocalPtyManager implements LocalPtyManagerApi {
 
     let pty: IPty;
     try {
+      const spawn = loadNodePtySpawn();
       pty = spawn(shell.command, shell.args, {
         name: 'xterm-256color',
         cols: Math.max(1, cols),
@@ -153,7 +162,7 @@ export class LocalPtyManager implements LocalPtyManagerApi {
       shellCommand: shell.command
     };
 
-    pty.onData(data => events.emit('data', data));
+    pty.onData((data: string) => events.emit('data', data));
     pty.onExit(() => {
       events.emit('exit');
       this.sessions.delete(sessionId);

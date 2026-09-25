@@ -75,6 +75,12 @@ describe('Shell Integration - OSC 7 CWD Parser', () => {
   it('falls back to regex when URL parsing fails on non-standard formatting', () => {
     expect(parseOsc7('file://some-host:invalid-port/opt/app')).toBe('/opt/app');
   });
+
+  it('preserves # and ? characters in OSC 7 paths (P2-4)', () => {
+    expect(parseOsc7('file://localhost/C:/work/c%23project/dir#tag?v=1')).toBe(
+      'C:/work/c#project/dir#tag?v=1'
+    );
+  });
 });
 
 describe('ShellIntegrationTracker', () => {

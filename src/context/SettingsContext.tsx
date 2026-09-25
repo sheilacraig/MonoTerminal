@@ -10,18 +10,19 @@ interface SettingsContextType {
   isLoading: boolean;
 }
 
+const QWEN_PROVIDER: AIProvider = {
+  id: 'qwen-api',
+  name: 'Qwen 官方 API',
+  type: 'qwen',
+  baseUrl: 'https://dashscope.aliyuncs.com/compatible-mode/v1',
+  model: 'qwen-plus',
+  temperature: 0.7
+};
+
 const defaultSettings: AppSettings = {
   ai: {
-    activeProvider: 'mock-ai',
+    activeProvider: 'deepseek-api',
     providers: [
-      {
-        id: 'mock-ai',
-        name: '内置运维专家 (离线演示)',
-        type: 'mock',
-        baseUrl: 'http://localhost/mock',
-        model: 'monoterminal-ops-mock',
-        temperature: 0.7
-      },
       {
         id: 'deepseek-api',
         name: 'DeepSeek 官方 API',
@@ -30,6 +31,7 @@ const defaultSettings: AppSettings = {
         model: 'deepseek-chat',
         temperature: 0.7
       },
+      QWEN_PROVIDER,
       {
         id: 'ollama-local',
         name: 'Ollama 本地直连',
@@ -60,6 +62,34 @@ const defaultSettings: AppSettings = {
   }
 };
 
+function normalizeAISettings(incoming: AppSettings): AppSettings {
+  if (!incoming?.ai || !Array.isArray(incoming.ai.providers)) return incoming;
+  let providers = incoming.ai.providers.filter(p => p.id !== 'mock-ai' && p.type !== 'mock');
+  if (!providers.some(p => p.id === 'qwen-api' || p.type === 'qwen')) {
+    const deepseekIdx = providers.findIndex(p => p.id === 'deepseek-api');
+    if (deepseekIdx >= 0) {
+      providers = [
+        ...providers.slice(0, deepseekIdx + 1),
+        QWEN_PROVIDER,
+        ...providers.slice(deepseekIdx + 1)
+      ];
+    } else {
+      providers = [QWEN_PROVIDER, ...providers];
+    }
+  }
+  const activeProvider = providers.some(p => p.id === incoming.ai.activeProvider)
+    ? incoming.ai.activeProvider
+    : providers[0]?.id || 'deepseek-api';
+  return {
+    ...incoming,
+    ai: {
+      ...incoming.ai,
+      activeProvider,
+      providers
+    }
+  };
+}
+
 const SettingsContext = createContext<SettingsContextType | null>(null);
 
 export const SettingsProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
@@ -73,7 +103,7 @@ export const SettingsProvider: React.FC<{ children: React.ReactNode }> = ({ chil
       if (res.ok) {
         const json = await res.json();
         if (json.data) {
-          setSettings(json.data);
+          setSettings(normalizeAISettings(json.data));
           setHasLoaded(true);
         }
       }

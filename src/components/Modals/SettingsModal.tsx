@@ -49,10 +49,23 @@ export const SettingsModal: React.FC = () => {
 
   useEffect(() => {
     if (isSettingsModalOpen) {
+      const nextProviders = settings.ai.providers;
+      const nextActiveId = settings.ai.activeProvider;
+      const nextSelected =
+        nextProviders.find(p => p.id === nextActiveId) || nextProviders[0];
+      setProviders(nextProviders);
+      setActiveProviderId(nextActiveId);
+      if (nextSelected) {
+        setSelectedProvider(nextSelected);
+        setPlainKey(nextSelected.plainApiKey || '');
+      }
+      setShortcuts(settings.shortcuts);
+      setGuardrail(settings.guardrail);
+      setTerminalConfig(settings.terminal);
       refreshSecStatus();
       setSecMessage(null);
     }
-  }, [isSettingsModalOpen, refreshSecStatus]);
+  }, [isSettingsModalOpen, settings, refreshSecStatus]);
 
   const secPost = async (url: string, body: Record<string, unknown>) => {
     try {
@@ -317,7 +330,7 @@ export const SettingsModal: React.FC = () => {
                       onChange={e =>
                         setSelectedProvider({ ...selectedProvider, baseUrl: e.target.value })
                       }
-                      placeholder="https://api.deepseek.com 或 http://localhost:11434/v1"
+                      placeholder="https://api.deepseek.com / https://dashscope.aliyuncs.com/compatible-mode/v1"
                       className="w-full bg-orca-bg border border-orca-border text-white px-2.5 py-1.5 rounded outline-none focus:border-orca-accent font-mono"
                     />
                   </div>
@@ -332,7 +345,7 @@ export const SettingsModal: React.FC = () => {
                       onChange={e =>
                         setSelectedProvider({ ...selectedProvider, model: e.target.value })
                       }
-                      placeholder="deepseek-chat / deepseek-r1:8b / gpt-4o"
+                      placeholder="deepseek-chat / qwen-plus / deepseek-r1:8b / gpt-4o"
                       className="w-full bg-orca-bg border border-orca-border text-white px-2.5 py-1.5 rounded outline-none focus:border-orca-accent font-mono"
                     />
                   </div>

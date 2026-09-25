@@ -40,15 +40,7 @@ export interface SessionTab {
   lastFailedCommand?: FailedCommandInfo | null; // Exact command & output from OSC 133
 }
 
-export interface FileItem {
-  name: string;
-  path: string;
-  isDirectory: boolean;
-  size: number;
-  modifyTime: number;
-  permissions: string;
-  owner?: string;
-}
+export type { FileEntry, FileItem } from '../../shared/wsProtocol';
 
 export interface ChatMessage {
   id: string;

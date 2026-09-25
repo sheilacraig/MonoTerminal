@@ -1,5 +1,5 @@
 import { useState, useEffect, useCallback } from 'react';
-import { FileItem } from '../types';
+import { FileEntry, FileItem } from '../types';
 import { useSession } from '../context/SessionContext';
 import { useWebSocket } from '../context/WebSocketContext';
 
@@ -20,7 +20,7 @@ export function useSftp() {
   const [currentPath, setCurrentPath] = useState<string>(
     activeSessionCwd ? normalizePath(activeSessionCwd) : '/etc/nginx'
   );
-  const [files, setFiles] = useState<FileItem[]>([]);
+  const [files, setFiles] = useState<FileEntry[]>([]);
   const [loading, setLoading] = useState(false);
 
   // Follow the terminal's cwd: fires on tab switch AND whenever the shell

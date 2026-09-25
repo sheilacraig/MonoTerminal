@@ -22,7 +22,7 @@ const DEV_PORTS = [5173];
 /** How many consecutive ports to probe when the preferred one is busy. */
 const PORT_PROBE_RANGE = 20;
 
-/** Probe a port the same way we will listen on it (all interfaces). */
+/** Probe the loopback address the app uses; the backend must not be LAN-accessible. */
 function isPortFree(port: number): Promise<boolean> {
   return new Promise((resolve) => {
     const probe = net.createServer();
@@ -30,7 +30,7 @@ function isPortFree(port: number): Promise<boolean> {
     probe.once('listening', () => {
       probe.close(() => resolve(true));
     });
-    probe.listen(port);
+    probe.listen(port, '127.0.0.1');
   });
 }
 
@@ -160,8 +160,8 @@ async function main(): Promise<void> {
     process.exit(1);
   });
 
-  server.listen(PORT, () => {
-    console.log(`\x1b[32m[MonoTerminal Server]\x1b[0m 后端服务已就绪: http://localhost:${PORT}`);
+  server.listen(PORT, '127.0.0.1', () => {
+    console.log(`\x1b[32m[MonoTerminal Server]\x1b[0m 后端服务已就绪: http://127.0.0.1:${PORT}`);
     // Machine-readable handshake for the Electron shell (see electron/main.cjs):
     // it must know the *real* port, since the preferred one may have been busy.
     console.log(`MONOTERMINAL_READY port=${PORT}`);
