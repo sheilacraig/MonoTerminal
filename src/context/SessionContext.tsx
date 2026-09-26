@@ -30,20 +30,26 @@ interface SessionContextType {
   hosts: HostAsset[];
   isHostModalOpen: boolean;
   setIsHostModalOpen: (open: boolean) => void;
+  editingHost: Partial<HostAsset> | null;
+  openHostModal: (host?: Partial<HostAsset> | null) => void;
   isSettingsModalOpen: boolean;
   setIsSettingsModalOpen: (open: boolean) => void;
   isSnippetModalOpen: boolean;
   setIsSnippetModalOpen: (open: boolean) => void;
   isSidebarCollapsed: boolean;
   setIsSidebarCollapsed: (collapsed: boolean | ((prev: boolean) => boolean)) => void;
+  sidebarTab: 'sessions' | 'files';
+  setSidebarTab: (tab: 'sessions' | 'files') => void;
   dangerPrompt: DangerPromptData | null;
   setDangerPrompt: (data: DangerPromptData | null) => void;
   createSession: (host: HostAsset) => string;
+  connectInCurrentTab: (host: HostAsset) => string;
   closeSession: (sessionId: string) => void;
   setActiveSessionId: (id: string) => void;
   toggleMode: (targetMode?: 'shell' | 'agent') => void;
   toggleAgent: (forceState?: boolean) => void;
   setAgentWidth: (sessionId: string, width: number) => void;
+  updateSessionStatus: (sessionId: string, status: SessionTab['status']) => void;
   updateSessionTitle: (sessionId: string, newTitle: string) => void;
   updateSessionCwd: (sessionId: string, cwd: string) => void;
   updateSessionTermSize: (sessionId: string, cols: number, rows: number) => void;
@@ -56,7 +62,9 @@ interface SessionContextType {
   clearUnreadError: (sessionId: string) => void;
   executeCommandWithGuardrail: (command: string, executeFn: () => void) => void;
   refreshHosts: () => Promise<void>;
-  saveHost: (hostData: Partial<HostAsset>) => Promise<void>;
+  saveHost: (
+    hostData: Partial<HostAsset> & { copyCredentialsFromId?: string }
+  ) => Promise<HostAsset | null>;
   deleteHost: (id: string) => Promise<void>;
 }
 
@@ -70,12 +78,19 @@ export const SessionProvider: React.FC<{ children: React.ReactNode }> = ({ child
   const [activeSessionId, setActiveSessionId] = useState<string>('');
   const [hosts, setHosts] = useState<HostAsset[]>([]);
 
-  // Modals
+  // Modals & Left Dock state
   const [isHostModalOpen, setIsHostModalOpen] = useState(false);
+  const [editingHost, setEditingHost] = useState<Partial<HostAsset> | null>(null);
   const [isSettingsModalOpen, setIsSettingsModalOpen] = useState(false);
   const [isSnippetModalOpen, setIsSnippetModalOpen] = useState(false);
-  const [isSidebarCollapsed, setIsSidebarCollapsed] = useState(true);
+  const [isSidebarCollapsed, setIsSidebarCollapsed] = useState(false);
+  const [sidebarTab, setSidebarTab] = useState<'sessions' | 'files'>('sessions');
   const [dangerPrompt, setDangerPrompt] = useState<DangerPromptData | null>(null);
+
+  const openHostModal = useCallback((host?: Partial<HostAsset> | null) => {
+    setEditingHost(host ?? null);
+    setIsHostModalOpen(true);
+  }, []);
 
   const terminalBuffers = useRef<Map<string, string[]>>(new Map());
   // Per-session cooldown for the error bubble: same snippet won't re-trigger
@@ -105,33 +120,40 @@ export const SessionProvider: React.FC<{ children: React.ReactNode }> = ({ child
       if (res.ok) {
         const json = await res.json();
         if (json.data && json.data.length > 0) {
-          setHosts(json.data);
-          return;
+          const cleaned = (json.data as HostAsset[]).filter(
+            h => h.id !== 'ops-sandbox' && h.id !== 'mock-local-demo'
+          );
+          if (cleaned.length > 0) {
+            setHosts(cleaned);
+            return;
+          }
         }
       }
     } catch {
       // Fallback
     }
 
-    const defaultHost: HostAsset = {
-      id: 'local-shell',
-      name: '本机终端 (Local Shell)',
-      group: '本地',
-      host: 'localhost',
-      port: 0,
-      username: 'local',
-      authType: 'local',
-      initialDir: '~',
-      createdAt: Date.now()
-    };
-    setHosts([defaultHost]);
+    const fallbackHosts: HostAsset[] = [
+      {
+        id: 'local-shell',
+        name: '本机终端 (Local Shell)',
+        group: '本机终端',
+        host: 'localhost',
+        port: 0,
+        username: 'local',
+        authType: 'local',
+        initialDir: '~',
+        createdAt: Date.now()
+      }
+    ];
+    setHosts(fallbackHosts);
   }, []);
 
   useEffect(() => {
     refreshHosts();
   }, [refreshHosts]);
 
-  // Create session
+  // Create session in a new tab
   const createSession = useCallback(
     (host: HostAsset): string => {
       const id = generateId('sess-');
@@ -139,7 +161,7 @@ export const SessionProvider: React.FC<{ children: React.ReactNode }> = ({ child
         id,
         hostId: host.id,
         title: host.name,
-        status: 'connected',
+        status: 'connecting',
         mode: 'agent',
         isAgentOpen: true,
         agentWidth: 460,
@@ -164,6 +186,55 @@ export const SessionProvider: React.FC<{ children: React.ReactNode }> = ({ child
       return id;
     },
     [send]
+  );
+
+  // Connect host in the currently active tab (replaces active tab in-place, or creates one if empty)
+  const connectInCurrentTab = useCallback(
+    (host: HostAsset): string => {
+      const currentActive =
+        sessionsRef.current.find(s => s.id === activeSessionId) || sessionsRef.current[0];
+      if (!currentActive) {
+        return createSession(host);
+      }
+
+      const oldId = currentActive.id;
+      send({ type: 'term:close', sessionId: oldId });
+      terminalBuffers.current.delete(oldId);
+      lastErrorPrompts.current.delete(oldId);
+      const oldSize = termSizesRef.current.get(oldId);
+      termSizesRef.current.delete(oldId);
+      disposeAuthStore(oldId);
+      shellIntegrationTracker.dispose(oldId);
+
+      const newId = generateId('sess-');
+      const replacementSession: SessionTab = {
+        id: newId,
+        hostId: host.id,
+        title: host.name,
+        status: 'connecting',
+        mode: currentActive.mode,
+        isAgentOpen: currentActive.isAgentOpen,
+        agentWidth: currentActive.agentWidth,
+        cwd: host.initialDir || '~',
+        terminalContext: '',
+        unreadError: null
+      };
+
+      setSessions(prev => prev.map(s => (s.id === oldId ? replacementSession : s)));
+      setActiveSessionId(newId);
+
+      send({
+        type: 'term:init',
+        sessionId: newId,
+        hostId: host.id,
+        cols: oldSize?.cols ?? 120,
+        rows: oldSize?.rows ?? 35
+      });
+
+      terminalBuffers.current.set(newId, []);
+      return newId;
+    },
+    [activeSessionId, createSession, send]
   );
 
   const hasAutoCreatedRef = useRef(false);
@@ -231,6 +302,10 @@ export const SessionProvider: React.FC<{ children: React.ReactNode }> = ({ child
     setSessions(prev => prev.map(s => (s.id === sessionId ? { ...s, agentWidth: width } : s)));
   }, []);
 
+  const updateSessionStatus = useCallback((sessionId: string, status: SessionTab['status']) => {
+    setSessions(prev => prev.map(s => (s.id === sessionId ? { ...s, status } : s)));
+  }, []);
+
   const updateSessionTitle = useCallback((sessionId: string, newTitle: string) => {
     setSessions(prev => prev.map(s => (s.id === sessionId ? { ...s, title: newTitle } : s)));
   }, []);
@@ -266,6 +341,9 @@ export const SessionProvider: React.FC<{ children: React.ReactNode }> = ({ child
 
     if (prev && !isConnected) {
       hadDisconnectRef.current = true;
+      setSessions(list =>
+        list.map(s => (s.status === 'connected' ? { ...s, status: 'connecting' } : s))
+      );
       return;
     }
     if (!prev && isConnected && hadDisconnectRef.current) {
@@ -341,6 +419,7 @@ export const SessionProvider: React.FC<{ children: React.ReactNode }> = ({ child
         if (s.id === sessionId) {
           return {
             ...s,
+            status: s.status === 'connecting' ? 'connected' : s.status,
             terminalContext: lines.join('\n'),
             unreadError: bubbleSnippet ?? s.unreadError
           };
@@ -381,7 +460,9 @@ export const SessionProvider: React.FC<{ children: React.ReactNode }> = ({ child
   );
 
   const saveHost = useCallback(
-    async (hostData: Partial<HostAsset>) => {
+    async (
+      hostData: Partial<HostAsset> & { copyCredentialsFromId?: string }
+    ): Promise<HostAsset | null> => {
       try {
         const res = await apiFetch('/api/hosts', {
           method: 'POST',
@@ -389,11 +470,14 @@ export const SessionProvider: React.FC<{ children: React.ReactNode }> = ({ child
           body: JSON.stringify(hostData)
         });
         if (res.ok) {
+          const json = await res.json();
           await refreshHosts();
+          return (json.data as HostAsset) || null;
         }
       } catch (e) {
         console.error('Failed to save host', e);
       }
+      return null;
     },
     [refreshHosts]
   );
@@ -413,6 +497,40 @@ export const SessionProvider: React.FC<{ children: React.ReactNode }> = ({ child
   // Global Keyboard Shortcuts
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
+      // Alt + 1 (Left Dock -> 会话 Tab)
+      if (e.altKey && !e.ctrlKey && !e.metaKey && (e.key === '1' || e.code === 'Digit1')) {
+        e.preventDefault();
+        e.stopPropagation();
+        setIsSidebarCollapsed(false);
+        setSidebarTab('sessions');
+        return;
+      }
+
+      // Alt + 2 (Left Dock -> 文件 Tab)
+      if (e.altKey && !e.ctrlKey && !e.metaKey && (e.key === '2' || e.code === 'Digit2')) {
+        e.preventDefault();
+        e.stopPropagation();
+        setIsSidebarCollapsed(false);
+        setSidebarTab('files');
+        return;
+      }
+
+      // Ctrl + Shift + N (新建会话属性弹窗)
+      if ((e.ctrlKey || e.metaKey) && e.shiftKey && (e.key === 'N' || e.key === 'n' || e.code === 'KeyN')) {
+        e.preventDefault();
+        e.stopPropagation();
+        openHostModal(null);
+        return;
+      }
+
+      // Ctrl + , (全局设置弹窗)
+      if ((e.ctrlKey || e.metaKey) && !e.shiftKey && (e.key === ',' || e.code === 'Comma')) {
+        e.preventDefault();
+        e.stopPropagation();
+        setIsSettingsModalOpen(prev => !prev);
+        return;
+      }
+
       // Ctrl + \ (or configured toggle shortcut)
       if ((e.ctrlKey || e.metaKey) && isBackslashEvent(e)) {
         e.preventDefault();
@@ -422,23 +540,27 @@ export const SessionProvider: React.FC<{ children: React.ReactNode }> = ({ child
       }
 
       // Ctrl + B (toggle sidebar)
-      if ((e.ctrlKey || e.metaKey) && isSidebarEvent(e)) {
+      if ((e.ctrlKey || e.metaKey) && !e.shiftKey && isSidebarEvent(e)) {
         e.preventDefault();
         e.stopPropagation();
         setIsSidebarCollapsed(prev => !prev);
         return;
       }
 
-      // Ctrl + T (new tab / host picker)
-      if ((e.ctrlKey || e.metaKey) && isNewTabEvent(e)) {
+      // Ctrl + T (new tab)
+      if ((e.ctrlKey || e.metaKey) && !e.shiftKey && isNewTabEvent(e)) {
         e.preventDefault();
         e.stopPropagation();
-        setIsHostModalOpen(true);
+        if (hosts.length > 0) {
+          createSession(hosts[0]);
+        } else {
+          openHostModal(null);
+        }
         return;
       }
 
       // Ctrl + W (close current tab)
-      if ((e.ctrlKey || e.metaKey) && isCloseTabEvent(e)) {
+      if ((e.ctrlKey || e.metaKey) && !e.shiftKey && isCloseTabEvent(e)) {
         e.preventDefault();
         e.stopPropagation();
         if (activeSessionId) {
@@ -450,7 +572,7 @@ export const SessionProvider: React.FC<{ children: React.ReactNode }> = ({ child
 
     window.addEventListener('keydown', handleKeyDown, true);
     return () => window.removeEventListener('keydown', handleKeyDown, true);
-  }, [activeSessionId, toggleAgent, closeSession]);
+  }, [activeSessionId, hosts, createSession, openHostModal, toggleAgent, closeSession]);
 
   const activeSession = sessions.find(s => s.id === activeSessionId) || sessions[0];
 
@@ -463,20 +585,26 @@ export const SessionProvider: React.FC<{ children: React.ReactNode }> = ({ child
         hosts,
         isHostModalOpen,
         setIsHostModalOpen,
+        editingHost,
+        openHostModal,
         isSettingsModalOpen,
         setIsSettingsModalOpen,
         isSnippetModalOpen,
         setIsSnippetModalOpen,
         isSidebarCollapsed,
         setIsSidebarCollapsed,
+        sidebarTab,
+        setSidebarTab,
         dangerPrompt,
         setDangerPrompt,
         createSession,
+        connectInCurrentTab,
         closeSession,
         setActiveSessionId,
         toggleMode,
         toggleAgent,
         setAgentWidth,
+        updateSessionStatus,
         updateSessionTitle,
         updateSessionCwd,
         updateSessionTermSize,

@@ -1,5 +1,5 @@
 import React, { useRef, useEffect, useState } from 'react';
-import { Send } from 'lucide-react';
+import { Play, Send } from 'lucide-react';
 import { AGENT_INPUT_ATTR } from '../../../utils/clipboard';
 
 interface AgentInputBarProps {
@@ -7,6 +7,8 @@ interface AgentInputBarProps {
   isStreaming: boolean;
   onChange: (val: string) => void;
   onSend: () => void;
+  onRunPlan: () => void;
+  isPlanRunning: boolean;
   autoFocus?: boolean;
 }
 
@@ -19,6 +21,8 @@ export const AgentInputBar: React.FC<AgentInputBarProps> = ({
   isStreaming,
   onChange,
   onSend,
+  onRunPlan,
+  isPlanRunning,
   autoFocus
 }) => {
   const textareaRef = useRef<HTMLTextAreaElement>(null);
@@ -100,14 +104,23 @@ export const AgentInputBar: React.FC<AgentInputBarProps> = ({
             onKeyDown={handleKeyDown}
             placeholder="向运维 Agent 提问 (例如: '查下 Nginx 80 端口占用原因并提供解决脚本')... 按 Enter 发送"
             style={{ height: `${height}px` }}
-            className="w-full bg-transparent text-white text-xs p-2.5 pr-20 outline-none resize-none placeholder:text-orca-muted/60 font-sans block"
+            className="w-full bg-transparent text-white text-xs p-2.5 pr-36 outline-none resize-none placeholder:text-orca-muted/60 font-sans block"
           />
 
           <div className="absolute right-2 bottom-2 flex items-center space-x-1.5">
             <button
+              onClick={onRunPlan}
+              disabled={!input.trim() || isStreaming || isPlanRunning}
+              title="按输入框中的目标生成并执行步骤；高风险操作会先请求审批"
+              className="px-2.5 py-1 bg-emerald-700 hover:bg-emerald-600 disabled:opacity-40 disabled:cursor-not-allowed text-white text-xs rounded font-medium flex items-center space-x-1 transition-all shadow"
+            >
+              <Play size={12} />
+              <span>计划执行</span>
+            </button>
+            <button
               onClick={onSend}
               disabled={!input.trim() || isStreaming}
-              className="px-3 py-1 bg-purple-600 hover:bg-purple-700 disabled:opacity-40 text-white text-xs rounded font-medium flex items-center space-x-1 transition-all shadow"
+              className="px-3 py-1 bg-purple-600 hover:bg-purple-700 disabled:opacity-40 disabled:cursor-not-allowed text-white text-xs rounded font-medium flex items-center space-x-1 transition-all shadow"
             >
               <span>发送</span>
               <Send size={12} />
@@ -116,7 +129,7 @@ export const AgentInputBar: React.FC<AgentInputBarProps> = ({
         </div>
 
         <div className="flex items-center justify-between mt-1.5 px-1 text-[10px] text-orca-muted font-mono">
-          <span>提示: 按 [Ctrl + \] 可随时展开/收起 AI 助手 | 同一窗口实时执行与输出</span>
+          <span>发送用于对话；计划执行会调用工具，高风险操作需审批 | 同一窗口查看执行结果</span>
           <span>Shift + Enter 换行 | Enter 发送</span>
         </div>
       </div>

@@ -21,7 +21,37 @@ export class MockModelProvider implements ModelProvider {
     let thinking = '正在分析运维现场...\n';
     let content: string;
 
-    if (lowerAll.includes('nginx') || lowerAll.includes('80') || lowerAll.includes('443')) {
+    if (userMsg.includes('[计划执行记录]')) {
+      thinking =
+        '正在汇总计划执行结果...\n1. 核对各步骤退出状态与终端回显数据。\n2. 评估目标达成情况并生成最终执行报告。';
+      const isCompleted = userMsg.includes('状态: 已完成');
+      const isCancelled = userMsg.includes('状态: 已取消');
+      const statusIcon = isCompleted ? '✅' : isCancelled ? '⏹️' : '⚠️';
+      const statusTitle = isCompleted
+        ? '计划执行完成报告'
+        : isCancelled
+          ? '计划已中止报告'
+          : '计划执行异常报告';
+      const traceMatch = userMsg.match(/\[计划执行记录\][\s\S]*?(?=\n\n请基于以上|$)/);
+      const traceBlock = traceMatch ? traceMatch[0].trim() : userMsg;
+      content = [
+        `### ${statusIcon} ${statusTitle}`,
+        '',
+        isCompleted
+          ? '所有计划步骤均已按序执行完毕并通过校验，以下是本次执行的汇总情况：'
+          : isCancelled
+            ? '本次计划在执行过程中已被手动中止，以下是截至中止时的执行记录：'
+            : '计划执行过程中遇到步骤异常，后续待执行步骤已自动跳过，详情如下：',
+        '',
+        '```text',
+        traceBlock,
+        '```',
+        '',
+        isCompleted
+          ? '**结论**：目标任务已顺利完成。如需进一步操作或深入排查，请继续在下方输入指令。'
+          : '**建议**：请检查上方报错信息或终端输出，确认权限、路径或服务状态后重新发起计划执行。'
+      ].join('\n');
+    } else if (lowerAll.includes('nginx') || lowerAll.includes('80') || lowerAll.includes('443')) {
       thinking +=
         '1. 检测到与 Nginx 服务或 Web 端口相关的问题。\n2. 需先测试配置文件语法，再检查端口占用情况与服务系统日志。\n3. 生成精准的安全排查与恢复命令。';
       content = `### 🔍 Nginx 状态排查与修复建议

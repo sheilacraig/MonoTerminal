@@ -1,22 +1,20 @@
 import React, { useState } from 'react';
 import { useSession } from '../../context/SessionContext';
-import { Plus, Server, Settings, BookOpen, X, Edit2, Check, Bot, Globe } from 'lucide-react';
+import { Plus, X, Edit2, Check, Bot, PanelRightClose, PanelRightOpen } from 'lucide-react';
 import { SessionTab } from '../../types';
 
 interface HeaderBarProps {
   onOpenLanding?: () => void;
 }
 
-export const HeaderBar: React.FC<HeaderBarProps> = ({ onOpenLanding }) => {
+export const HeaderBar: React.FC<HeaderBarProps> = () => {
   const {
     sessions,
     activeSessionId,
     activeSession,
     setActiveSessionId,
     closeSession,
-    setIsHostModalOpen,
-    setIsSettingsModalOpen,
-    setIsSnippetModalOpen,
+    openHostModal,
     hosts,
     createSession,
     toggleAgent,
@@ -39,6 +37,8 @@ export const HeaderBar: React.FC<HeaderBarProps> = ({ onOpenLanding }) => {
     }
     setEditingTabId(null);
   };
+
+  const isAgentOpen = Boolean(activeSession?.isAgentOpen);
 
   return (
     <header className="h-9 bg-orca-surface border-b border-orca-border flex items-center justify-between px-2 select-none z-30">
@@ -129,73 +129,40 @@ export const HeaderBar: React.FC<HeaderBarProps> = ({ onOpenLanding }) => {
             if (hosts.length > 0) {
               createSession(hosts[0]);
             } else {
-              setIsHostModalOpen(true);
+              openHostModal(null);
             }
           }}
           className="flex items-center space-x-1 px-2 py-1 text-xs text-orca-muted hover:text-orca-accent hover:bg-orca-card rounded transition-colors"
-          title="新建连接 (Ctrl+T)"
+          title="新建终端标签页 (Ctrl+T)"
         >
           <Plus size={14} />
-          <span className="text-[11px]">新建会话</span>
         </button>
       </div>
 
-      {/* Right: Quick Tools */}
+      {/* Right: Single AI Assistant Toggle */}
       <div className="flex items-center space-x-1 pl-2 border-l border-orca-border">
         <button
           onClick={() => toggleAgent()}
-          className={`flex items-center space-x-1 px-2 py-1 text-xs rounded transition-colors ${
-            activeSession?.isAgentOpen
-              ? 'bg-purple-600 text-white font-medium shadow-sm'
-              : 'text-purple-300 hover:text-white hover:bg-orca-card'
+          className={`flex items-center space-x-1.5 px-2.5 py-1 text-xs rounded transition-colors relative ${
+            isAgentOpen
+              ? 'bg-purple-600 hover:bg-purple-700 text-white font-medium shadow-sm'
+              : 'bg-orca-card/70 hover:bg-orca-card text-purple-300 hover:text-white border border-purple-900/50'
           }`}
-          title="展开/收起 AI 助手 (Ctrl+\)"
+          title={isAgentOpen ? '收起 AI 助手 (Ctrl+\\)' : '展开 AI 助手 (Ctrl+\\)'}
         >
-          <Bot
-            size={13}
-            className={activeSession?.isAgentOpen ? 'text-white' : 'text-purple-400'}
-          />
+          <Bot size={13} className={isAgentOpen ? 'text-white' : 'text-purple-400'} />
           <span className="text-[11px] hidden sm:inline">AI 助手</span>
+          {isAgentOpen ? (
+            <PanelRightClose size={12} className="opacity-80" />
+          ) : (
+            <PanelRightOpen size={12} className="opacity-80" />
+          )}
+          {activeSession?.unreadError && !isAgentOpen && (
+            <span className="w-2 h-2 rounded-full bg-orca-danger absolute -top-0.5 -right-0.5 animate-ping" />
+          )}
         </button>
-
-        <button
-          onClick={() => setIsHostModalOpen(true)}
-          className="flex items-center space-x-1 px-2 py-1 text-xs text-orca-muted hover:text-white hover:bg-orca-card rounded transition-colors"
-          title="主机资产管理 (AES-256 加密)"
-        >
-          <Server size={13} className="text-orca-accent" />
-          <span className="text-[11px] hidden sm:inline">主机资产</span>
-        </button>
-
-        <button
-          onClick={() => setIsSnippetModalOpen(true)}
-          className="flex items-center space-x-1 px-2 py-1 text-xs text-orca-muted hover:text-white hover:bg-orca-card rounded transition-colors"
-          title="快捷命令代码库"
-        >
-          <BookOpen size={13} className="text-orca-warning" />
-          <span className="text-[11px] hidden sm:inline">命令库</span>
-        </button>
-
-        <button
-          onClick={() => setIsSettingsModalOpen(true)}
-          className="flex items-center space-x-1 px-2 py-1 text-xs text-orca-muted hover:text-white hover:bg-orca-card rounded transition-colors"
-          title="全局设置 (AI 引擎与快捷键)"
-        >
-          <Settings size={13} className="text-orca-muted hover:text-orca-accent" />
-          <span className="text-[11px] hidden sm:inline">设置</span>
-        </button>
-
-        {onOpenLanding && (
-          <button
-            onClick={onOpenLanding}
-            className="flex items-center space-x-1 px-2 py-1 text-xs text-emerald-400 hover:text-white hover:bg-orca-card rounded transition-colors border border-emerald-500/30"
-            title="返回产品介绍落地页"
-          >
-            <Globe size={13} />
-            <span className="text-[11px] hidden sm:inline">产品介绍</span>
-          </button>
-        )}
       </div>
     </header>
   );
 };
+

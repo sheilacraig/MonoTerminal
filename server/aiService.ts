@@ -2,6 +2,7 @@ import { LocalStorageManager } from './storage';
 import { OpenAIProvider } from './agent/model/OpenAIProvider';
 import { OllamaProvider } from './agent/model/OllamaProvider';
 import { MockModelProvider } from './agent/model/MockModelProvider';
+import type { ModelMessage } from './agent/model/ModelProvider';
 
 export interface ChatMessage {
   role: 'system' | 'user' | 'assistant';
@@ -65,17 +66,23 @@ ${
 `;
     }
 
-    return `你是一款集成在 MonoTerminal 运维终端中的下一代 AI 智能运维专家 (SRE & Linux Assistant)。
-你的职责：协助运维工程师排查故障、分析日志、生成精准安全的 Linux Shell 命令。
+    const isWindows =
+      Boolean(opsContext?.osInfo && /windows|powershell/i.test(opsContext.osInfo)) ||
+      Boolean(opsContext?.currentDir && /^[a-zA-Z]:[\\/]/.test(opsContext.currentDir));
+    const shellLabel = isWindows ? 'powershell' : 'bash';
+    const shellDesc = isWindows ? 'Windows PowerShell 命令' : 'Linux Shell 命令';
+
+    return `你是一款集成在 MonoTerminal 运维终端中的下一代 AI 智能运维专家 (SRE & Shell Assistant)。
+你的职责：协助工程师排查故障、分析日志、生成精准安全的 ${shellDesc}。
 
 核心准则：
 1. 分析问题必须直击要害，解释清晰简明。
 2. 遇到故障诊断，请遵循“先排查、后修复、再验证”的原则。
-3. 凡是给用户推荐执行的操作，必须用标准 Markdown 代码块包裹，指定 \`bash\` 或 \`shell\` 语言标签：
-\`\`\`bash
+3. 凡是给用户推荐执行的操作，必须用标准 Markdown 代码块包裹，指定 \`${shellLabel}\` 或 \`shell\` 语言标签（严格匹配当前操作系统与终端环境）：
+\`\`\`${shellLabel}
 command here
 \`\`\`
-4. 终端会自动将你的 Bash 代码块渲染为可穿梭交互的【可执行命令卡片】供用户一键在终端运行。因此请确保代码块中的命令语法完全准确。
+4. 终端会自动将你的代码块渲染为可穿梭交互的【可执行命令卡片】供用户一键在终端运行。因此请确保代码块中的命令语法完全符合当前系统 (${isWindows ? 'Windows PowerShell 5.1+' : 'Linux Bash'})。
 5. 针对高危操作（如删除、格式化、修改底层权限）必须在正文中明确警示风险。
 6. 【关键格式规范】：
 - 代码块内部【绝对不要】写入以 '#' 开头的说明注释行，所有说明与解析请一律写在代码块外面的 Markdown 正文中，确保代码块干净利落，避免注释复制进终端。
@@ -148,6 +155,70 @@ ${contextStr}
     }
 
     return this.openAiProvider.streamChat(fullMessages, callbacks, config);
+  }
+
+  /** Generate non-chat model output for structured agent planning. */
+  public async generateStructuredText(messages: ModelMessage[]): Promise<string> {
+    const settings = this.storage.getSettings();
+    const activeProvider =
+      settings.ai.providers.find(p => p.id === settings.ai.activeProvider) ||
+      settings.ai.providers[0];
+
+    if (!activeProvider || activeProvider.type === 'mock') {
+      throw new Error('自主计划需要配置 AI API 或连接 Ollama；当前使用的演示模型不支持工具计划。');
+    }
+    if (this.storage.isLocked() && activeProvider.apiKeyEncrypted) {
+      throw new Error('本地加密存储已锁定，请先解锁 AI API Key。');
+    }
+
+    const apiKey = activeProvider.apiKeyEncrypted
+      ? this.storage.decrypt(activeProvider.apiKeyEncrypted)
+      : '';
+    if (activeProvider.type !== 'ollama' && !apiKey) {
+      throw new Error('当前 AI 服务没有可用的 API Key，请在设置中配置后重试。');
+    }
+
+    const baseUrl = (activeProvider.baseUrl || 'https://api.deepseek.com').replace(/\/+$/, '');
+    const provider = activeProvider.type === 'ollama' ? this.ollamaProvider : this.openAiProvider;
+    const config = {
+      id: activeProvider.id,
+      type: activeProvider.type,
+      baseUrl,
+      apiKey,
+      model: activeProvider.model || 'deepseek-chat',
+      temperature: 0.1,
+      idleTimeoutMs: 120_000
+    };
+
+    return new Promise((resolve, reject) => {
+      let settled = false;
+      let streamedText = '';
+      void provider.streamChat(
+        messages,
+        {
+          onContent: delta => {
+            streamedText += delta;
+          },
+          onDone: fullContent => {
+            if (settled) return;
+            settled = true;
+            const result = fullContent || streamedText;
+            if (!result.trim()) reject(new Error('AI 模型返回了空的计划内容。'));
+            else resolve(result);
+          },
+          onError: error => {
+            if (settled) return;
+            settled = true;
+            reject(error);
+          }
+        },
+        config
+      ).catch(error => {
+        if (settled) return;
+        settled = true;
+        reject(error);
+      });
+    });
   }
 }
 

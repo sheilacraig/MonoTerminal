@@ -15,6 +15,7 @@ interface HostPayload extends Partial<HostAsset> {
   plainPassphrase?: string;
   clearPassword?: boolean;
   clearPassphrase?: boolean;
+  copyCredentialsFromId?: string;
 }
 
 // GET /api/hosts
@@ -39,6 +40,7 @@ hostsRouter.post('/', (req, res) => {
     plainPassphrase,
     clearPassword,
     clearPassphrase,
+    copyCredentialsFromId,
     ...hostData
   } = req.body as HostPayload;
 
@@ -66,7 +68,20 @@ hostsRouter.post('/', (req, res) => {
   }
 
   const hosts = localStorageManager.getHosts();
+  if (copyCredentialsFromId) {
+    const sourceHost = hosts.find(h => h.id === copyCredentialsFromId);
+    if (sourceHost) {
+      if (!hostData.passwordEncrypted && sourceHost.passwordEncrypted) {
+        hostData.passwordEncrypted = sourceHost.passwordEncrypted;
+      }
+      if (!hostData.passphraseEncrypted && sourceHost.passphraseEncrypted) {
+        hostData.passphraseEncrypted = sourceHost.passphraseEncrypted;
+      }
+    }
+  }
+
   const index = hosts.findIndex(h => h.id === hostData.id);
+  let savedRecord: HostAsset;
   if (index >= 0) {
     const updated: HostAsset = {
       ...hosts[index],
@@ -81,14 +96,24 @@ hostsRouter.post('/', (req, res) => {
     if (clearPassword) delete updated.passwordEncrypted;
     if (clearPassphrase) delete updated.passphraseEncrypted;
     hosts[index] = updated;
+    savedRecord = updated;
   } else {
     if (clearPassword) delete hostData.passwordEncrypted;
     if (clearPassphrase) delete hostData.passphraseEncrypted;
-    hosts.push(hostData as HostAsset);
+    savedRecord = hostData as HostAsset;
+    hosts.push(savedRecord);
   }
 
   localStorageManager.saveHosts(hosts);
-  res.json({ success: true, data: hostData });
+  const { passwordEncrypted, passphraseEncrypted, ...sanitizedSaved } = savedRecord;
+  res.json({
+    success: true,
+    data: {
+      ...sanitizedSaved,
+      hasPassword: Boolean(passwordEncrypted),
+      hasPassphrase: Boolean(passphraseEncrypted)
+    }
+  });
 });
 
 // DELETE /api/hosts/:id

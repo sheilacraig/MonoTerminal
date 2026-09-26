@@ -60,7 +60,7 @@ export const ActionableCodeblock: React.FC<ActionableCodeblockProps> = ({
         {/* Action buttons */}
         <div className="flex items-center space-x-1.5">
           <button
-            onClick={() => onExplain(executableCode)}
+            onClick={() => onExplain(code)}
             className="flex items-center space-x-1 px-2 py-0.5 text-[11px] text-orca-muted hover:text-white bg-orca-surface hover:bg-orca-hover rounded transition-colors"
             title="分段解释该 Shell 命令各项参数含义"
           >

@@ -560,4 +560,182 @@ describe('Phase 8 & 10: ShellTool Isolation, Timeout Protection (P0-B), Cross-St
     expect(rejectRes.success).toBe(false);
     expect(rejectRes.error).toContain('测试拒绝');
   });
+
+  it('P1-1: sanitizes OSC 133/7 and DCS/APC control sequences in broadcastTerminalData so Agent output cannot pollute ShellIntegrationTracker', async () => {
+    const { sessionManager } = createAgentTestHarness();
+
+    await sessionManager.create({
+      id: 'sess-osc-sanitize',
+      host: {
+        id: 'mock-osc',
+        name: 'OSC Host',
+        group: 'Test',
+        host: '127.0.0.1',
+        port: 22,
+        username: 'root',
+        authType: 'mock',
+        initialDir: '/tmp',
+        createdAt: 0
+      },
+      cols: 80,
+      rows: 24
+    });
+
+    const clientFrames: string[] = [];
+    sessionManager.attach('sess-osc-sanitize', 'conn-osc', msg => {
+      if (msg.type === 'term:data') {
+        clientFrames.push(msg.data);
+      }
+    });
+
+    const managerDataEvents: string[] = [];
+    sessionManager.onTerminalData('sess-osc-sanitize', data => {
+      managerDataEvents.push(data);
+    });
+
+    // Clear initial banner frame
+    clientFrames.length = 0;
+
+    const maliciousOutput =
+      '\x1b[32mNormal output\x1b[0m\r\n' +
+      'Fake exit zero: \x1b]133;D;0\x07\r\n' +
+      'Fake CWD drift: \x1b]7;file://evil-host/root/.ssh\x1b\\\r\n' +
+      'C1 OSC payload: \x9d133;D;0\x9c\r\n' +
+      'DCS payload: \x1bP1$r0m\x1b\\\r\n' +
+      'Trailing unterminated OSC: \x1b]133;D;0';
+
+    sessionManager.broadcastTerminalData('sess-osc-sanitize', maliciousOutput);
+
+    expect(clientFrames).toHaveLength(1);
+    const received = clientFrames[0];
+
+    // SGR colors remain intact
+    expect(received).toContain('\x1b[32mNormal output\x1b[0m');
+    // All OSC 133 / OSC 7 / C1 / DCS sequences are stripped
+    expect(received).not.toContain('133;D;0');
+    expect(received).not.toContain('file://evil-host');
+    expect(received).not.toContain('\x1b]');
+    expect(received).not.toContain('\x9d');
+    expect(received).not.toContain('\x1bP');
+    // broadcastTerminalData never feeds onTerminalData (which drives ShellIntegrationTracker)
+    expect(managerDataEvents.join('')).not.toContain('evil-host');
+  });
+
+  it('P1-2: detects missing OSC 133 hook in interactive PowerShell quickly and degrades session to background execution without waiting full timeoutMs', async () => {
+    const writtenToPty: string[] = [];
+    let ptyDataListener: ((sessionId: string, data: string) => void) | null = null;
+
+    const unhookedLocalPtyProvider = {
+      type: 'local' as const,
+      async create(opts: { sessionId: string; cwd?: string }) {
+        return {
+          id: opts.sessionId,
+          initialCwd: opts.cwd || process.cwd(),
+          shellCommand: 'powershell.exe'
+        };
+      },
+      write(sessionId: string, data: string) {
+        writtenToPty.push(data);
+        // Simulate an unhooked PowerShell PTY (e.g. ExecutionPolicy Restricted or PS 5 without hook):
+        // echoes the command text and prints a plain `PS C:\Users\test> ` prompt WITHOUT any `\x1b]133;C` or `\x1b]133;D` markers
+        if (ptyDataListener && data !== '\x03') {
+          setImmediate(() => {
+            ptyDataListener?.(sessionId, `${data}PS C:\\Users\\test> `);
+          });
+        }
+        return true;
+      },
+      resize() {},
+      async kill() {},
+      onData(listener: (sessionId: string, data: string) => void) {
+        ptyDataListener = listener;
+        return () => {
+          if (ptyDataListener === listener) ptyDataListener = null;
+        };
+      },
+      onExit() {
+        return () => {};
+      },
+      onError() {
+        return () => {};
+      }
+    };
+
+    const eventBus = new InMemoryEventBus();
+    const mockSessions = new Map<string, MockSessionEntry>();
+    const fsProvider = new EventEmittingFsProvider(
+      new MockFileSystemProvider(mockSessions),
+      eventBus
+    );
+    const sessionManager = new DefaultSessionManager({
+      terminalProviders: {
+        local: unhookedLocalPtyProvider,
+        ssh: unhookedLocalPtyProvider,
+        mock: unhookedLocalPtyProvider
+      },
+      fileSystemProviders: {
+        local: fsProvider,
+        ssh: fsProvider,
+        mock: fsProvider
+      }
+    });
+
+    await sessionManager.create({
+      id: 'sess-unhooked-ps',
+      host: {
+        id: 'local-ps',
+        name: 'Local PowerShell',
+        group: '本机终端',
+        host: 'localhost',
+        port: 0,
+        username: 'local',
+        authType: 'local',
+        createdAt: 0
+      },
+      cols: 80,
+      rows: 24
+    });
+
+    const broadcastedFrames: string[] = [];
+    sessionManager.attach('sess-unhooked-ps', 'conn-ps', msg => {
+      if (msg.type === 'term:data') {
+        broadcastedFrames.push(msg.data);
+      }
+    });
+
+    const commandEngine = new CommandEngine(eventBus);
+    // Simulate a short probe timeout (80ms)
+    const shellTool = new ShellTool({
+      sessionManager,
+      commandEngine,
+      osc133ProbeTimeoutMs: 80
+    });
+
+    // Step 1: Should detect missing OSC 133 hook rapidly (< 4s instead of 15s timeoutMs),
+    // emit a degradation warning banner, and fall back to background execution.
+    const startStep1 = Date.now();
+    const res1 = await shellTool.execute(
+      { command: 'echo step1-ok', timeoutMs: 15_000 },
+      { sessionId: 'sess-unhooked-ps' }
+    );
+    const elapsedStep1 = Date.now() - startStep1;
+
+    expect(res1.success).toBe(true);
+    expect(res1.output?.stdout).toContain('step1-ok');
+    expect(elapsedStep1).toBeLessThan(4000);
+    expect(shellTool.isSessionOsc133Degraded('sess-unhooked-ps')).toBe(true);
+    expect(broadcastedFrames.join('')).toContain('未检测到 PowerShell OSC 133 语义钩子');
+
+    // Step 2: Because session is now marked degraded, subsequent steps in the plan
+    // bypass the interactive PTY wait completely (only writing `\r` after completion).
+    const ptyWritesBeforeStep2 = writtenToPty.length;
+    const res2 = await shellTool.execute(
+      { command: 'echo step2-fast', timeoutMs: 15_000 },
+      { sessionId: 'sess-unhooked-ps' }
+    );
+    expect(res2.success).toBe(true);
+    expect(res2.output?.stdout).toContain('step2-fast');
+    // Only the trailing '\r' prompt refresh was written, NOT the interactive command string
+    expect(writtenToPty.slice(ptyWritesBeforeStep2)).toEqual(['\r']);
+  });
 });

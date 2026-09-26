@@ -1,6 +1,5 @@
 import React, { useState, useEffect } from 'react';
 import { useSession } from '../../context/SessionContext';
-import { ModeBar } from './ModeBar';
 import { TerminalView } from './TerminalView';
 import { AgentView } from './AgentView';
 import { Terminal, Plus, Server } from 'lucide-react';
@@ -10,7 +9,7 @@ export const MainWorkspace: React.FC = () => {
     sessions,
     activeSessionId,
     activeSession,
-    setIsHostModalOpen,
+    openHostModal,
     hosts,
     createSession,
     setAgentWidth
@@ -49,8 +48,7 @@ export const MainWorkspace: React.FC = () => {
         </div>
         <h2 className="text-base font-semibold text-white mb-2">暂无活跃会话</h2>
         <p className="text-xs text-orca-muted max-w-sm text-center mb-6">
-          MonoTerminal 是 100% 免登录、本地优先的下一代 AI 运维终端。您可以直连本机
-          Shell、连接远程服务器或体验内置仿真沙盒。
+          MonoTerminal 是 100% 免登录、本地优先的下一代 AI 运维终端。您可以从左侧「会话」面板双击连接主机、使用快速连接栏，或点击下方按钮新建会话。
         </p>
 
         <div className="flex items-center space-x-3">
@@ -59,20 +57,20 @@ export const MainWorkspace: React.FC = () => {
               const local = hosts.find(h => h.authType === 'local');
               if (local) createSession(local);
               else if (hosts.length > 0) createSession(hosts[0]);
-              else setIsHostModalOpen(true);
+              else openHostModal(null);
             }}
             className="flex items-center space-x-1.5 px-4 py-2 bg-orca-accent hover:bg-blue-600 text-white text-xs rounded-lg font-medium shadow transition-colors"
           >
             <Plus size={14} />
-            <span>新建本机终端</span>
+            <span>打开本机终端</span>
           </button>
 
           <button
-            onClick={() => setIsHostModalOpen(true)}
+            onClick={() => openHostModal(null)}
             className="flex items-center space-x-1.5 px-4 py-2 bg-orca-surface hover:bg-orca-card border border-orca-border text-white text-xs rounded-lg font-medium transition-colors"
           >
             <Server size={14} className="text-orca-accent" />
-            <span>主机资产管理</span>
+            <span>新建会话 (Ctrl+Shift+N)</span>
           </button>
         </div>
       </div>
@@ -84,9 +82,6 @@ export const MainWorkspace: React.FC = () => {
 
   return (
     <div className="flex-1 flex flex-col h-full bg-[#0d1117] overflow-hidden relative">
-      {/* 28px Mode Indicator & Quick Action Bar */}
-      <ModeBar />
-
       {/* Main Workspace: Terminal and Agent in the SAME Window */}
       <div className="flex-1 flex w-full h-full overflow-hidden relative">
         {/* Terminal Area (Always present in window) */}

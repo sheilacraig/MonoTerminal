@@ -8,7 +8,7 @@ import type {
 } from '../../shared/wsProtocol';
 import { useSession } from './SessionContext';
 import { useWebSocket } from './WebSocketContext';
-import { cleanCommandForExecution } from '../utils/commandCleaner';
+import { parseShellCommands } from '../utils/commandCleaner';
 import { isMultiLineBlock, requiresElevation } from '../utils/authPrompt';
 import { getAuthStore, setFallbackTerminalSender } from '../services/terminalAuth';
 import { shellIntegrationTracker } from '../utils/shellIntegration';
@@ -49,10 +49,38 @@ interface AgentChatContextType extends ChatState {
   runCommand: (cmd: string) => void;
   fillCommand: (cmd: string) => void;
   explainCommand: (cmd: string) => void;
-  runAgentGoal: (goal: string) => void;
+  runAgentGoal: (goal: string, displayGoal?: string) => void;
   approveAgentAction: (approvalId: string) => void;
   rejectAgentAction: (approvalId: string, reason?: string) => void;
   cancelAgentPlan: () => void;
+  clearHistory: () => void;
+}
+
+export function formatPlanTraceMarkdown(plan: AgentPlanPayload): string {
+  const statusMap: Record<AgentPlanPayload['status'], string> = {
+    planning: '规划中',
+    running: '执行中',
+    awaiting_approval: '等待审批',
+    verifying: '验证中',
+    completed: '已完成',
+    failed: '执行失败',
+    cancelled: '已取消'
+  };
+  const stepLines = plan.steps.map((s, idx) => {
+    const cmd =
+      s.toolName === 'shell' && typeof s.input?.command === 'string' && s.input.command.trim()
+        ? ` \`${s.input.command.trim()}\``
+        : '';
+    const out = s.outputSummary ? `\n   - 输出结果: ${s.outputSummary}` : '';
+    const err = s.error ? `\n   - 错误信息: ${s.error}` : '';
+    return `${idx + 1}. [${s.status}] ${s.title} (${s.toolName})${cmd}${out}${err}`;
+  });
+  return [
+    `[计划执行记录] 目标: ${plan.goal}`,
+    `状态: ${statusMap[plan.status] || plan.status}`,
+    ...(plan.summary ? [`摘要: ${plan.summary}`] : []),
+    ...(stepLines.length > 0 ? ['执行步骤:', ...stepLines] : ['(正在拆解执行步骤...)'])
+  ].join('\n');
 }
 
 const GREETING_CONTENT =
@@ -93,6 +121,8 @@ export const AgentChatProvider: React.FC<{ children: React.ReactNode }> = ({ chi
   // Cancel handles returned by `streamAI`, keyed by sessionId — used by the
   // GC effect to abort streams belonging to closed tabs.
   const cancelersRef = useRef<Map<string, () => void>>(new Map());
+  // Track plan IDs that have already triggered a final LLM execution summary.
+  const summarizedPlanIdsRef = useRef<Set<string>>(new Set());
 
   // The auth panel may need to write to the pty before any TerminalView has
   // bound itself (e.g. “run” clicked while the pane is still mounting).
@@ -110,14 +140,191 @@ export const AgentChatProvider: React.FC<{ children: React.ReactNode }> = ({ chi
     });
   }, []);
 
+  const buildOpsContextForSession = useCallback(
+    (sid: string) => {
+      const targetSession = sessions.find(s => s.id === sid) || activeSession;
+      const host = hosts.find(h => h.id === targetSession?.hostId);
+      const isLocal = host?.authType === 'local';
+      const isMock = host?.authType === 'mock';
+      const isWindowsLocal =
+        isLocal &&
+        ((typeof navigator !== 'undefined' && /win/i.test(navigator.userAgent)) ||
+          /^[A-Za-z]:/.test(targetSession?.cwd || '') ||
+          (targetSession?.cwd || '').includes('\\'));
+
+      return {
+        terminalSnippet: targetSession?.terminalContext || undefined,
+        currentDir: targetSession?.cwd,
+        currentUser: host?.username || (isLocal ? 'local' : 'root'),
+        osInfo: isWindowsLocal
+          ? 'Windows (本地 PowerShell 终端)'
+          : isLocal
+            ? 'Local Unix/macOS Shell'
+            : isMock
+              ? 'Ubuntu 22.04 LTS x86_64'
+              : 'Ubuntu 22.04 LTS x86_64',
+        failedCommand: targetSession?.lastFailedCommand
+          ? {
+              command: targetSession.lastFailedCommand.command,
+              exitCode: targetSession.lastFailedCommand.exitCode,
+              output: targetSession.lastFailedCommand.output
+            }
+          : undefined
+      };
+    },
+    [sessions, activeSession, hosts]
+  );
+
+  const streamPlanSummary = useCallback(
+    (sid: string, finishedPlan: AgentPlanPayload) => {
+      const assistantMsgId = generateId('msg-');
+      const assistantMsg: ChatMessage = {
+        id: assistantMsgId,
+        role: 'assistant',
+        content: '',
+        thinking: '',
+        timestamp: Date.now(),
+        isStreaming: true
+      };
+
+      const cur = storeRef.current[sid] ?? EMPTY_STATE;
+      const planTraceText = formatPlanTraceMarkdown(finishedPlan);
+      const statusLabel =
+        finishedPlan.status === 'completed'
+          ? '已完成'
+          : finishedPlan.status === 'cancelled'
+            ? '已取消'
+            : '执行失败';
+
+      const summaryPrompt = [
+        `刚刚在终端完成了【计划执行】（最终状态：${statusLabel}），以下是完整的计划执行记录：`,
+        ``,
+        planTraceText,
+        ``,
+        `请基于以上各步骤的真实执行结果与输出数据，向用户汇报本次计划的最后执行情况：`,
+        `1. 简明总结各步骤的执行结果与关键输出信息；`,
+        `2. 明确告知用户的目标（${finishedPlan.goal}）是否已达成；`,
+        `3. 如有失败、验证未通过或中止的步骤，请指出具体原因并给出后续处理建议。`
+      ].join('\n');
+
+      const baseHistory = cur.messages
+        .filter(m => !m.plan || (m.plan.id !== finishedPlan.id && !m.plan.id.startsWith('pending-')))
+        .map(m => ({
+          role: m.role,
+          content: m.content
+        }));
+
+      const historyForAI = [
+        ...baseHistory,
+        {
+          role: 'user' as const,
+          content: summaryPrompt
+        }
+      ];
+
+      updateSession(sid, s => ({
+        ...s,
+        isStreaming: true,
+        messages: [...s.messages, assistantMsg]
+      }));
+
+      cancelersRef.current.get(sid)?.();
+      const cancel = streamAI(historyForAI, buildOpsContextForSession(sid), {
+        onThinking: delta => {
+          updateSession(sid, s => ({
+            ...s,
+            messages: s.messages.map(m =>
+              m.id === assistantMsgId ? { ...m, thinking: (m.thinking || '') + delta } : m
+            )
+          }));
+        },
+        onContent: delta => {
+          updateSession(sid, s => ({
+            ...s,
+            messages: s.messages.map(m =>
+              m.id === assistantMsgId ? { ...m, content: m.content + delta } : m
+            )
+          }));
+        },
+        onDone: (fullContent, fullThinking) => {
+          updateSession(sid, s => ({
+            ...s,
+            isStreaming: false,
+            messages: s.messages.map(m =>
+              m.id === assistantMsgId
+                ? {
+                    ...m,
+                    content: fullContent,
+                    thinking: fullThinking || m.thinking,
+                    isStreaming: false
+                  }
+                : m
+            )
+          }));
+          cancelersRef.current.delete(sid);
+        },
+        onError: err => {
+          updateSession(sid, s => ({
+            ...s,
+            isStreaming: false,
+            messages: s.messages.map(m =>
+              m.id === assistantMsgId
+                ? {
+                    ...m,
+                    content: m.content + `\n\n❌ 执行情况汇总请求出错: ${err}`,
+                    isStreaming: false
+                  }
+                : m
+            )
+          }));
+          cancelersRef.current.delete(sid);
+        }
+      });
+      cancelersRef.current.set(sid, cancel);
+    },
+    [buildOpsContextForSession, streamAI, updateSession]
+  );
+
   // Subscribe to agent:* outbound events for all live sessions
   useEffect(() => {
     const unsubs = sessions.map(s =>
       registerAgentEventHandler(s.id, msg => {
         updateSession(s.id, cur => {
           switch (msg.type) {
-            case 'agent:plan':
-              return { ...cur, activePlan: msg.plan };
+            case 'agent:plan': {
+              const planTrace = formatPlanTraceMarkdown(msg.plan);
+              let foundIdx = -1;
+              for (let i = cur.messages.length - 1; i >= 0; i--) {
+                const existingPlan = cur.messages[i].plan;
+                if (!existingPlan) continue;
+                if (existingPlan.id === msg.plan.id || existingPlan.id.startsWith('pending-')) {
+                  foundIdx = i;
+                  break;
+                }
+              }
+
+              const updatedMessages: ChatMessage[] =
+                foundIdx >= 0
+                  ? cur.messages.map((m, idx) =>
+                      idx === foundIdx ? { ...m, plan: msg.plan, content: planTrace } : m
+                    )
+                  : [
+                      ...cur.messages,
+                      {
+                        id: generateId('msg-plan-'),
+                        role: 'assistant',
+                        content: planTrace,
+                        plan: msg.plan,
+                        timestamp: Date.now()
+                      }
+                    ];
+
+              return {
+                ...cur,
+                activePlan: msg.plan,
+                messages: updatedMessages
+              };
+            }
             case 'agent:approval_request': {
               const filtered = cur.pendingApprovals.filter(a => a.id !== msg.approval.id);
               return { ...cur, pendingApprovals: [...filtered, msg.approval] };
@@ -131,12 +338,22 @@ export const AgentChatProvider: React.FC<{ children: React.ReactNode }> = ({ chi
               return { ...cur, timeline: msg.entries };
           }
         });
+
+        if (
+          msg.type === 'agent:plan' &&
+          !msg.plan.id.startsWith('pending-') &&
+          ['completed', 'failed', 'cancelled'].includes(msg.plan.status) &&
+          !summarizedPlanIdsRef.current.has(msg.plan.id)
+        ) {
+          summarizedPlanIdsRef.current.add(msg.plan.id);
+          streamPlanSummary(s.id, msg.plan);
+        }
       })
     );
     return () => {
       unsubs.forEach(u => u());
     };
-  }, [sessions, registerAgentEventHandler, updateSession]);
+  }, [sessions, registerAgentEventHandler, updateSession, streamPlanSummary]);
 
   // Lazily seed state for the active session so first paint already shows the
   // greeting rather than an empty array.
@@ -220,19 +437,7 @@ export const AgentChatProvider: React.FC<{ children: React.ReactNode }> = ({ chi
         input: ''
       }));
 
-      const opsContext = {
-        terminalSnippet: activeSession.terminalContext || undefined,
-        currentDir: activeSession.cwd,
-        currentUser: 'root',
-        osInfo: 'Ubuntu 22.04 LTS x86_64',
-        failedCommand: activeSession.lastFailedCommand
-          ? {
-              command: activeSession.lastFailedCommand.command,
-              exitCode: activeSession.lastFailedCommand.exitCode,
-              output: activeSession.lastFailedCommand.output
-            }
-          : undefined
-      };
+      const opsContext = buildOpsContextForSession(sid);
 
       const cancel = streamAI(historyForAI, opsContext, {
         onThinking: delta => {
@@ -283,7 +488,7 @@ export const AgentChatProvider: React.FC<{ children: React.ReactNode }> = ({ chi
       });
       cancelersRef.current.set(sid, cancel);
     },
-    [activeSession, streamAI, updateSession]
+    [activeSession, buildOpsContextForSession, streamAI, updateSession]
   );
 
   /**
@@ -316,11 +521,33 @@ export const AgentChatProvider: React.FC<{ children: React.ReactNode }> = ({ chi
     [sessions, hosts]
   );
 
+  const normalizeCommandForSession = useCallback(
+    (rawCmd: string): string => {
+      const parsed = parseShellCommands(rawCmd);
+      let clean = parsed.cleanCommand || rawCmd.trim();
+      if (!clean) return '';
+
+      const host = hosts.find(h => h.id === activeSession?.hostId);
+      const isWindowsLocal =
+        host?.authType === 'local' &&
+        ((typeof navigator !== 'undefined' && /win/i.test(navigator.userAgent)) ||
+          /^[A-Za-z]:/.test(activeSession?.cwd || '') ||
+          (activeSession?.cwd || '').includes('\\'));
+
+      // Windows PowerShell 5.1 does not support `&&` statement separators; use `; ` instead
+      if (isWindowsLocal && parsed.hasMultipleCommands) {
+        clean = parsed.individualCommands.join('; ');
+      }
+      return clean;
+    },
+    [activeSession, hosts]
+  );
+
   const runCommand = useCallback(
     (cmd: string) => {
       if (!activeSession) return;
       const sid = activeSession.id;
-      const clean = cleanCommandForExecution(cmd) || cmd.trim();
+      const clean = normalizeCommandForSession(cmd);
       if (!clean) return;
 
       shellIntegrationTracker.setCommandText(sid, clean);
@@ -332,14 +559,14 @@ export const AgentChatProvider: React.FC<{ children: React.ReactNode }> = ({ chi
 
       executeCommandWithGuardrail(clean, () => sendTermInput(sid, `${clean}\r`));
     },
-    [activeSession, needsElevationPreflight, executeCommandWithGuardrail, sendTermInput]
+    [activeSession, normalizeCommandForSession, needsElevationPreflight, executeCommandWithGuardrail, sendTermInput]
   );
 
   const fillCommand = useCallback(
     (cmd: string) => {
       if (!activeSession) return;
       const sid = activeSession.id;
-      const clean = cleanCommandForExecution(cmd) || cmd.trim();
+      const clean = normalizeCommandForSession(cmd);
       if (!clean) return;
 
       shellIntegrationTracker.setCommandText(sid, clean);
@@ -353,51 +580,138 @@ export const AgentChatProvider: React.FC<{ children: React.ReactNode }> = ({ chi
 
       executeCommandWithGuardrail(clean, () => sendTermInput(sid, clean));
     },
-    [activeSession, needsElevationPreflight, executeCommandWithGuardrail, sendTermInput]
+    [activeSession, normalizeCommandForSession, needsElevationPreflight, executeCommandWithGuardrail, sendTermInput]
   );
 
   const explainCommand = useCallback(
     (cmd: string) => {
       if (!activeSessionId) return;
-      const clean = cleanCommandForExecution(cmd) || cmd.trim();
-      const parts = clean.split(/\s+/);
-      const mainBin = parts[0];
-      const flags = parts.slice(1);
+      const parsed = parseShellCommands(cmd);
+      const clean = parsed.cleanCommand || cmd.trim();
+      const lines = parsed.individualCommands.length > 0 ? parsed.individualCommands : [clean];
 
-      let explanation = `📌 命令 **${mainBin}** 结构解析：\n`;
-      if (mainBin === 'systemctl') {
-        explanation += `• 操作服务单元控制器：对系统服务进行管理与排障。\n`;
-      } else if (mainBin === 'nginx') {
-        explanation += `• Nginx 核心程序：-t 参数代表语法合规性检查。\n`;
-      } else if (mainBin === 'ss' || mainBin === 'netstat') {
-        explanation += `• 网络套接字诊断工具：-tulpn 参数代表查看正在监听的 TCP/UDP 端口并显示 PID/进程名。\n`;
-      } else if (mainBin === 'lsof') {
-        explanation += `• 列出打开的文件/网络连接：-i 参数指定监听端口。\n`;
-      } else {
-        explanation += `• 参数列表: ${flags.join(', ') || '无额外参数'}\n`;
+      const describeSingle = (singleCmd: string): string => {
+        const parts = singleCmd.trim().split(/\s+/);
+        const mainBin = parts[0] || singleCmd;
+        const lowerBin = mainBin.toLowerCase();
+        const flags = parts.slice(1);
+
+        if (lowerBin === 'systemctl') {
+          return `**${mainBin}**: 系统服务单元控制器 (${flags.join(' ') || '管理与排障系统服务'})`;
+        }
+        if (lowerBin === 'nginx') {
+          return `**${mainBin}**: Nginx Web 服务器核心程序 (${flags.includes('-t') ? '-t 检查配置语法正确性' : flags.join(' ')})`;
+        }
+        if (lowerBin === 'ss' || lowerBin === 'netstat') {
+          return `**${mainBin}**: 网络套接字诊断工具 (查看当前监听的 TCP/UDP 端口与对应进程 PID)`;
+        }
+        if (lowerBin === 'lsof') {
+          return `**${mainBin}**: 列出打开的文件与网络连接 (${flags.join(' ') || '定位端口或文件占用'})`;
+        }
+        if (lowerBin === 'df') {
+          return `**${mainBin}**: 查看文件系统磁盘空间占用情况 (${flags.join(' ') || '显示挂载点使用率'})`;
+        }
+        if (lowerBin === 'free') {
+          return `**${mainBin}**: 查看系统物理内存与 Swap 交换分区使用量 (${flags.join(' ') || ''})`;
+        }
+        if (lowerBin === 'ps' || lowerBin === 'top') {
+          return `**${mainBin}**: 查看当前正在运行的进程状态与 CPU/内存资源占用`;
+        }
+        if (lowerBin === 'docker') {
+          return `**${mainBin}**: Docker 容器管理命令 (子命令与参数: ${flags.join(' ') || '无'})`;
+        }
+        if (lowerBin === 'git') {
+          return `**${mainBin}**: Git 版本控制操作 (子命令与参数: ${flags.join(' ') || '无'})`;
+        }
+        if (lowerBin === 'get-childitem' || lowerBin === 'dir' || lowerBin === 'ls') {
+          return `**${mainBin}**: 列出当前或指定目录下的文件与子目录清单 (${flags.join(' ') || '默认当前目录'})`;
+        }
+        if (lowerBin === 'get-location' || lowerBin === 'pwd') {
+          return `**${mainBin}**: 显示当前终端所在的工作目录路径`;
+        }
+        if (lowerBin === 'set-location' || lowerBin === 'cd') {
+          return `**${mainBin}**: 切换当前工作目录至 ${flags.join(' ') || '目标路径'}`;
+        }
+        if (lowerBin === 'get-process') {
+          return `**${mainBin}**: 获取本机正在运行的进程信息 (${flags.join(' ') || '全部进程'})`;
+        }
+        if (lowerBin === 'get-service') {
+          return `**${mainBin}**: 查询 Windows 系统服务运行状态 (${flags.join(' ') || '全部服务'})`;
+        }
+        if (lowerBin === 'get-nettcpconnection') {
+          return `**${mainBin}**: 查询 Windows TCP 网络连接与监听端口状态 (${flags.join(' ') || '全部连接'})`;
+        }
+        return `**${mainBin}**: 参数列表 [${flags.join(', ') || '无额外参数'}]`;
+      };
+
+      let explanation = `📌 命令结构解析：\n`;
+      for (const line of lines) {
+        explanation += `• ${describeSingle(line)}\n`;
       }
-      explanation += `• 建议在生产环境中核实后再行落地。`;
+      explanation += `• 建议确认当前工作目录与环境后再行执行。`;
 
       updateSession(activeSessionId, s => ({
         ...s,
-        commandExplanations: { ...s.commandExplanations, [cmd]: explanation }
+        commandExplanations: {
+          ...s.commandExplanations,
+          [cmd]: explanation,
+          [clean]: explanation
+        }
       }));
     },
     [activeSessionId, updateSession]
   );
 
   const runAgentGoal = useCallback(
-    (goal: string) => {
+    (goal: string, displayGoal?: string) => {
       const trimmed = goal.trim();
       if (!trimmed || !activeSessionId) return;
+
+      const requestId = generateId('agent-');
+      const now = Date.now();
+      const visibleGoal = (displayGoal?.trim() || trimmed).trim();
+      const shortGoalTitle = visibleGoal.split(/\r?\n/)[0].slice(0, 120) || visibleGoal;
+
+      const userMsg: ChatMessage = {
+        id: generateId('msg-'),
+        role: 'user',
+        content: `🧭 **计划执行**：${visibleGoal}`,
+        timestamp: now
+      };
+
+      const draftPlan: AgentPlanPayload = {
+        id: `pending-${requestId}`,
+        sessionId: activeSessionId,
+        goal: shortGoalTitle,
+        status: 'planning',
+        steps: [],
+        createdAt: now,
+        updatedAt: now
+      };
+
+      const planMsg: ChatMessage = {
+        id: generateId('msg-plan-'),
+        role: 'assistant',
+        content: formatPlanTraceMarkdown(draftPlan),
+        plan: draftPlan,
+        timestamp: now
+      };
+
+      updateSession(activeSessionId, s => ({
+        ...s,
+        activePlan: draftPlan,
+        messages: [...s.messages, userMsg, planMsg],
+        input: ''
+      }));
+
       send({
         type: 'agent:run',
-        requestId: generateId('agent-'),
+        requestId,
         sessionId: activeSessionId,
         goal: trimmed
       });
     },
-    [activeSessionId, send]
+    [activeSessionId, send, updateSession]
   );
 
   const approveAgentAction = useCallback(
@@ -433,6 +747,26 @@ export const AgentChatProvider: React.FC<{ children: React.ReactNode }> = ({ chi
     });
   }, [activeSessionId, send]);
 
+  const clearHistory = useCallback(() => {
+    if (!activeSessionId) return;
+    cancelersRef.current.get(activeSessionId)?.();
+    cancelersRef.current.delete(activeSessionId);
+    updateSession(activeSessionId, cur => {
+      const fresh = createEmptyState();
+      const keepPlan =
+        cur.activePlan &&
+        ['planning', 'running', 'awaiting_approval', 'verifying'].includes(cur.activePlan.status)
+          ? cur.activePlan
+          : null;
+      return {
+        ...fresh,
+        activePlan: keepPlan,
+        pendingApprovals: keepPlan ? cur.pendingApprovals : [],
+        timeline: cur.timeline
+      };
+    });
+  }, [activeSessionId, updateSession]);
+
   const current: ChatState = (activeSessionId && store[activeSessionId]) || EMPTY_STATE;
 
   return (
@@ -455,7 +789,8 @@ export const AgentChatProvider: React.FC<{ children: React.ReactNode }> = ({ chi
         runAgentGoal,
         approveAgentAction,
         rejectAgentAction,
-        cancelAgentPlan
+        cancelAgentPlan,
+        clearHistory
       }}
     >
       {children}

@@ -30,11 +30,9 @@ export function useSftp() {
   useEffect(() => {
     if (activeSessionCwd) {
       const normalized = normalizePath(activeSessionCwd);
-      if (normalized !== currentPath) {
-        setCurrentPath(normalized);
-      }
+      setCurrentPath(prev => (prev === normalized ? prev : normalized));
     }
-  }, [activeSessionId, activeSessionCwd, currentPath]);
+  }, [activeSessionId, activeSessionCwd]);
 
   // Load files for currentPath
   const loadDirectory = useCallback(

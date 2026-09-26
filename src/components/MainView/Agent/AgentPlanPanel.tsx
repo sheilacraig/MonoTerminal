@@ -113,37 +113,59 @@ export const AgentPlanPanel: React.FC<AgentPlanPanelProps> = ({ plan, onCancel }
 
       {/* Steps List */}
       <div className="space-y-1.5">
-        {plan.steps.map((step, idx) => (
-          <div
-            key={step.id}
-            className="flex flex-col space-y-1 rounded bg-orca-bg/70 border border-orca-border/60 px-2.5 py-1.5"
-          >
-            <div className="flex items-center justify-between gap-2">
-              <div className="flex items-center space-x-2 min-w-0">
-                {renderStepIcon(step.status)}
-                <span className="text-[11px] font-medium text-orca-text truncate">
-                  {idx + 1}. {step.title}
+        {plan.status === 'planning' && plan.steps.length === 0 && (
+          <div className="flex items-center space-x-2 rounded bg-orca-bg/70 border border-orca-border/60 px-2.5 py-2 text-[11px] text-purple-300">
+            <Loader2 size={13} className="text-purple-400 animate-spin shrink-0" />
+            <span>正在根据终端环境与目标拆解执行步骤...</span>
+          </div>
+        )}
+
+        {plan.steps.map((step, idx) => {
+          const shellCmd =
+            step.toolName === 'shell' && typeof step.input?.command === 'string'
+              ? step.input.command
+              : undefined;
+          return (
+            <div
+              key={step.id}
+              className="flex flex-col space-y-1 rounded bg-orca-bg/70 border border-orca-border/60 px-2.5 py-1.5"
+            >
+              <div className="flex items-center justify-between gap-2">
+                <div className="flex items-center space-x-2 min-w-0">
+                  {renderStepIcon(step.status)}
+                  <span className="text-[11px] font-medium text-orca-text truncate">
+                    {idx + 1}. {step.title}
+                  </span>
+                </div>
+                <span className="inline-flex items-center space-x-1 px-1.5 py-0.5 rounded bg-orca-surface border border-orca-border text-[10px] text-orca-muted shrink-0">
+                  {renderToolIcon(step.toolName)}
+                  <span>{step.toolName}</span>
                 </span>
               </div>
-              <span className="inline-flex items-center space-x-1 px-1.5 py-0.5 rounded bg-orca-surface border border-orca-border text-[10px] text-orca-muted shrink-0">
-                {renderToolIcon(step.toolName)}
-                <span>{step.toolName}</span>
-              </span>
+
+              {shellCmd && shellCmd !== step.title && (
+                <div className="pl-5 text-[10px] text-blue-300/80 font-mono truncate">
+                  $ {shellCmd}
+                </div>
+              )}
+
+              {step.outputSummary && (
+                <div
+                  className="pl-5 text-[10px] text-emerald-300/90 font-mono whitespace-pre-wrap break-all line-clamp-3"
+                  title={step.outputSummary}
+                >
+                  ✓ {step.outputSummary}
+                </div>
+              )}
+
+              {step.error && (
+                <div className="pl-5 text-[10px] text-rose-300 font-mono break-all">
+                  ✗ {step.error}
+                </div>
+              )}
             </div>
-
-            {step.outputSummary && (
-              <div className="pl-5 text-[10px] text-emerald-300/90 font-mono truncate">
-                ✓ {step.outputSummary}
-              </div>
-            )}
-
-            {step.error && (
-              <div className="pl-5 text-[10px] text-rose-300 font-mono break-all">
-                ✗ {step.error}
-              </div>
-            )}
-          </div>
-        ))}
+          );
+        })}
       </div>
 
       {plan.summary && (

@@ -36,6 +36,7 @@ import { GitTool } from '../agent/tools/GitTool';
 import { SshTool } from '../agent/tools/SshTool';
 import { VerifierRegistry } from '../agent/runtime/Verifier';
 import { AgentRuntime } from '../agent/runtime/AgentRuntime';
+import { Planner } from '../agent/planner/Planner';
 import { SessionStore } from '../application/session/SessionStore';
 import { CommandTimelineService } from '../application/command/CommandTimelineService';
 import type { EventBus } from '../domain/events/types';
@@ -148,6 +149,7 @@ export function setupWsRouter(wss: WebSocketServer, aiService: AIService, auth: 
   const gitTool = new GitTool(shellTool);
   const sshTool = new SshTool(shellTool);
   const verifierRegistry = new VerifierRegistry({ sessionManager, shellTool });
+  const planner = new Planner(messages => aiService.generateStructuredText(messages));
 
   const agentRuntime = new AgentRuntime({
     sessionManager,
@@ -156,6 +158,7 @@ export function setupWsRouter(wss: WebSocketServer, aiService: AIService, auth: 
     guardrailPipeline,
     approvalManager,
     tools: [shellTool, fileTool, gitTool, sshTool],
+    planner,
     verifierRegistry
   });
 

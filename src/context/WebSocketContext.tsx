@@ -34,6 +34,10 @@ interface WebSocketContextType {
     callbacks: AiStreamCallbacks
   ) => () => void;
   registerTermHandler: (sessionId: string, handler: (data: string) => void) => () => void;
+  registerTermReadyHandler: (
+    sessionId: string,
+    handler: (info: { hostName: string; cwd?: string }) => void
+  ) => () => void;
   registerTermErrorHandler: (sessionId: string, handler: (err: string) => void) => () => void;
   registerAgentEventHandler: (
     sessionId: string,
@@ -67,6 +71,9 @@ export const WebSocketProvider: React.FC<{ children: React.ReactNode }> = ({ chi
 
   const pendingRequests = useRef<Map<string, PendingRequest>>(new Map());
   const termHandlers = useRef<Map<string, Set<(data: string) => void>>>(new Map());
+  const termReadyHandlers = useRef<
+    Map<string, Set<(info: { hostName: string; cwd?: string }) => void>>
+  >(new Map());
   const termErrorHandlers = useRef<Map<string, Set<(err: string) => void>>>(new Map());
   const agentEventHandlers = useRef<Map<string, Set<(msg: AgentOutboundEvent) => void>>>(new Map());
   const aiCallbacks = useRef<Map<string, AiStreamCallbacks>>(new Map());
@@ -225,6 +232,12 @@ export const WebSocketProvider: React.FC<{ children: React.ReactNode }> = ({ chi
           case 'pong': {
             const latency = Math.max(1, Date.now() - msg.clientTime);
             setRtt(latency);
+            return;
+          }
+
+          case 'term:ready': {
+            const handlers = termReadyHandlers.current.get(msg.sessionId);
+            handlers?.forEach(h => h({ hostName: msg.hostName, cwd: msg.cwd }));
             return;
           }
 
@@ -528,6 +541,19 @@ sudo systemctl restart nginx
     };
   }, []);
 
+  const registerTermReadyHandler = useCallback(
+    (sessionId: string, handler: (info: { hostName: string; cwd?: string }) => void) => {
+      if (!termReadyHandlers.current.has(sessionId)) {
+        termReadyHandlers.current.set(sessionId, new Set());
+      }
+      termReadyHandlers.current.get(sessionId)!.add(handler);
+      return () => {
+        termReadyHandlers.current.get(sessionId)?.delete(handler);
+      };
+    },
+    []
+  );
+
   const registerTermErrorHandler = useCallback(
     (sessionId: string, handler: (err: string) => void) => {
       if (!termErrorHandlers.current.has(sessionId)) {
@@ -565,6 +591,7 @@ sudo systemctl restart nginx
         requestSftp,
         streamAI,
         registerTermHandler,
+        registerTermReadyHandler,
         registerTermErrorHandler,
         registerAgentEventHandler
       }}

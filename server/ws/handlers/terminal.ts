@@ -15,6 +15,19 @@ export const handleTermInit: WsHandler<TermInitMessage> = async (msg, conn, deps
   if (!host && deps.demoHost && (hostId === 'local-shell' || hostId === deps.demoHost.id)) {
     host = deps.demoHost;
   }
+  if (!host && hostId === 'ops-sandbox') {
+    host = {
+      id: 'ops-sandbox',
+      name: '运维沙盒',
+      group: '本机与沙盒',
+      host: '127.0.0.1',
+      port: 22,
+      username: 'root',
+      authType: 'mock',
+      initialDir: '/etc/nginx',
+      createdAt: 0
+    };
+  }
 
   if (!host) {
     conn.send({

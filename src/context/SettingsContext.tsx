@@ -126,11 +126,17 @@ export const SettingsProvider: React.FC<{ children: React.ReactNode }> = ({ chil
     const updated = { ...settings, ...newSettings };
     setSettings(updated);
     try {
-      await apiFetch('/api/settings', {
+      const res = await apiFetch('/api/settings', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(updated)
       });
+      if (res.ok) {
+        const json = await res.json();
+        if (json.data) {
+          setSettings(normalizeAISettings(json.data));
+        }
+      }
     } catch (err) {
       console.error('Failed to save settings to server', err);
     }

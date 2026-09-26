@@ -34,20 +34,30 @@ export interface AgentRuntimeDeps {
 function summarizeToolOutput(output: unknown): string {
   if (output === undefined || output === null) return '执行完成';
   if (typeof output === 'string') {
-    return output.length > 240 ? `${output.slice(0, 240)}...` : output;
+    return output.length > 600 ? `${output.slice(0, 600)}...` : output;
   }
   if (typeof output === 'object') {
     const rec = output as Record<string, unknown>;
-    if (typeof rec.stdout === 'string' && rec.stdout.trim()) {
+    if (typeof rec.stdout === 'string') {
       const s = rec.stdout.trim();
-      return s.length > 240 ? `${s.slice(0, 240)}...` : s;
+      if (s) {
+        return s.length > 600 ? `${s.slice(0, 600)}...` : s;
+      }
+      if (typeof rec.stderr === 'string' && rec.stderr.trim()) {
+        const errText = rec.stderr.trim();
+        return errText.length > 600 ? `${errText.slice(0, 600)}...` : errText;
+      }
+      if (typeof rec.exitCode === 'number') {
+        const cwdNote = typeof rec.cwd === 'string' && rec.cwd ? ` (目录: ${rec.cwd})` : '';
+        return `执行完成，退出码 ${rec.exitCode}${cwdNote}`;
+      }
     }
     if (Array.isArray(output)) {
       return `共 ${output.length} 项条目`;
     }
   }
   const str = JSON.stringify(output);
-  return str.length > 240 ? `${str.slice(0, 240)}...` : str;
+  return str.length > 600 ? `${str.slice(0, 600)}...` : str;
 }
 
 export class AgentRuntime {
@@ -198,12 +208,37 @@ export class AgentRuntime {
     callbacks?: AgentRunCallbacks
   ): Promise<AgentPlan> {
     const context = await this.deps.contextEngine.buildContext(sessionId);
+    const agentSession = this.getOrCreateAgentSession(sessionId);
+
+    const emitPlan = (plan: AgentPlan | undefined) => {
+      if (plan) {
+        callbacks?.onPlanUpdate?.(plan);
+      }
+    };
+
+    if (typeof goalOrPlan === 'string' && this.planner.hasModelGenerator()) {
+      const cleanGoal = goalOrPlan.trim() || '系统状态与环境健康检查';
+      const now = Date.now();
+      const planningDraft: AgentPlan = {
+        id: `plan-${crypto.randomUUID()}`,
+        sessionId,
+        goal: cleanGoal.split('\n')[0].slice(0, 120) || cleanGoal,
+        status: 'planning',
+        steps: [],
+        createdAt: now,
+        updatedAt: now
+      };
+      agentSession.restorePlan(planningDraft);
+      emitPlan(agentSession.getActivePlan());
+    }
+
     const initialPlan =
       typeof goalOrPlan === 'string'
-        ? this.planner.createPlan(goalOrPlan, context)
+        ? this.planner.hasModelGenerator()
+          ? await this.planner.createPlanWithModel(goalOrPlan, context, Array.from(this.toolMap.values()))
+          : this.planner.createPlan(goalOrPlan, context)
         : goalOrPlan;
 
-    const agentSession = this.getOrCreateAgentSession(sessionId);
     const abortSignal = agentSession.startRun(initialPlan, context.terminal.cwd);
 
     this.deps.eventBus.publish({
@@ -214,13 +249,19 @@ export class AgentRuntime {
       timestamp: Date.now()
     });
 
-    const emitPlan = (plan: AgentPlan | undefined) => {
-      if (plan) {
-        callbacks?.onPlanUpdate?.(plan);
-      }
-    };
-
     emitPlan(agentSession.getActivePlan());
+
+    if (initialPlan.status === 'failed') {
+      this.deps.eventBus.publish({
+        type: 'agent:finished',
+        sessionId,
+        planId: initialPlan.id,
+        status: 'failed',
+        summary: initialPlan.summary || '执行计划生成失败',
+        timestamp: Date.now()
+      });
+      return initialPlan;
+    }
 
     for (const step of initialPlan.steps) {
       if (abortSignal.aborted) {

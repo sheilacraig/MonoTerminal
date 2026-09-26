@@ -13,8 +13,7 @@ import {
   Copy,
   Download,
   Cpu,
-  Sparkles,
-  FileCode
+  Sparkles
 } from 'lucide-react';
 
 const GithubIcon: React.FC<{ size?: number; className?: string }> = ({
@@ -49,7 +48,7 @@ export const LandingPage: React.FC<LandingPageProps> = ({ onEnterDemo }) => {
           <div className="flex items-center space-x-2">
             <span className="text-white font-bold text-lg tracking-tight">MonoTerminal</span>
             <span className="text-[10px] bg-[#21262d] text-[#58a6ff] border border-[#30363d] px-1.5 py-0.5 rounded font-mono font-medium">
-              v1.0.3
+              v1.0.4
             </span>
           </div>
         </div>
@@ -113,7 +112,7 @@ export const LandingPage: React.FC<LandingPageProps> = ({ onEnterDemo }) => {
           <span className="w-2 h-2 rounded-full bg-emerald-400 animate-pulse" />
           <span className="text-white font-medium">零登录 · 100% 本地加密</span>
           <span className="text-[#30363d]">|</span>
-          <span className="text-blue-400">AI 原生运维终端与 SFTP</span>
+          <span className="text-blue-400">「会话 / 文件」一体化 Dock · 自主运维 Agent</span>
         </div>
 
         {/* Hero Title */}
@@ -126,8 +125,8 @@ export const LandingPage: React.FC<LandingPageProps> = ({ onEnterDemo }) => {
 
         {/* Hero Subtitle */}
         <p className="max-w-2xl mx-auto text-base sm:text-lg text-[#8b949e] leading-relaxed mb-10">
-          告别在黑色终端、浏览器大模型与 SFTP 软件之间反复复制粘贴。报错自动感知，单键切换 AI
-          诊断，一键回车落地执行，配置文件在线同步写回。
+          告别在黑色终端、浏览器大模型与 SFTP 软件之间反复切换。左侧「会话 / 文件」双 Tab 共用
+          Dock，右侧终端与 Ops Agent 同窗协作，支持快速问答与 Plan-Execute-Verify 自主计划执行。
         </p>
 
         {/* Action Buttons */}
@@ -162,128 +161,193 @@ export const LandingPage: React.FC<LandingPageProps> = ({ onEnterDemo }) => {
           </a>
         </div>
 
-        {/* 3. Hero Interactive App Mockup Preview */}
+        {/* 3. Hero Interactive App Mockup Preview (v1.0.4 Dual-Tab Dock + Plan Trace UI) */}
         <div className="relative mx-auto rounded-xl border border-[#30363d] bg-[#161b22] shadow-2xl overflow-hidden text-left font-mono">
-          {/* Top Window Bar */}
-          <div className="bg-[#0d1117] border-b border-[#30363d] px-4 py-2 flex items-center justify-between">
-            <div className="flex items-center space-x-2">
-              <span className="w-3 h-3 rounded-full bg-[#f85149]" />
-              <span className="w-3 h-3 rounded-full bg-[#d29922]" />
-              <span className="w-3 h-3 rounded-full bg-[#3fb950]" />
-              <span className="ml-2 text-xs text-[#8b949e] font-sans font-medium">
-                MonoTerminal - prod-web01 (root@10.0.0.12)
-              </span>
+          {/* Top Header Bar: Minimalist Brand + Session Tabs + RTT */}
+          <div className="bg-[#0d1117] border-b border-[#30363d] px-3 py-1.5 flex items-center justify-between">
+            <div className="flex items-center space-x-2 overflow-hidden">
+              <div className="flex items-center space-x-1.5 pr-2 border-r border-[#30363d]">
+                <span className="w-2.5 h-2.5 rounded-full bg-[#f85149]" />
+                <span className="w-2.5 h-2.5 rounded-full bg-[#d29922]" />
+                <span className="w-2.5 h-2.5 rounded-full bg-[#3fb950]" />
+                <span className="ml-1.5 text-xs text-white font-sans font-semibold">
+                  MonoTerminal
+                </span>
+              </div>
+              {/* Active Session Tab */}
+              <div className="flex items-center space-x-1.5 bg-[#161b22] text-white px-2.5 py-1 rounded border border-[#30363d] text-[11px] font-sans">
+                <span className="w-2 h-2 rounded-full bg-emerald-400" />
+                <span>prod-web-01</span>
+                <span className="text-[#8b949e] ml-1">×</span>
+              </div>
+              {/* Background Session Tab */}
+              <div className="hidden sm:flex items-center space-x-1.5 text-[#8b949e] px-2 py-1 rounded text-[11px] font-sans">
+                <span className="w-2 h-2 rounded-full bg-purple-400" />
+                <span>本机 PowerShell</span>
+              </div>
+              <span className="text-[#8b949e] px-1.5 text-xs">+</span>
             </div>
             <div className="flex items-center space-x-2 text-xs text-[#8b949e]">
-              <span className="bg-[#21262d] px-2 py-0.5 rounded text-[11px] text-[#58a6ff]">
-                Ctrl + \ 穿梭模式
-              </span>
               <span className="bg-[#21262d] px-2 py-0.5 rounded text-[11px] text-[#3fb950]">
                 RTT: 12ms
               </span>
             </div>
           </div>
 
-          {/* Body: 2 Columns */}
-          <div className="grid grid-cols-1 md:grid-cols-12 h-[420px] bg-[#0d1117] text-xs">
-            {/* Col 1: SFTP Tree (3 cols) */}
-            <div className="hidden md:block md:col-span-3 border-r border-[#30363d] bg-[#161b22]/70 p-3 overflow-hidden">
-              <div className="flex items-center justify-between pb-2 mb-2 border-b border-[#30363d] text-[#8b949e] text-[11px]">
-                <div className="flex items-center space-x-1.5 font-sans font-semibold text-[#c9d1d9]">
-                  <FolderTree size={13} className="text-blue-400" />
-                  <span>SFTP 文件管理器</span>
+          {/* Body: 2 Columns (Left Dual-Tab Dock + Right Terminal/Agent Split) */}
+          <div className="grid grid-cols-1 md:grid-cols-12 h-[440px] bg-[#0d1117] text-xs">
+            {/* Col 1: Left Dock with 「会话 / 文件」 Dual Tabs (3 cols) */}
+            <div className="hidden md:flex md:col-span-3 border-r border-[#30363d] bg-[#161b22]/70 flex-col justify-between overflow-hidden font-sans">
+              <div>
+                {/* Segmented Tab Switcher */}
+                <div className="p-2 border-b border-[#30363d] flex items-center gap-1 bg-[#0d1117]/60">
+                  <div className="flex-1 bg-[#21262d] text-white text-[11px] font-semibold py-1 px-2 rounded flex items-center justify-center gap-1 border border-[#30363d]">
+                    <span>会话</span>
+                    <span className="text-[10px] bg-blue-500/20 text-blue-400 px-1 rounded">3</span>
+                  </div>
+                  <div className="flex-1 text-[#8b949e] text-[11px] py-1 px-2 rounded flex items-center justify-center gap-1">
+                    <FolderTree size={11} />
+                    <span>文件</span>
+                  </div>
                 </div>
-                <span className="text-[10px] text-[#8b949e]">Ctrl+B</span>
+
+                {/* Filter Bar */}
+                <div className="px-2.5 pt-2 pb-1">
+                  <div className="bg-[#0d1117] border border-[#30363d] rounded px-2 py-1 text-[11px] text-[#8b949e]">
+                    🔍 搜索 / 过滤主机...
+                  </div>
+                </div>
+
+                {/* Session Groups Tree */}
+                <div className="px-2 py-1.5 space-y-2 text-[11px]">
+                  <div>
+                    <div className="text-[#8b949e] font-semibold px-1 py-0.5 flex items-center justify-between">
+                      <span>▾ 生产环境</span>
+                      <span className="text-[10px]">2</span>
+                    </div>
+                    <div className="mt-0.5 space-y-0.5">
+                      <div className="bg-[#21262d] text-white px-2 py-1 rounded border border-[#30363d] flex items-center justify-between">
+                        <span className="flex items-center gap-1.5 truncate">
+                          <span className="w-2 h-2 rounded-full bg-emerald-400 shrink-0" />
+                          <span className="font-medium">prod-web-01</span>
+                        </span>
+                        <span className="text-[10px] text-[#8b949e] font-mono">10.0.1.24</span>
+                      </div>
+                      <div className="text-[#8b949e] px-2 py-1 rounded flex items-center justify-between">
+                        <span className="flex items-center gap-1.5 truncate">
+                          <span className="w-2 h-2 rounded-full border border-[#8b949e] shrink-0" />
+                          <span>prod-db-01</span>
+                        </span>
+                        <span className="text-[10px] text-[#6e7681] font-mono">10.0.1.30</span>
+                      </div>
+                    </div>
+                  </div>
+
+                  <div>
+                    <div className="text-[#8b949e] font-semibold px-1 py-0.5 flex items-center justify-between">
+                      <span>▾ 本机终端</span>
+                      <span className="text-[10px]">1</span>
+                    </div>
+                    <div className="mt-0.5">
+                      <div className="text-[#c9d1d9] px-2 py-1 rounded flex items-center justify-between">
+                        <span className="flex items-center gap-1.5 truncate">
+                          <span className="w-2 h-2 rounded-full bg-purple-400 shrink-0" />
+                          <span>本机 PowerShell</span>
+                        </span>
+                        <span className="text-[10px] text-[#6e7681] font-mono">local</span>
+                      </div>
+                    </div>
+                  </div>
+                </div>
               </div>
-              <div className="space-y-1.5 text-[11px] text-[#8b949e]">
-                <div className="text-blue-400 font-semibold">📁 /etc/nginx</div>
-                <div className="pl-3 text-yellow-400 flex items-center space-x-1">
-                  <span>📁</span> <span>conf.d/</span>
+
+              {/* Bottom Dock Action Bar with Highlighted AI & System Settings */}
+              <div className="p-2 border-t border-[#30363d] bg-[#0d1117]/80 flex items-center gap-1.5 text-[11px]">
+                <div className="flex-1 bg-[#21262d] text-[#c9d1d9] py-1 px-2 rounded border border-[#30363d] text-center font-medium">
+                  ＋ 新建会话
                 </div>
-                <div className="pl-3 text-yellow-400 flex items-center space-x-1">
-                  <span>📁</span> <span>ssl/</span>
+                <div className="bg-[#21262d] text-[#8b949e] py-1 px-2 rounded border border-[#30363d]">
+                  属性
                 </div>
-                <div className="pl-3 text-[#58a6ff] bg-[#21262d] py-0.5 px-1 rounded flex items-center space-x-1 border border-[#30363d]">
-                  <FileCode size={12} />
-                  <span className="text-white">nginx.conf</span>
-                  <span className="ml-auto text-[9px] text-[#8b949e]">0644</span>
-                </div>
-                <div className="pl-3 text-[#c9d1d9] flex items-center space-x-1">
-                  <span>📄</span> <span>mime.types</span>
-                </div>
-                <div className="text-blue-400 font-semibold pt-2">📁 /var/log/nginx</div>
-                <div className="pl-3 text-red-400 flex items-center space-x-1">
-                  <span>📄</span> <span>error.log</span>
-                </div>
-                <div className="pl-3 text-[#8b949e] flex items-center space-x-1">
-                  <span>📄</span> <span>access.log</span>
+                <div className="bg-gradient-to-r from-indigo-600/30 to-blue-600/30 text-indigo-200 py-1 px-2 rounded border border-indigo-500/40 flex items-center gap-1 font-medium">
+                  <span>⚙ 设置</span>
+                  <span className="w-1.5 h-1.5 rounded-full bg-emerald-400" />
                 </div>
               </div>
             </div>
 
-            {/* Col 2: Main Terminal + AI Panel Split (9 cols) */}
+            {/* Col 2: Main Terminal + Ops Agent Split (9 cols) */}
             <div className="col-span-1 md:col-span-9 grid grid-cols-1 lg:grid-cols-2 divide-y lg:divide-y-0 lg:divide-x divide-[#30363d]">
               {/* Terminal Pane */}
               <div className="p-4 flex flex-col justify-between bg-[#0d1117] overflow-hidden">
                 <div className="space-y-1.5 leading-relaxed text-[#c9d1d9]">
-                  <div className="text-emerald-400">root@prod-web01:~# systemctl restart nginx</div>
-                  <div className="text-red-400 font-medium">
-                    Job for nginx.service failed because the control process exited with error code.
+                  <div className="text-emerald-400">root@prod-web-01:/etc/nginx# nginx -t</div>
+                  <div className="text-emerald-300/90">
+                    nginx: the configuration file /etc/nginx/nginx.conf syntax is ok
                   </div>
-                  <div className="text-[#8b949e]">
-                    root@prod-web01:~# tail -n 2 /var/log/nginx/error.log
+                  <div className="text-cyan-400 font-semibold pt-1">
+                    [Agent 执行] systemctl status nginx --no-pager
                   </div>
                   <div className="text-red-400 bg-red-950/30 p-1.5 rounded border border-red-900/50">
-                    2026/09/20 18:42:12 [emerg] 1042#1042: bind() to 0.0.0.0:80 failed (98: Address
+                    Active: failed (Result: exit-code) — bind() to 0.0.0.0:80 failed (98: Address
                     already in use)
                   </div>
                   <div className="flex items-center text-emerald-400 pt-1">
-                    <span>root@prod-web01:~#&nbsp;</span>
+                    <span>root@prod-web-01:/etc/nginx#&nbsp;</span>
                     <span className="w-2 h-3.5 bg-blue-400 inline-block animate-pulse" />
                   </div>
                 </div>
 
                 {/* Floating Error Bubble */}
-                <div className="mt-4 self-end bg-gradient-to-r from-red-600 to-amber-600 text-white px-3 py-1.5 rounded-full shadow-lg flex items-center space-x-2 text-[11px] animate-bounce">
+                <div className="mt-4 self-end bg-gradient-to-r from-red-600 to-amber-600 text-white px-3 py-1.5 rounded-full shadow-lg flex items-center space-x-2 text-[11px]">
                   <Zap size={12} />
-                  <span className="font-sans font-semibold">检测到端口冲突报错 (Ctrl + \)</span>
+                  <span className="font-sans font-semibold">
+                    OSC 133 捕获异常退出 (Exit Code: 3) · Ctrl + \
+                  </span>
                 </div>
               </div>
 
-              {/* AI Agent Pane */}
-              <div className="p-4 flex flex-col justify-between bg-[#161b22]/50">
-                <div className="space-y-3">
-                  <div className="flex items-center justify-between pb-1 border-b border-[#30363d]">
-                    <div className="flex items-center space-x-1.5 text-purple-400 font-sans font-semibold text-xs">
+              {/* AI Ops Agent Pane */}
+              <div className="p-3.5 flex flex-col justify-between bg-[#161b22]/50 font-sans">
+                <div className="space-y-2.5">
+                  <div className="flex items-center justify-between pb-1.5 border-b border-[#30363d]">
+                    <div className="flex items-center space-x-1.5 text-purple-400 font-semibold text-xs">
                       <Bot size={14} />
-                      <span>AI 运维诊断 (DeepSeek-V3 / Ollama)</span>
+                      <span>MonoTerminal Ops Agent</span>
                     </div>
-                    <span className="text-[10px] text-emerald-400 font-medium bg-emerald-950/60 px-1.5 py-0.5 rounded border border-emerald-800/40">
-                      已提取 50 行上下文
+                    <span className="text-[10px] text-purple-300 bg-purple-950/60 px-2 py-0.5 rounded border border-purple-700/40">
+                      🧭 计划执行 · 已完成
                     </span>
                   </div>
 
-                  <div className="text-[11px] text-[#8b949e] font-sans leading-relaxed">
-                    诊断结论：80 端口已被外部进程占用，导致 Nginx 无法完成 bind()
-                    绑定。建议排查占用进程并释放端口。
+                  {/* Plan Execution History Trace Card */}
+                  <div className="bg-[#0d1117] border border-purple-500/30 rounded-lg p-2.5 space-y-1.5 text-[11px]">
+                    <div className="flex items-center justify-between text-purple-300 font-medium">
+                      <span>🧭 计划执行：排查 Nginx 80 端口冲突</span>
+                      <span className="text-emerald-400 text-[10px]">2/2 已完成</span>
+                    </div>
+                    <div className="text-[#8b949e] text-[10px] space-y-0.5 font-mono">
+                      <div className="text-emerald-400">✓ 1. 校验 nginx -t 配置语法 (exit 0)</div>
+                      <div className="text-emerald-400">✓ 2. 检查 80 端口监听进程与服务状态</div>
+                    </div>
                   </div>
 
-                  {/* Actionable Command Card */}
-                  <div className="bg-[#0d1117] border border-[#30363d] rounded-lg p-3 space-y-2">
-                    <div className="flex items-center justify-between text-[10px] text-[#8b949e] font-sans">
-                      <span>建议排查命令</span>
-                      <span className="text-emerald-400">安全级别: LOW</span>
+                  {/* LLM Plan Summary + Actionable Command Card */}
+                  <div className="text-[11px] text-[#c9d1d9] leading-relaxed">
+                    <strong>📋 执行情况总结：</strong>配置语法正常，但 80 端口被旧进程占用导致启动失败。可执行以下命令释放端口并重启：
+                  </div>
+
+                  <div className="bg-[#0d1117] border border-[#30363d] rounded-lg p-2.5 space-y-2">
+                    <div className="bg-[#161b22] px-2.5 py-1 rounded font-mono text-[#58a6ff] text-xs">
+                      sudo fuser -k 80/tcp && sudo systemctl restart nginx
                     </div>
-                    <div className="bg-[#161b22] px-2.5 py-1.5 rounded font-mono text-[#58a6ff] text-xs">
-                      sudo lsof -i :80
-                    </div>
-                    <div className="flex items-center space-x-2 pt-1 font-sans">
+                    <div className="flex items-center space-x-2">
                       <button
                         onClick={onEnterDemo}
                         className="flex-1 bg-emerald-600 hover:bg-emerald-500 text-white font-medium py-1 px-2 rounded text-[11px] flex items-center justify-center space-x-1 transition-colors"
                       >
                         <Play size={11} fill="currentColor" />
-                        <span>↵ 立即运行并切回</span>
+                        <span>↵ 立即运行</span>
                       </button>
                       <button
                         onClick={onEnterDemo}
@@ -296,9 +360,20 @@ export const LandingPage: React.FC<LandingPageProps> = ({ onEnterDemo }) => {
                   </div>
                 </div>
 
-                <div className="text-[10px] text-[#8b949e] font-sans text-right pt-2 border-t border-[#30363d]">
-                  按 <kbd className="text-white bg-[#21262d] px-1 py-0.5 rounded">Ctrl + \</kbd>{' '}
-                  随时切回终端
+                {/* Bottom Input Mode Switcher Preview */}
+                <div className="flex items-center justify-between text-[10px] text-[#8b949e] pt-2 border-t border-[#30363d]">
+                  <div className="flex items-center gap-1">
+                    <span className="bg-[#21262d] text-[#c9d1d9] px-1.5 py-0.5 rounded">
+                      ⚡ 快速问答
+                    </span>
+                    <span className="bg-purple-600/30 text-purple-300 border border-purple-500/40 px-1.5 py-0.5 rounded">
+                      🧭 计划执行
+                    </span>
+                  </div>
+                  <span>
+                    按 <kbd className="text-white bg-[#21262d] px-1 py-0.5 rounded">Ctrl + \</kbd>{' '}
+                    展开/收起
+                  </span>
                 </div>
               </div>
             </div>
@@ -335,8 +410,8 @@ export const LandingPage: React.FC<LandingPageProps> = ({ onEnterDemo }) => {
               <li className="flex items-start space-x-3">
                 <span className="text-red-400 font-bold shrink-0">2.</span>
                 <span>
-                  <strong>命令复制易出错</strong>
-                  ：复制大模型给出的建议命令切回终端，手动粘贴，容易漏改关键参数。
+                  <strong>多步排障反复粘贴</strong>
+                  ：排查问题往往需要连续执行多条检查命令，每次都要手动复制粘贴，过程无记录。
                 </span>
               </li>
               <li className="flex items-start space-x-3">
@@ -366,36 +441,36 @@ export const LandingPage: React.FC<LandingPageProps> = ({ onEnterDemo }) => {
               <li className="flex items-start space-x-3">
                 <span className="text-emerald-400 font-bold shrink-0">1.</span>
                 <span>
-                  <strong>报错自动感知 + 一键穿梭</strong>：持续监听终端输出流，按{' '}
+                  <strong>OSC 133 语义感知 + 一键协同</strong>：100% 基于真实退出码捕获失败命令，按{' '}
                   <kbd className="text-white bg-[#21262d] px-1 py-0.5 rounded text-xs">
                     Ctrl + \
                   </kbd>{' '}
-                  瞬间带入最近 50 行报错直接开始诊断。
+                  自动带入失败命令与终端上下文诊断。
                 </span>
               </li>
               <li className="flex items-start space-x-3">
                 <span className="text-emerald-400 font-bold shrink-0">2.</span>
                 <span>
-                  <strong>回车直接运行命令</strong>：AI
-                  给出的排错指令化作可交互卡片，按回车直接在终端中落地执行并切回终端。
+                  <strong>快速问答 + 计划执行双模式</strong>：既可单步回车执行建议命令，也可开启
+                  Plan-Execute-Verify 自主计划执行，全程历史留痕并自动生成执行总结报告。
                 </span>
               </li>
               <li className="flex items-start space-x-3">
                 <span className="text-emerald-400 font-bold shrink-0">3.</span>
                 <span>
-                  <strong>集成 SFTP 与在线编辑器</strong>
-                  ：左侧树形浏览远程文件，点击文件直接在线修改，按{' '}
+                  <strong>「会话 / 文件」双 Tab 共用 Dock</strong>
+                  ：左栏一体化管理主机资产树与远程/本地文件树，点击文件直接在线编辑，按{' '}
                   <kbd className="text-white bg-[#21262d] px-1 py-0.5 rounded text-xs">
                     Ctrl + S
                   </kbd>{' '}
-                  实时写回远程。
+                  实时写回。
                 </span>
               </li>
               <li className="flex items-start space-x-3">
                 <span className="text-emerald-400 font-bold shrink-0">4.</span>
                 <span>
                   <strong>100% 零登录与本地加密</strong>：无账号体系，密码与 API Key 本地
-                  AES-256-GCM 硬件派生加密，支持 Ollama 离线模型。
+                  AES-256-GCM 硬件派生加密，支持 DeepSeek / Qwen / Ollama 离线模型。
                 </span>
               </li>
             </ul>
@@ -430,11 +505,12 @@ export const LandingPage: React.FC<LandingPageProps> = ({ onEnterDemo }) => {
             <div className="w-10 h-10 rounded-lg bg-purple-500/10 text-purple-400 flex items-center justify-center mb-4 group-hover:scale-110 transition-transform">
               <Bot size={20} />
             </div>
-            <h3 className="text-white font-semibold text-base mb-2">Shell ↔ Agent 穿梭流</h3>
+            <h3 className="text-white font-semibold text-base mb-2">
+              Ops Agent：快速问答 & 计划执行
+            </h3>
             <p className="text-sm text-[#8b949e] leading-relaxed">
-              双图层 DOM 缓存架构，按{' '}
-              <kbd className="text-white bg-[#21262d] px-1 py-0.5 rounded text-xs">Ctrl + \</kbd>{' '}
-              毫秒级瞬切终端与 AI 助手，后台 SSH 会话长连接保活不中断。
+              终端与 AI 同窗并列协作，支持 <strong>⚡ 快速问答</strong> 与{' '}
+              <strong>🧭 计划执行 (Plan-Execute-Verify)</strong>，计划执行轨迹完整留存于历史记录并由大模型自动输出执行总结。
             </p>
           </div>
 
@@ -443,11 +519,11 @@ export const LandingPage: React.FC<LandingPageProps> = ({ onEnterDemo }) => {
             <div className="w-10 h-10 rounded-lg bg-emerald-500/10 text-emerald-400 flex items-center justify-center mb-4 group-hover:scale-110 transition-transform">
               <FolderTree size={20} />
             </div>
-            <h3 className="text-white font-semibold text-base mb-2">SFTP 文件树与在线编辑</h3>
+            <h3 className="text-white font-semibold text-base mb-2">
+              「会话 / 文件」双 Tab 一体化 Dock
+            </h3>
             <p className="text-sm text-[#8b949e] leading-relaxed">
-              左栏远程文件树支持自由拖拽调节宽度、按{' '}
-              <kbd className="text-white bg-[#21262d] px-1 py-0.5 rounded text-xs">Ctrl + B</kbd>{' '}
-              极速收起；内置代码编辑器，按{' '}
+              左栏共用一个 Dock 统一管理主机资产分组树（支持双击直连、拖拽移动）与 SFTP/本地文件树，内置在线代码编辑器，按{' '}
               <kbd className="text-white bg-[#21262d] px-1 py-0.5 rounded text-xs">Ctrl + S</kbd>{' '}
               实时写回。
             </p>
@@ -459,11 +535,11 @@ export const LandingPage: React.FC<LandingPageProps> = ({ onEnterDemo }) => {
               <Cpu size={20} />
             </div>
             <h3 className="text-white font-semibold text-base mb-2">
-              Ollama 离线与自由接入 (BYOK)
+              多模型自由接入 (DeepSeek / Qwen / Ollama)
             </h3>
             <p className="text-sm text-[#8b949e] leading-relaxed">
-              原生支持 <strong>Ollama 本地大模型直连</strong>，全内网离线秒通；同时支持 DeepSeek
-              官方 API、OpenAI、Claude、通义千问等自带 Key 接入。
+              内置 <strong>DeepSeek 官方 API</strong>、<strong>Qwen (通义千问) 官方 API</strong>、
+              <strong>Ollama 本地直连</strong> 与 OpenAI 兼容端点，底部一键唤起 AI 与系统设置。
             </p>
           </div>
 
@@ -473,11 +549,11 @@ export const LandingPage: React.FC<LandingPageProps> = ({ onEnterDemo }) => {
               <ShieldCheck size={20} />
             </div>
             <h3 className="text-white font-semibold text-base mb-2">
-              危险命令安全门禁 (Guardrail)
+              高危命令门禁与人工审批 (Guardrail)
             </h3>
             <p className="text-sm text-[#8b949e] leading-relaxed">
-              内置安全拦截层，精准拦截 <code>rm -rf /</code>、<code>mkfs</code>、<code>dd</code>{' '}
-              等破坏性操作，必须强制手动确认或按{' '}
+              内置安全拦截层与 Human-in-the-Loop 审批卡片，精准拦截 <code>rm -rf /</code>、
+              <code>mkfs</code>、敏感目录修改等高危操作，须手动确认或按{' '}
               <kbd className="text-white bg-[#21262d] px-1 py-0.5 rounded text-xs">Alt + Y</kbd>{' '}
               放行。
             </p>
@@ -489,11 +565,11 @@ export const LandingPage: React.FC<LandingPageProps> = ({ onEnterDemo }) => {
               <Zap size={20} />
             </div>
             <h3 className="text-white font-semibold text-base mb-2">
-              开箱即用本机终端 (Local Shell) 与沙盒
+              开箱即用本机终端与 OSC 133 语义感知
             </h3>
             <p className="text-sm text-[#8b949e] leading-relaxed">
-              启动即用基于 node-pty 的原生本机终端与本地文件浏览，支持系统 PowerShell/CMD/Bash/Zsh
-              与 ANSI 全彩；同时内置 Linux 仿真运维沙盒，无需外部服务器即可直接上手。
+              启动即连基于 node-pty 的原生本机终端（PowerShell / Bash / Zsh），支持 OSC 133/7
+              真实退出码感知、命令输出防污染净化与无钩子环境平滑降级。
             </p>
           </div>
         </div>

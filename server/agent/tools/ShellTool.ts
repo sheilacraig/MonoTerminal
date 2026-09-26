@@ -3,7 +3,10 @@ import path from 'path';
 import { errorMessage } from '../../../shared/errors';
 import { splitShellSegments, tokenize } from '../../../shared/guardrail';
 import type { GuardrailAction } from '../../domain/security/types';
-import type { DefaultSessionManager } from '../../application/session/DefaultSessionManager';
+import {
+  type DefaultSessionManager,
+  sanitizeBroadcastTerminalOutput
+} from '../../application/session/DefaultSessionManager';
 import type { CommandEngine } from '../../application/command/CommandEngine';
 import { isPowerShellExecutable } from '../../infrastructure/terminal/powershellOsc133Hook';
 import { detectDefaultShell } from '../../localPtyManager';
@@ -15,6 +18,8 @@ import {
   type ToolResult,
   type ToolSchema
 } from './Tool';
+
+export { sanitizeBroadcastTerminalOutput };
 
 export interface ShellToolInput {
   command: string;
@@ -34,6 +39,7 @@ export interface ShellToolOutput {
 const DEFAULT_TIMEOUT_MS = 15_000;
 const MAX_TIMEOUT_MS = 120_000;
 const MAX_CAPTURE_BYTES = 64_000;
+const DEFAULT_OSC133_PROBE_TIMEOUT_MS = 800;
 const PWD_SENTINEL_REGEX = /__MONO_PWD__:([^\r\n]*):__END_PWD__\r?\n?$/;
 
 /**
@@ -140,11 +146,19 @@ export interface ShellToolDeps {
   sessionManager: DefaultSessionManager;
   sshManager?: Pick<SshManager, 'execCommand'>;
   commandEngine?: CommandEngine;
+  /**
+   * Maximum time (in ms) to wait for an OSC 133 marker (`133;C` / `133;E` / `133;D`)
+   * in an attached PowerShell session before concluding the OSC 133 hook is missing
+   * and degrading to isolated `-NoProfile -NonInteractive` execution (P1-2).
+   */
+  osc133ProbeTimeoutMs?: number;
 }
 
 /**
  * Isolated non-interactive ShellTool (Phase 8 / P1-6 / P0-B).
- * Never writes into the user's interactive PTY stream (`LocalPtyManager` / `SshManager.writeToShell`).
+ * Never writes into the user's interactive PTY stream (`LocalPtyManager` / `SshManager.writeToShell`)
+ * unless an attached PowerShell session has an active OSC 133 hook, and automatically
+ * degrades to isolated execution when the OSC 133 hook is absent (P1-2).
  */
 export class ShellTool implements Tool<ShellToolInput, ShellToolOutput> {
   public readonly name = 'shell';
@@ -152,7 +166,19 @@ export class ShellTool implements Tool<ShellToolInput, ShellToolOutput> {
     'Execute a non-interactive shell command in an isolated background channel with timeout protection.';
   public readonly schema = shellToolSchema;
 
+  /**
+   * Sessions where interactive PowerShell lacked the OSC 133 hook (e.g. blocked
+   * by ExecutionPolicy or custom `$PROFILE` prompt). Once degraded, subsequent
+   * Agent steps go straight to `executeLocalCommand` without waiting for probe
+   * or command timeouts (P1-2).
+   */
+  private readonly degradedOsc133Sessions = new Set<string>();
+
   constructor(private readonly deps: ShellToolDeps) {}
+
+  public isSessionOsc133Degraded(sessionId: string): boolean {
+    return this.degradedOsc133Sessions.has(sessionId);
+  }
 
   public toGuardrailAction(input: ShellToolInput, ctx: ToolExecutionContext): GuardrailAction {
     return {
@@ -172,6 +198,10 @@ export class ShellTool implements Tool<ShellToolInput, ShellToolOutput> {
     const sessionType = session?.type ?? 'local';
     const cwd = input.cwd || ctx.cwd || session?.terminal.cwd;
     const timeoutMs = input.timeoutMs ?? DEFAULT_TIMEOUT_MS;
+    const hasAttachedTerminal =
+      typeof this.deps.sessionManager.hasAttachedConnections === 'function'
+        ? this.deps.sessionManager.hasAttachedConnections(ctx.sessionId)
+        : Boolean(session && session.attachedConnections.size > 0);
 
     const cmdRecord = this.deps.commandEngine?.startCommand({
       sessionId: ctx.sessionId,
@@ -185,6 +215,14 @@ export class ShellTool implements Tool<ShellToolInput, ShellToolOutput> {
       if (sessionType === 'ssh') {
         if (!this.deps.sshManager) {
           throw new Error('SSH 执行器未配置');
+        }
+        if (hasAttachedTerminal) {
+          this.deps.sessionManager.broadcastTerminalData?.(
+            ctx.sessionId,
+            sanitizeBroadcastTerminalOutput(
+              `\r\n\x1b[1;36m[Agent 执行]\x1b[0m ${input.command}\r\n`
+            )
+          );
         }
         const execRes = await this.deps.sshManager.execCommand(ctx.sessionId, input.command, {
           cwd,
@@ -202,10 +240,59 @@ export class ShellTool implements Tool<ShellToolInput, ShellToolOutput> {
           stderr: execRes.stderr,
           timedOut: Boolean(execRes.timedOut)
         };
+        if (hasAttachedTerminal) {
+          const combinedOut = sanitizeBroadcastTerminalOutput(
+            [execRes.stdout, execRes.stderr].filter(Boolean).join('')
+          );
+          if (combinedOut) {
+            this.deps.sessionManager.broadcastTerminalData?.(
+              ctx.sessionId,
+              combinedOut.replace(/\r?\n/g, '\r\n')
+            );
+          }
+          this.deps.sessionManager.writeTerminal(ctx.sessionId, '\r');
+        }
       } else if (sessionType === 'mock') {
+        if (hasAttachedTerminal) {
+          this.deps.sessionManager.writeTerminal(ctx.sessionId, `${input.command}\r`);
+        }
         result = await this.executeMockCommand(ctx.sessionId, input.command, cwd);
+      } else if (
+        hasAttachedTerminal &&
+        !this.degradedOsc133Sessions.has(ctx.sessionId) &&
+        isPowerShellExecutable(session?.terminal.shell || '') &&
+        typeof this.deps.sessionManager.onTerminalData === 'function'
+      ) {
+        result = await this.executeInteractivePowerShellCommand(
+          ctx.sessionId,
+          input.command,
+          cwd,
+          session?.terminal.cwd,
+          timeoutMs,
+          ctx.abortSignal
+        );
       } else {
+        if (hasAttachedTerminal) {
+          this.deps.sessionManager.broadcastTerminalData?.(
+            ctx.sessionId,
+            sanitizeBroadcastTerminalOutput(
+              `\r\n\x1b[1;36m[Agent 执行]\x1b[0m ${input.command}\r\n`
+            )
+          );
+        }
         result = await this.executeLocalCommand(input.command, cwd, timeoutMs, ctx.abortSignal);
+        if (hasAttachedTerminal) {
+          const combinedOut = sanitizeBroadcastTerminalOutput(
+            [result.stdout, result.stderr].filter(Boolean).join('')
+          );
+          if (combinedOut) {
+            this.deps.sessionManager.broadcastTerminalData?.(
+              ctx.sessionId,
+              combinedOut.replace(/\r?\n/g, '\r\n')
+            );
+          }
+          this.deps.sessionManager.writeTerminal(ctx.sessionId, '\r');
+        }
       }
 
       if (result.exitCode === 0 && !result.timedOut && result.cwd) {
@@ -254,6 +341,208 @@ export class ShellTool implements Tool<ShellToolInput, ShellToolOutput> {
         durationMs: Math.max(0, endedAt - startMs)
       };
     }
+  }
+
+  /**
+   * Execute a command directly inside the user's attached interactive PowerShell PTY
+   * and observe completion, exitCode, output, and CWD via the OSC 133 / OSC 7 stream.
+   *
+   * P1-2: If the OSC 133 hook is absent (e.g. blocked by ExecutionPolicy, PS5 without
+   * hook, or custom `$PROFILE` prompt), detects the missing hook via unhooked prompt
+   * pattern or fast probe timer (`osc133ProbeTimeoutMs`), marks the session degraded,
+   * emits a terminal notice, and falls back to `executeLocalCommand` so multi-step
+   * plans never stall on repeated full timeouts.
+   */
+  private executeInteractivePowerShellCommand(
+    sessionId: string,
+    command: string,
+    cwd: string | undefined,
+    sessionCwd: string | undefined,
+    timeoutMs: number,
+    abortSignal?: AbortSignal
+  ): Promise<ShellToolOutput> {
+    const singleLine = command
+      .split(/\r?\n/)
+      .map(line => line.trim())
+      .filter(line => line.length > 0 && !line.startsWith('#'))
+      .join('; ');
+
+    const norm = (p?: string) =>
+      p && p !== '~' ? path.win32.normalize(p).replace(/[\\/]+$/, '').toLowerCase() : '';
+    const needCd = Boolean(cwd && cwd !== '~' && norm(cwd) !== norm(sessionCwd));
+    const fullLine = needCd
+      ? `Set-Location -LiteralPath '${cwd!.replace(/'/g, "''")}'; ${singleLine || command}`
+      : singleLine || command;
+
+    return new Promise(resolve => {
+      let rawBuffer = '';
+      let settled = false;
+      let hasSeenOsc133 = false;
+
+      const stripTerminalSequences = (raw: string): string =>
+        raw
+          // eslint-disable-next-line no-control-regex
+          .replace(/\x1b\][^\x07]*\x07/g, '')
+          // eslint-disable-next-line no-control-regex
+          .replace(/\x1b\[[0-9;?]*[A-Za-z]/g, '')
+          .replace(/\r\n/g, '\n')
+          .trim();
+
+      const cleanup = (
+        unsub: () => void,
+        timer: ReturnType<typeof setTimeout>,
+        probeTimer: ReturnType<typeof setTimeout>
+      ) => {
+        unsub();
+        clearTimeout(timer);
+        clearTimeout(probeTimer);
+        abortSignal?.removeEventListener('abort', onAbort);
+      };
+
+      const degradeToIsolatedExecution = () => {
+        if (settled) return;
+        settled = true;
+        cleanup(unsub, timer, probeTimer);
+        this.degradedOsc133Sessions.add(sessionId);
+        this.deps.sessionManager.writeTerminal(sessionId, '\x03');
+        this.deps.sessionManager.broadcastTerminalData?.(
+          sessionId,
+          sanitizeBroadcastTerminalOutput(
+            '\r\n\x1b[33m[Agent 提示] 未检测到 PowerShell OSC 133 语义钩子（可能受执行策略或自定义 Profile 影响），已自动降级为后台隔离执行模式\x1b[0m\r\n'
+          )
+        );
+        void this.executeLocalCommand(command, cwd, timeoutMs, abortSignal).then(res => {
+          const combinedOut = sanitizeBroadcastTerminalOutput(
+            [res.stdout, res.stderr].filter(Boolean).join('')
+          );
+          if (combinedOut) {
+            this.deps.sessionManager.broadcastTerminalData?.(
+              sessionId,
+              combinedOut.replace(/\r?\n/g, '\r\n')
+            );
+          }
+          this.deps.sessionManager.writeTerminal(sessionId, '\r');
+          resolve(res);
+        });
+      };
+
+      const unsub = this.deps.sessionManager.onTerminalData(sessionId, chunk => {
+        if (settled) return;
+        rawBuffer += chunk;
+        if (rawBuffer.length > MAX_CAPTURE_BYTES * 2) {
+          rawBuffer = rawBuffer.slice(-MAX_CAPTURE_BYTES * 2);
+        }
+
+        // Look for OSC 133;C (command start) or OSC 133;E (command line echo in prompt)
+        const cMarker = '\x1b]133;C\x07';
+        const cIdx = rawBuffer.indexOf(cMarker);
+        // eslint-disable-next-line no-control-regex
+        const hasFallbackEcho = /\x1b\]133;E;(?!Import-Module PSReadLine)[^\x07]+\x07\x1b\]133;D;/.test(
+          rawBuffer
+        );
+        if (cIdx >= 0 || hasFallbackEcho || rawBuffer.includes('\x1b]133;')) {
+          hasSeenOsc133 = true;
+          clearTimeout(probeTimer);
+        }
+
+        if (cIdx < 0 && !hasFallbackEcho) {
+          // Fast-path detection for unhooked PowerShell prompt returning after command echo
+          const plainText = stripTerminalSequences(rawBuffer);
+          if (
+            !hasSeenOsc133 &&
+            /(?:^|\n)PS (?:[A-Za-z]:\\[^\n>]*|[^\n>]*)>\s*$/.test(plainText)
+          ) {
+            degradeToIsolatedExecution();
+          }
+          return;
+        }
+
+        const tail = cIdx >= 0 ? rawBuffer.slice(cIdx + cMarker.length) : rawBuffer;
+        // eslint-disable-next-line no-control-regex
+        const dMatch = /\x1b\]133;D;(-?\d+)\x07([\s\S]*?\x1b\]133;B\x07)/.exec(tail);
+        if (!dMatch) {
+          return;
+        }
+
+        settled = true;
+        cleanup(unsub, timer, probeTimer);
+        this.degradedOsc133Sessions.delete(sessionId);
+
+        const exitCode = Number(dMatch[1]) || 0;
+        const cleanStdout = stripTerminalSequences(tail.slice(0, dMatch.index));
+        // eslint-disable-next-line no-control-regex
+        const osc7Match = /\x1b\]7;file:\/\/localhost\/([^\x07]+)\x07/.exec(dMatch[2]);
+        let detectedCwd = resolveCommandCwdChange(command, cwd);
+        if (osc7Match?.[1]) {
+          try {
+            detectedCwd = path.win32.normalize(decodeURIComponent(osc7Match[1]));
+          } catch {
+            detectedCwd = osc7Match[1];
+          }
+        }
+
+        resolve({
+          command,
+          cwd: exitCode === 0 ? detectedCwd || cwd : cwd,
+          exitCode,
+          stdout: cleanStdout,
+          stderr: '',
+          timedOut: false
+        });
+      });
+
+      const probeMs = Math.min(
+        timeoutMs,
+        Math.max(20, this.deps.osc133ProbeTimeoutMs ?? DEFAULT_OSC133_PROBE_TIMEOUT_MS)
+      );
+      const probeTimer = setTimeout(() => {
+        if (settled || hasSeenOsc133) return;
+        degradeToIsolatedExecution();
+      }, probeMs);
+      probeTimer.unref?.();
+
+      const timer = setTimeout(() => {
+        if (settled) return;
+        settled = true;
+        cleanup(unsub, timer, probeTimer);
+        if (!rawBuffer.includes('\x1b]133;D;')) {
+          this.degradedOsc133Sessions.add(sessionId);
+        }
+        this.deps.sessionManager.writeTerminal(sessionId, '\x03');
+        resolve({
+          command,
+          cwd,
+          exitCode: 124,
+          stdout: stripTerminalSequences(rawBuffer),
+          stderr: `[Timeout after ${timeoutMs}ms]`,
+          timedOut: true
+        });
+      }, timeoutMs);
+      timer.unref?.();
+
+      const onAbort = () => {
+        if (settled) return;
+        settled = true;
+        cleanup(unsub, timer, probeTimer);
+        this.deps.sessionManager.writeTerminal(sessionId, '\x03');
+        resolve({
+          command,
+          cwd,
+          exitCode: 130,
+          stdout: stripTerminalSequences(rawBuffer),
+          stderr: '[Aborted]',
+          timedOut: true
+        });
+      };
+      abortSignal?.addEventListener('abort', onAbort, { once: true });
+
+      const wrote = this.deps.sessionManager.writeTerminal(sessionId, `${fullLine}\r`);
+      if (!wrote) {
+        settled = true;
+        cleanup(unsub, timer, probeTimer);
+        void this.executeLocalCommand(command, cwd, timeoutMs, abortSignal).then(resolve);
+      }
+    });
   }
 
   private executeLocalCommand(

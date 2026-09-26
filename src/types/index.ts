@@ -40,7 +40,8 @@ export interface SessionTab {
   lastFailedCommand?: FailedCommandInfo | null; // Exact command & output from OSC 133
 }
 
-export type { FileEntry, FileItem } from '../../shared/wsProtocol';
+import type { AgentPlanPayload, FileEntry, FileItem } from '../../shared/wsProtocol';
+export type { FileEntry, FileItem };
 
 export interface ChatMessage {
   id: string;
@@ -49,6 +50,7 @@ export interface ChatMessage {
   thinking?: string;
   timestamp: number;
   isStreaming?: boolean;
+  plan?: AgentPlanPayload;
 }
 
 export interface AIProvider {

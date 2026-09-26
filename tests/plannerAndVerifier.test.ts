@@ -104,6 +104,43 @@ describe('Phase 11: derivePlanStatus pure function & Planner (P1-G)', () => {
       derivePlanStatus([makeStep('1', 'running')], { isCancelled: true })
     ).toBe('cancelled');
   });
+
+  it('P2-1: createPlanWithModel returns a failed plan (via createFailedPlan) instead of silently falling back to heuristic steps when model fails', async () => {
+    const { sessionManager, contextEngine } = createPlanVerifierHarness();
+    await sessionManager.create({
+      id: 'sess-fail-model',
+      host: {
+        id: 'mock-fail',
+        name: 'Fail Host',
+        group: 'Test',
+        host: '127.0.0.1',
+        port: 22,
+        username: 'root',
+        authType: 'mock',
+        initialDir: '/etc/nginx',
+        createdAt: 0
+      },
+      cols: 80,
+      rows: 24
+    });
+
+    const brokenPlanner = new Planner(async () => {
+      throw new Error('401 Invalid API Key');
+    });
+
+    const context = await contextEngine.buildContext('sess-fail-model');
+    const plan = await brokenPlanner.createPlanWithModel(
+      '排查 nginx 配置与运行状态',
+      context,
+      []
+    );
+
+    expect(plan.status).toBe('failed');
+    expect(plan.steps).toHaveLength(1);
+    expect(plan.steps[0].status).toBe('failed');
+    expect(plan.steps[0].title).toContain('无法生成执行计划');
+    expect(plan.steps[0].error).toContain('401 Invalid API Key');
+  });
 });
 
 describe('Phase 12: Deterministic VerifierRegistry & Plan-Execute-Verify Loop (P1-9)', () => {
@@ -231,5 +268,61 @@ describe('Phase 12: Deterministic VerifierRegistry & Plan-Execute-Verify Loop (P
     expect(failingPlan.steps[0].status).toBe('failed');
     expect(failingPlan.steps[0].error).toContain('未包含预期内容');
     expect(failingPlan.steps[1].status).toBe('skipped');
+  });
+
+  it('extracts fenced shell commands into shell steps and executes visibly in an attached terminal stream', async () => {
+    const { sessionManager, agentRuntime } = createPlanVerifierHarness();
+
+    await sessionManager.create({
+      id: 'sess-visible-shell',
+      host: {
+        id: 'mock-vis',
+        name: 'Visible Shell Host',
+        group: 'Test',
+        host: '127.0.0.1',
+        port: 22,
+        username: 'root',
+        authType: 'mock',
+        initialDir: '/etc/nginx',
+        createdAt: 0
+      },
+      cols: 80,
+      rows: 24
+    });
+
+    const receivedTerminalChunks: string[] = [];
+    sessionManager.attach('sess-visible-shell', 'conn-1', msg => {
+      if (msg.type === 'term:data') {
+        receivedTerminalChunks.push(msg.data);
+      }
+    });
+
+    const goalWithCodeBlock = [
+      '检查 Nginx 配置与当前目录',
+      '```bash',
+      'pwd',
+      'nginx -t',
+      '```'
+    ].join('\n');
+
+    const completedPlan = await agentRuntime.runPlan('sess-visible-shell', goalWithCodeBlock);
+
+    expect(completedPlan.status).toBe('completed');
+    expect(completedPlan.steps).toHaveLength(2);
+    expect(completedPlan.steps[0]).toMatchObject({
+      toolName: 'shell',
+      input: { command: 'pwd' },
+      status: 'completed'
+    });
+    expect(completedPlan.steps[1]).toMatchObject({
+      toolName: 'shell',
+      input: { command: 'nginx -t' },
+      status: 'completed'
+    });
+
+    // Ensure commands were echoed/executed visibly in the attached terminal WebSocket stream
+    const combinedStream = receivedTerminalChunks.join('');
+    expect(combinedStream).toContain('pwd');
+    expect(combinedStream).toContain('nginx -t');
   });
 });

@@ -64,7 +64,12 @@ const DEFAULT_SNIPPETS: CommandSnippet[] = [
 ];
 
 export const SnippetModal: React.FC = () => {
-  const { isSnippetModalOpen, setIsSnippetModalOpen, activeSession, toggleMode } = useSession();
+  const {
+    isSnippetModalOpen,
+    setIsSnippetModalOpen,
+    activeSession,
+    executeCommandWithGuardrail
+  } = useSession();
   const { sendTermInput } = useWebSocket();
 
   const [search, setSearch] = useState('');
@@ -81,17 +86,15 @@ export const SnippetModal: React.FC = () => {
 
   const handleRun = (cmd: string) => {
     if (activeSession) {
-      sendTermInput(activeSession.id, `${cmd}\r`);
-      toggleMode('shell');
       setIsSnippetModalOpen(false);
+      executeCommandWithGuardrail(cmd, () => sendTermInput(activeSession.id, `${cmd}\r`));
     }
   };
 
   const handleFill = (cmd: string) => {
     if (activeSession) {
-      sendTermInput(activeSession.id, cmd);
-      toggleMode('shell');
       setIsSnippetModalOpen(false);
+      executeCommandWithGuardrail(cmd, () => sendTermInput(activeSession.id, cmd));
     }
   };
 

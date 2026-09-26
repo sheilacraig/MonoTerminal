@@ -1,6 +1,7 @@
 import { describe, it, expect, beforeEach, afterEach } from 'vitest';
 import { AIService } from '../server/aiService';
 import { LocalStorageManager } from '../server/storage';
+import { formatPlanTraceMarkdown } from '../src/context/AgentChatContext';
 import fs from 'fs';
 import path from 'path';
 import os from 'os';
@@ -67,5 +68,45 @@ describe('AIService & Ops Prompt Generation', () => {
     expect(streamedThinking).toContain('Nginx');
     expect(streamedContent).toContain('```bash');
     expect(streamedContent).toContain('nginx -t');
+  });
+
+  it('should format plan trace markdown and summarize final plan execution status', async () => {
+    const trace = formatPlanTraceMarkdown({
+      id: 'plan-123',
+      sessionId: 'sess-1',
+      goal: '检查当前目录文件与磁盘空间',
+      status: 'completed',
+      createdAt: 1000,
+      updatedAt: 2000,
+      steps: [
+        {
+          id: 'step-1',
+          title: '列出当前目录文件',
+          toolName: 'shell',
+          input: { command: 'ls -la' },
+          status: 'completed',
+          outputSummary: 'total 12\ndrwxr-xr-x 2 root root 4096'
+        }
+      ]
+    });
+
+    expect(trace).toContain('[计划执行记录] 目标: 检查当前目录文件与磁盘空间');
+    expect(trace).toContain('状态: 已完成');
+    expect(trace).toContain('1. [completed] 列出当前目录文件 (shell) `ls -la`');
+    expect(trace).toContain('输出结果: total 12');
+
+    let summaryContent = '';
+    await aiService.streamChat(
+      [{ role: 'user', content: `请根据以下记录汇报最后执行情况：\n\n${trace}` }],
+      { currentDir: '/root', currentUser: 'root' },
+      {
+        onContent: chunk => {
+          summaryContent += chunk;
+        }
+      }
+    );
+
+    expect(summaryContent).toContain('计划执行完成报告');
+    expect(summaryContent).toContain('检查当前目录文件与磁盘空间');
   });
 });

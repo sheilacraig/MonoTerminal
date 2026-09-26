@@ -7,7 +7,7 @@ import { AgentPlanPanel } from './Agent/AgentPlanPanel';
 import { ApprovalCard } from './Agent/ApprovalCard';
 import { TimelinePanel } from './Agent/TimelinePanel';
 import { COPY_SCOPE_ATTR } from '../../utils/clipboard';
-import { Bot, User, X, Play, Clock } from 'lucide-react';
+import { Bot, User, X, Play, Clock, Trash2, Settings } from 'lucide-react';
 
 // react-markdown + highlight.js are heavy → split into an on-demand chunk so
 // they stay out of the initial bundle (loaded the first time a message renders).
@@ -18,7 +18,7 @@ interface AgentViewProps {
 }
 
 export const AgentView: React.FC<AgentViewProps> = ({ isVisible }) => {
-  const { activeSession, toggleAgent, clearUnreadError } = useSession();
+  const { activeSession, toggleAgent, clearUnreadError, setIsSettingsModalOpen } = useSession();
   const {
     messages,
     isStreaming,
@@ -37,11 +37,17 @@ export const AgentView: React.FC<AgentViewProps> = ({ isVisible }) => {
     runAgentGoal,
     approveAgentAction,
     rejectAgentAction,
-    cancelAgentPlan
+    cancelAgentPlan,
+    clearHistory
   } = useAgentChat();
 
   const [showTimeline, setShowTimeline] = useState(false);
   const messagesEndRef = useRef<HTMLDivElement>(null);
+  const isPlanRunning = Boolean(
+    activePlan &&
+      ['planning', 'running', 'awaiting_approval', 'verifying'].includes(activePlan.status)
+  );
+  const canClearHistory = !isPlanRunning && (messages.length > 1 || Boolean(activePlan));
 
   // Auto-fill error snippet if opened via error trigger
   useEffect(() => {
@@ -82,14 +88,48 @@ export const AgentView: React.FC<AgentViewProps> = ({ isVisible }) => {
     setInput('');
   };
 
-  const handleRunAutonomousPlan = () => {
-    const goal =
-      input.trim() ||
-      (activeSession?.lastFailedCommand?.command
-        ? `排查并验证命令 ${activeSession.lastFailedCommand.command} 异常`
-        : '检查当前服务与工作目录健康状态');
-    runAgentGoal(goal);
+  const handleRunInputPlan = () => {
+    const goal = input.trim();
+    if (!goal || isStreaming || isPlanRunning) return;
+    runAgentGoal(goal, goal);
+    setInput('');
   };
+
+  const handleRunAutonomousPlan = () => {
+    let goal = input.trim();
+    let displayGoal = goal;
+
+    if (!goal) {
+      const conversationMessages = messages.filter(m => m.id !== 'init-msg' && m.content.trim());
+      const lastAssistantMsg = [...conversationMessages]
+        .reverse()
+        .find(m => m.role === 'assistant' && !m.plan);
+      const lastUserMsg = [...conversationMessages].reverse().find(m => m.role === 'user');
+
+      if (lastAssistantMsg && /```[\s\S]*?```/.test(lastAssistantMsg.content)) {
+        const header = lastUserMsg?.content.trim().split('\n')[0] || '执行 AI 建议的命令方案';
+        displayGoal = header;
+        goal = `${header}\n${lastAssistantMsg.content}`;
+      } else if (lastUserMsg) {
+        goal = lastUserMsg.content.trim();
+        displayGoal = goal;
+      } else if (activeSession?.lastFailedCommand?.command) {
+        goal = `排查并验证命令 ${activeSession.lastFailedCommand.command} 异常`;
+        displayGoal = goal;
+      } else {
+        goal = '检查当前服务与工作目录健康状态';
+        displayGoal = goal;
+      }
+    }
+
+    runAgentGoal(goal, displayGoal);
+    setInput('');
+  };
+
+  const isActivePlanInMessages = Boolean(
+    activePlan &&
+      messages.some(m => m.plan?.id === activePlan.id || m.plan?.id.startsWith('pending-'))
+  );
 
   return (
     <div
@@ -97,7 +137,7 @@ export const AgentView: React.FC<AgentViewProps> = ({ isVisible }) => {
       {...{ [COPY_SCOPE_ATTR]: 'agent' }}
     >
       {/* Header Context Indicator */}
-      <div className="h-7 bg-purple-950/20 border-b border-purple-900/30 px-3 flex items-center justify-between text-xs text-purple-300 select-none shrink-0">
+      <div className="h-9 bg-purple-950/20 border-b border-purple-900/30 px-3 flex items-center justify-between text-xs text-purple-300 select-none shrink-0">
         <div className="flex items-center space-x-1.5 min-w-0">
           <Bot size={13} className="text-purple-400 shrink-0" />
           <span className="font-semibold text-[11px] text-purple-300 truncate">
@@ -109,7 +149,8 @@ export const AgentView: React.FC<AgentViewProps> = ({ isVisible }) => {
           <button
             type="button"
             onClick={handleRunAutonomousPlan}
-            className="flex items-center space-x-1 px-1.5 py-0.5 rounded text-[10px] bg-purple-900/50 hover:bg-purple-800/70 text-purple-200 border border-purple-700/50 transition-colors"
+            disabled={isPlanRunning || isStreaming}
+            className="flex items-center space-x-1 px-1.5 py-0.5 rounded text-[10px] bg-purple-900/50 hover:bg-purple-800/70 text-purple-200 border border-purple-700/50 transition-colors disabled:opacity-40 disabled:cursor-not-allowed"
             title="基于当前上下文启动 Plan-Execute-Verify 自主巡检/排障"
           >
             <Play size={10} />
@@ -132,12 +173,32 @@ export const AgentView: React.FC<AgentViewProps> = ({ isVisible }) => {
 
           <button
             type="button"
+            onClick={clearHistory}
+            disabled={!canClearHistory}
+            className="flex items-center space-x-1 px-1.5 py-0.5 rounded text-[10px] bg-orca-surface text-orca-muted hover:text-rose-300 hover:border-rose-700/60 border border-orca-border transition-colors disabled:opacity-40 disabled:cursor-not-allowed"
+            title="清空当前会话的对话历史与已完成计划"
+          >
+            <Trash2 size={10} />
+            <span>清空记录</span>
+          </button>
+
+          <button
+            type="button"
+            onClick={() => setIsSettingsModalOpen(true)}
+            className="flex items-center space-x-1 px-1.5 py-0.5 rounded text-[10px] bg-orca-surface text-orca-muted hover:text-white border border-orca-border transition-colors"
+            title="配置 AI 模型与 API Key (Ctrl+,)"
+          >
+            <Settings size={10} />
+            <span>模型</span>
+          </button>
+
+          <button
+            type="button"
             onClick={() => toggleAgent(false)}
             className="flex items-center space-x-1 px-1.5 py-0.5 rounded text-[11px] text-orca-muted hover:text-white hover:bg-purple-900/40 transition-colors"
             title="收起 AI 助手 (Ctrl+\)"
           >
             <X size={13} />
-            <span>收起</span>
           </button>
         </div>
       </div>
@@ -145,17 +206,6 @@ export const AgentView: React.FC<AgentViewProps> = ({ isVisible }) => {
       {/* Messages & Workspace Agent Panels Stream Area */}
       <div className="flex-1 overflow-y-auto p-4 space-y-4">
         {showTimeline && <TimelinePanel entries={timeline} />}
-
-        {activePlan && <AgentPlanPanel plan={activePlan} onCancel={cancelAgentPlan} />}
-
-        {pendingApprovals.map(appr => (
-          <ApprovalCard
-            key={appr.id}
-            approval={appr}
-            onApprove={approveAgentAction}
-            onReject={rejectAgentAction}
-          />
-        ))}
 
         {messages.map(msg => (
           <div
@@ -172,43 +222,62 @@ export const AgentView: React.FC<AgentViewProps> = ({ isVisible }) => {
               </div>
             )}
 
-            {/* Bubble Card */}
-            <div
-              className={`max-w-[90%] rounded-lg p-3 text-xs leading-relaxed shadow-md ${
-                msg.role === 'user'
-                  ? 'bg-blue-900/30 border border-blue-700/40 text-white'
-                  : 'bg-orca-surface border border-orca-border text-orca-text w-full'
-              }`}
-            >
-              {/* Thinking Process Accordion */}
-              {msg.thinking && (
-                <ThinkingAccordion
-                  thinking={msg.thinking}
-                  isExpanded={Boolean(expandedThinking[msg.id])}
-                  onToggle={() => toggleThinking(msg.id)}
-                />
-              )}
-
-              {/* Message Content & Actionable Codeblocks (lazy markdown chunk) */}
-              <Suspense
-                fallback={
-                  <div className="whitespace-pre-wrap leading-relaxed text-xs">{msg.content}</div>
-                }
+            {/* Plan Execution Record Card OR Standard Chat Bubble */}
+            {msg.plan ? (
+              <div className="w-full">
+                <AgentPlanPanel plan={msg.plan} onCancel={cancelAgentPlan} />
+              </div>
+            ) : (
+              <div
+                className={`max-w-[90%] rounded-lg p-3 text-xs leading-relaxed shadow-md ${
+                  msg.role === 'user'
+                    ? 'bg-blue-900/30 border border-blue-700/40 text-white'
+                    : 'bg-orca-surface border border-orca-border text-orca-text w-full'
+                }`}
               >
-                <MessageMarkdown
-                  content={msg.content}
-                  commandExplanations={commandExplanations}
-                  onRun={runCommand}
-                  onFill={fillCommand}
-                  onExplain={explainCommand}
-                />
-              </Suspense>
+                {/* Thinking Process Accordion */}
+                {msg.thinking && (
+                  <ThinkingAccordion
+                    thinking={msg.thinking}
+                    isExpanded={Boolean(expandedThinking[msg.id])}
+                    onToggle={() => toggleThinking(msg.id)}
+                  />
+                )}
 
-              {msg.isStreaming && (
-                <span className="inline-block w-1.5 h-3 bg-orca-accent animate-pulse ml-1 align-middle" />
-              )}
-            </div>
+                {/* Message Content & Actionable Codeblocks (lazy markdown chunk) */}
+                <Suspense
+                  fallback={
+                    <div className="whitespace-pre-wrap leading-relaxed text-xs">{msg.content}</div>
+                  }
+                >
+                  <MessageMarkdown
+                    content={msg.content}
+                    commandExplanations={commandExplanations}
+                    onRun={runCommand}
+                    onFill={fillCommand}
+                    onExplain={explainCommand}
+                  />
+                </Suspense>
+
+                {msg.isStreaming && (
+                  <span className="inline-block w-1.5 h-3 bg-orca-accent animate-pulse ml-1 align-middle" />
+                )}
+              </div>
+            )}
           </div>
+        ))}
+
+        {activePlan && !isActivePlanInMessages && (
+          <AgentPlanPanel plan={activePlan} onCancel={cancelAgentPlan} />
+        )}
+
+        {pendingApprovals.map(appr => (
+          <ApprovalCard
+            key={appr.id}
+            approval={appr}
+            onApprove={approveAgentAction}
+            onReject={rejectAgentAction}
+          />
         ))}
         <div ref={messagesEndRef} />
       </div>
@@ -219,9 +288,10 @@ export const AgentView: React.FC<AgentViewProps> = ({ isVisible }) => {
         isStreaming={isStreaming}
         onChange={setInput}
         onSend={handleSend}
+        onRunPlan={handleRunInputPlan}
+        isPlanRunning={isPlanRunning}
         autoFocus={isVisible}
       />
     </div>
   );
 };
-

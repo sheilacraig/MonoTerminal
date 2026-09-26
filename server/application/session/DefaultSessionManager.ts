@@ -47,9 +47,39 @@ function toHostRef(host: HostAsset): HostRef {
   };
 }
 
+/**
+ * Sanitize synthetic / non-PTY terminal broadcasts (e.g. Agent command banners
+ * and captured stdout/stderr) before forwarding them as `term:data` to the
+ * browser terminal.
+ *
+ * Strips all OSC (`ESC ] ... BEL/ST`, `0x9D ... BEL/ST`) and DCS/SOS/PM/APC
+ * control strings (plus any unterminated trailing starter) so untrusted command
+ * output can NEVER inject fake `OSC 133;D;<exitCode>` or `OSC 7;file://...`
+ * markers into `ShellIntegrationTracker` (P1-1).
+ */
+export function sanitizeBroadcastTerminalOutput(raw: string): string {
+  if (!raw) return raw;
+  return (
+    raw
+      // 7-bit OSC: ESC ] ... (BEL | ESC \)
+      // eslint-disable-next-line no-control-regex
+      .replace(/\x1b\][\s\S]*?(?:\x07|\x1b\\)/g, '')
+      // 8-bit C1 OSC: 0x9D ... (BEL | ST 0x9C | ESC \)
+      // eslint-disable-next-line no-control-regex
+      .replace(/\x9d[\s\S]*?(?:\x07|\x9c|\x1b\\)/g, '')
+      // 7-bit & 8-bit DCS/SOS/PM/APC control strings
+      // eslint-disable-next-line no-control-regex
+      .replace(/(?:\x1b[PX^_]|[\x90\x98\x9e\x9f])[\s\S]*?(?:\x07|\x1b\\|\x9c)/g, '')
+      // Unterminated trailing OSC/DCS/SOS/PM/APC starter at end of chunk
+      // eslint-disable-next-line no-control-regex
+      .replace(/(?:\x1b[\]PX^_]|[\x9d\x90\x98\x9e\x9f])[^\x07\x1b\x9c]*$/g, '')
+  );
+}
+
 export class DefaultSessionManager implements SessionManager {
   private readonly sessions = new Map<string, Session>();
   private readonly connectionSenders = new Map<string, Map<string, SessionOutboundSender>>();
+  private readonly sessionDataListeners = new Map<string, Set<(data: string) => void>>();
   private readonly detachTimers = new Map<string, ReturnType<typeof setTimeout>>();
   private readonly providerUnsubs: Unsubscribe[] = [];
   private readonly terminalProviders: Record<SessionType, TerminalProvider>;
@@ -65,9 +95,11 @@ export class DefaultSessionManager implements SessionManager {
 
     // Register a single set of listeners per TerminalProvider singleton (P0-C).
     const types: SessionType[] = ['local', 'ssh', 'mock'];
+    const registeredProviders = new Set<TerminalProvider>();
     for (const type of types) {
       const provider = this.terminalProviders[type];
-      if (!provider) continue;
+      if (!provider || registeredProviders.has(provider)) continue;
+      registeredProviders.add(provider);
 
       this.providerUnsubs.push(
         provider.onData((sessionId, data) => {
@@ -76,6 +108,12 @@ export class DefaultSessionManager implements SessionManager {
             session.lastActiveAt = Date.now();
           }
           this.hooks?.onTerminalData?.(sessionId, data);
+          const dataListeners = this.sessionDataListeners.get(sessionId);
+          if (dataListeners) {
+            for (const listener of dataListeners) {
+              listener(data);
+            }
+          }
           this.broadcastToSession(sessionId, { type: 'term:data', sessionId, data });
         }),
         provider.onExit((sessionId, exitCode) => {
@@ -84,6 +122,7 @@ export class DefaultSessionManager implements SessionManager {
           const session = this.sessions.get(sessionId);
           this.clearDetachTimer(sessionId);
           this.connectionSenders.delete(sessionId);
+          this.sessionDataListeners.delete(sessionId);
           if (session) {
             session.status = 'closed';
             session.attachedConnections.clear();
@@ -277,6 +316,7 @@ export class DefaultSessionManager implements SessionManager {
     this.clearDetachTimer(id);
     const session = this.sessions.get(id);
     this.connectionSenders.delete(id);
+    this.sessionDataListeners.delete(id);
 
     if (!session) {
       return;
@@ -295,6 +335,35 @@ export class DefaultSessionManager implements SessionManager {
 
   public list(): Session[] {
     return Array.from(this.sessions.values()).filter(s => s.status !== 'closed');
+  }
+
+  public hasAttachedConnections(id: string): boolean {
+    const session = this.get(id);
+    return Boolean(session && session.attachedConnections.size > 0);
+  }
+
+  public onTerminalData(id: string, listener: (data: string) => void): Unsubscribe {
+    let set = this.sessionDataListeners.get(id);
+    if (!set) {
+      set = new Set();
+      this.sessionDataListeners.set(id, set);
+    }
+    set.add(listener);
+    return () => {
+      const current = this.sessionDataListeners.get(id);
+      if (current) {
+        current.delete(listener);
+        if (current.size === 0) {
+          this.sessionDataListeners.delete(id);
+        }
+      }
+    };
+  }
+
+  public broadcastTerminalData(id: string, data: string): void {
+    const safeData = sanitizeBroadcastTerminalOutput(data);
+    if (!safeData) return;
+    this.broadcastToSession(id, { type: 'term:data', sessionId: id, data: safeData });
   }
 
   public writeTerminal(id: string, data: string): boolean {
@@ -354,5 +423,6 @@ export class DefaultSessionManager implements SessionManager {
       unsub();
     }
     this.providerUnsubs.length = 0;
+    this.sessionDataListeners.clear();
   }
 }

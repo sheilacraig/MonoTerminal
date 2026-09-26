@@ -28,8 +28,14 @@ export const TerminalView: React.FC<TerminalViewProps> = ({ sessionId, isVisible
   const xtermInstance = useRef<Terminal | null>(null);
   const fitAddonRef = useRef<FitAddon | null>(null);
 
-  const { send, sendTermInput, resizeTerm, registerTermHandler, registerTermErrorHandler } =
-    useWebSocket();
+  const {
+    send,
+    sendTermInput,
+    resizeTerm,
+    registerTermHandler,
+    registerTermReadyHandler,
+    registerTermErrorHandler
+  } = useWebSocket();
   const {
     activeSession,
     appendTerminalContext,
@@ -37,6 +43,7 @@ export const TerminalView: React.FC<TerminalViewProps> = ({ sessionId, isVisible
     setIsSidebarCollapsed,
     setIsHostModalOpen,
     closeSession,
+    updateSessionStatus,
     updateSessionTermSize,
     updateSessionCwd,
     updateSessionFailedCommand,
@@ -65,12 +72,14 @@ export const TerminalView: React.FC<TerminalViewProps> = ({ sessionId, isVisible
     sendTermInput,
     resizeTerm,
     registerTermHandler,
+    registerTermReadyHandler,
     registerTermErrorHandler,
     appendTerminalContext,
     toggleAgent,
     setIsSidebarCollapsed,
     setIsHostModalOpen,
     closeSession,
+    updateSessionStatus,
     updateSessionTermSize,
     updateSessionCwd,
     updateSessionFailedCommand,
@@ -82,12 +91,14 @@ export const TerminalView: React.FC<TerminalViewProps> = ({ sessionId, isVisible
     sendTermInput,
     resizeTerm,
     registerTermHandler,
+    registerTermReadyHandler,
     registerTermErrorHandler,
     appendTerminalContext,
     toggleAgent,
     setIsSidebarCollapsed,
     setIsHostModalOpen,
     closeSession,
+    updateSessionStatus,
     updateSessionTermSize,
     updateSessionCwd,
     updateSessionFailedCommand,
@@ -346,12 +357,20 @@ export const TerminalView: React.FC<TerminalViewProps> = ({ sessionId, isVisible
       shellIntegrationTracker.noteOutput(sessionId, data);
     });
 
+    const unregisterReady = ctx.registerTermReadyHandler(sessionId, info => {
+      ctxRef.current.updateSessionStatus(sessionId, 'connected');
+      if (info.cwd) {
+        ctxRef.current.updateSessionCwd(sessionId, info.cwd);
+      }
+    });
+
     // Watch the same stream for password prompts / failed attempts
     const unregisterAuth = ctx.registerTermHandler(sessionId, (data: string) => {
       auth.noteOutput(data);
     });
 
     const unregisterError = ctx.registerTermErrorHandler(sessionId, (err: string) => {
+      ctxRef.current.updateSessionStatus(sessionId, 'disconnected');
       term.write(`\r\n\x1b[31m[错误] ${err}\x1b[0m\r\n`);
     });
 
@@ -381,6 +400,7 @@ export const TerminalView: React.FC<TerminalViewProps> = ({ sessionId, isVisible
       dataSub.dispose();
       termContainer.removeEventListener('mouseup', handleMouseUp);
       unregisterData();
+      unregisterReady();
       unregisterAuth();
       unregisterError();
       resizeObserver.disconnect();

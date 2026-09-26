@@ -342,7 +342,7 @@ export class LocalStorageManager {
         {
           id: 'local-shell',
           name: '本机终端 (Local Shell)',
-          group: '本地',
+          group: '本机终端',
           host: 'localhost',
           port: 0,
           username: os.userInfo().username || 'local',
@@ -360,9 +360,12 @@ export class LocalStorageManager {
         let hosts: HostAsset[] = JSON.parse(fs.readFileSync(hostsPath, 'utf8'));
         let modified = false;
 
-        // Strip legacy mock-local-demo if present
-        if (Array.isArray(hosts) && hosts.some(h => h.id === 'mock-local-demo')) {
-          hosts = hosts.filter(h => h.id !== 'mock-local-demo');
+        // Strip legacy mock-local-demo and ops-sandbox if present
+        if (
+          Array.isArray(hosts) &&
+          hosts.some(h => h.id === 'mock-local-demo' || h.id === 'ops-sandbox')
+        ) {
+          hosts = hosts.filter(h => h.id !== 'mock-local-demo' && h.id !== 'ops-sandbox');
           modified = true;
         }
 
@@ -370,7 +373,7 @@ export class LocalStorageManager {
           hosts.unshift({
             id: 'local-shell',
             name: '本机终端 (Local Shell)',
-            group: '本地',
+            group: '本机终端',
             host: 'localhost',
             port: 0,
             username: os.userInfo().username || 'local',

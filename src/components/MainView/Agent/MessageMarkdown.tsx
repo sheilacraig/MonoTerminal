@@ -24,7 +24,19 @@ interface MessageMarkdownProps {
 }
 
 /** Languages treated as runnable shell commands (rendered as action cards). */
-const SHELL_LANGS = new Set(['bash', 'shell', 'sh', 'zsh', 'console', 'shell-session']);
+const SHELL_LANGS = new Set([
+  'bash',
+  'shell',
+  'sh',
+  'zsh',
+  'console',
+  'shell-session',
+  'powershell',
+  'pwsh',
+  'ps1',
+  'cmd',
+  'bat'
+]);
 
 /** Recursively pull raw text out of a (possibly syntax-highlighted) React node. */
 function extractText(node: React.ReactNode): string {
