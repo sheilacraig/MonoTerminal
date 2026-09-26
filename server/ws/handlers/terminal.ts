@@ -139,6 +139,12 @@ export const handleTermResize: WsHandler<TermResizeMessage> = (msg, conn, deps) 
 };
 
 export const handleTermClose: WsHandler<TermCloseMessage> = async (msg, conn, deps) => {
+  // Review-3 R6: a closed tab must not leave an agent plan hanging on the
+  // 5-minute approval timeout — cancel any pending approval for this session.
+  deps.approvalManager?.cancelSessionApprovals(msg.sessionId);
+  // UX round-1 ③: also stop any in-flight agent run for this session —
+  // including one paused on plan confirmation — so the gate is released.
+  deps.agentRuntime?.cancel(msg.sessionId);
   await deps.sessionManager.close(msg.sessionId);
   conn.clientSessions.delete(msg.sessionId);
 };

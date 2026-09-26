@@ -10,13 +10,16 @@ import {
   FileText,
   GitBranch,
   Server,
-  Square
+  Square,
+  Play
 } from 'lucide-react';
 import type { AgentPlanPayload, AgentPlanStepPayload } from '../../../../shared/wsProtocol';
 
 interface AgentPlanPanelProps {
   plan: AgentPlanPayload;
   onCancel?: () => void;
+  /** UX round-1 ①: emitted when the user clicks 确认执行 on an awaiting_confirmation plan. */
+  onConfirm?: (planId: string) => void;
 }
 
 function renderStepIcon(status: AgentPlanStepPayload['status']) {
@@ -54,6 +57,11 @@ function statusBadge(status: AgentPlanPayload['status']) {
   switch (status) {
     case 'planning':
       return { label: '规划中', cls: 'bg-purple-900/40 text-purple-300 border-purple-700/50' };
+    case 'awaiting_confirmation':
+      return {
+        label: '等待确认',
+        cls: 'bg-violet-900/40 text-violet-300 border-violet-700/50'
+      };
     case 'running':
       return { label: '执行中', cls: 'bg-blue-900/40 text-blue-300 border-blue-700/50' };
     case 'awaiting_approval':
@@ -69,10 +77,12 @@ function statusBadge(status: AgentPlanPayload['status']) {
   }
 }
 
-export const AgentPlanPanel: React.FC<AgentPlanPanelProps> = ({ plan, onCancel }) => {
+export const AgentPlanPanel: React.FC<AgentPlanPanelProps> = ({ plan, onCancel, onConfirm }) => {
   const badge = statusBadge(plan.status);
+  const isAwaitingConfirmation = plan.status === 'awaiting_confirmation';
   const isActive =
     plan.status === 'planning' ||
+    isAwaitingConfirmation ||
     plan.status === 'running' ||
     plan.status === 'awaiting_approval' ||
     plan.status === 'verifying';
@@ -91,16 +101,29 @@ export const AgentPlanPanel: React.FC<AgentPlanPanelProps> = ({ plan, onCancel }
           </span>
         </div>
 
-        {isActive && onCancel && (
-          <button
-            type="button"
-            onClick={onCancel}
-            className="flex items-center space-x-1 px-2 py-0.5 rounded bg-rose-900/40 hover:bg-rose-900/70 border border-rose-700/50 text-rose-200 text-[10px] transition-colors shrink-0"
-          >
-            <Square size={10} />
-            <span>中止</span>
-          </button>
-        )}
+        <div className="flex items-center space-x-1.5 shrink-0">
+          {isAwaitingConfirmation && onConfirm && (
+            <button
+              type="button"
+              onClick={() => onConfirm(plan.id)}
+              className="flex items-center space-x-1 px-2.5 py-0.5 rounded bg-emerald-900/50 hover:bg-emerald-900/80 border border-emerald-600/60 text-emerald-200 text-[10px] font-medium transition-colors"
+            >
+              <Play size={10} />
+              <span>确认执行</span>
+            </button>
+          )}
+
+          {isActive && onCancel && (
+            <button
+              type="button"
+              onClick={onCancel}
+              className="flex items-center space-x-1 px-2 py-0.5 rounded bg-rose-900/40 hover:bg-rose-900/70 border border-rose-700/50 text-rose-200 text-[10px] transition-colors"
+            >
+              <Square size={10} />
+              <span>中止</span>
+            </button>
+          )}
+        </div>
       </div>
 
       {/* Progress Bar */}
@@ -117,6 +140,15 @@ export const AgentPlanPanel: React.FC<AgentPlanPanelProps> = ({ plan, onCancel }
           <div className="flex items-center space-x-2 rounded bg-orca-bg/70 border border-orca-border/60 px-2.5 py-2 text-[11px] text-purple-300">
             <Loader2 size={13} className="text-purple-400 animate-spin shrink-0" />
             <span>正在根据终端环境与目标拆解执行步骤...</span>
+          </div>
+        )}
+
+        {isAwaitingConfirmation && (
+          <div className="flex items-center space-x-2 rounded bg-violet-950/50 border border-violet-700/40 px-2.5 py-2 text-[11px] text-violet-200">
+            <ShieldAlert size={13} className="text-violet-300 animate-pulse shrink-0" />
+            <span>
+              计划已生成，等待您确认后开始执行。请检查以上步骤是否符合预期。
+            </span>
           </div>
         )}
 

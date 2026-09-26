@@ -34,6 +34,10 @@ export const SettingsModal: React.FC = () => {
   const [plainKey, setPlainKey] = useState('');
   const [shortcuts, setShortcuts] = useState(settings.shortcuts);
   const [guardrail, setGuardrail] = useState(settings.guardrail);
+  // UX round-1 ①: agent section may be absent in old settings.json — default ON.
+  const [agentCfg, setAgentCfg] = useState(
+    settings.agent ?? { requirePlanConfirmation: true }
+  );
   const [terminalConfig, setTerminalConfig] = useState(settings.terminal);
   const [savedSuccess, setSavedSuccess] = useState(false);
 
@@ -66,6 +70,7 @@ export const SettingsModal: React.FC = () => {
       }
       setShortcuts(settings.shortcuts);
       setGuardrail(settings.guardrail);
+      setAgentCfg(settings.agent ?? { requirePlanConfirmation: true });
       setTerminalConfig(settings.terminal);
       refreshSecStatus();
       setSecMessage(null);
@@ -183,6 +188,7 @@ export const SettingsModal: React.FC = () => {
       },
       shortcuts,
       guardrail,
+      agent: agentCfg,
       terminal: terminalConfig
     });
 
@@ -424,6 +430,24 @@ export const SettingsModal: React.FC = () => {
                       checked={guardrail.requireConfirmPhrase}
                       onChange={e =>
                         setGuardrail({ ...guardrail, requireConfirmPhrase: e.target.checked })
+                      }
+                      className="w-4 h-4 accent-orca-accent"
+                    />
+                  </label>
+
+                  {/* UX round-1 ①: plan confirmation gate for the AI agent */}
+                  <label className="flex items-center justify-between p-3 rounded-lg bg-orca-card/40 border border-orca-border cursor-pointer">
+                    <div>
+                      <div className="font-medium text-white">AI 计划执行前需确认</div>
+                      <div className="text-[11px] text-orca-muted">
+                        开启后，智能助手生成执行计划将暂停，等您点击「确认执行」后再开始逐步执行
+                      </div>
+                    </div>
+                    <input
+                      type="checkbox"
+                      checked={agentCfg.requirePlanConfirmation ?? true}
+                      onChange={e =>
+                        setAgentCfg({ ...agentCfg, requirePlanConfirmation: e.target.checked })
                       }
                       className="w-4 h-4 accent-orca-accent"
                     />

@@ -17,6 +17,11 @@ export interface AgentRunCallbacks {
   onStepOutput?: (stepId: string, summary: string) => void;
 }
 
+export interface AgentRunPlanOptions {
+  /** UX round-1 ①: pause after plan generation until the user confirms it. */
+  requirePlanConfirmation?: boolean;
+}
+
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 export type AnyTool = Tool<any, any>;
 
@@ -62,6 +67,13 @@ function summarizeToolOutput(output: unknown): string {
 
 export class AgentRuntime {
   private readonly agentSessions = new Map<string, AgentSession>();
+  /**
+   * UX round-1 ③: per-session concurrency gate — at most one active agent
+   * run per session. A second agent:run while one is in flight (including
+   * while paused for plan confirmation or approval) throws, and the ws
+   * handler reports it to the client via the agent:error channel.
+   */
+  private readonly activeRuns = new Set<string>();
   private readonly toolMap = new Map<string, AnyTool>();
   private readonly planner: Planner;
   private readonly verifierRegistry?: VerifierRegistry;
@@ -85,6 +97,14 @@ export class AgentRuntime {
 
   public getActivePlan(sessionId: string): AgentPlan | undefined {
     return this.agentSessions.get(sessionId)?.getActivePlan();
+  }
+
+  /**
+   * UX round-1 ①: resolve a plan awaiting user confirmation. Returns false
+   * when there is no such plan (already confirmed / cancelled / unknown).
+   */
+  public confirmPlan(sessionId: string, planId: string): boolean {
+    return this.agentSessions.get(sessionId)?.confirmPlan(planId) ?? false;
   }
 
   public restoreSessionPlan(sessionId: string, plan: AgentPlan): void {
@@ -161,8 +181,17 @@ export class AgentRuntime {
       });
       options?.onApprovalPending?.(request);
 
-      const approved = await decisionPromise;
-      if (!approved) {
+      const decision = await decisionPromise;
+      if (decision === 'skipped') {
+        // UX round-1 ②: bypass this single step, let the plan continue.
+        return {
+          success: false,
+          skipped: true,
+          error: request.reason || '用户跳过此步骤',
+          durationMs: 0
+        };
+      }
+      if (decision !== 'approved') {
         return {
           success: false,
           error: request.reason || '操作未经人工批准或已拒绝',
@@ -201,11 +230,31 @@ export class AgentRuntime {
 
   /**
    * Run a full Plan-Execute-Verify loop for a given session and goal (or pre-built AgentPlan).
+   * UX round-1 ③: guarded by a per-session concurrency gate — throws if a run
+   * is already in flight for this session.
    */
   public async runPlan(
     sessionId: string,
     goalOrPlan: string | AgentPlan,
-    callbacks?: AgentRunCallbacks
+    callbacks?: AgentRunCallbacks,
+    options?: AgentRunPlanOptions
+  ): Promise<AgentPlan> {
+    if (this.activeRuns.has(sessionId)) {
+      throw new Error('该会话已有正在执行的智能体任务，请等待其完成或先取消');
+    }
+    this.activeRuns.add(sessionId);
+    try {
+      return await this.runPlanInner(sessionId, goalOrPlan, callbacks, options);
+    } finally {
+      this.activeRuns.delete(sessionId);
+    }
+  }
+
+  private async runPlanInner(
+    sessionId: string,
+    goalOrPlan: string | AgentPlan,
+    callbacks?: AgentRunCallbacks,
+    options?: AgentRunPlanOptions
   ): Promise<AgentPlan> {
     const context = await this.deps.contextEngine.buildContext(sessionId);
     const agentSession = this.getOrCreateAgentSession(sessionId);
@@ -263,6 +312,19 @@ export class AgentRuntime {
       return initialPlan;
     }
 
+    // UX round-1 ①: pause for explicit user confirmation before executing.
+    if (options?.requirePlanConfirmation) {
+      agentSession.setAwaitingConfirmation();
+      emitPlan(agentSession.getActivePlan());
+
+      const confirmed = await agentSession.waitForPlanConfirmation(initialPlan.id, abortSignal);
+      if (!confirmed || abortSignal.aborted) {
+        // Cancel path: AgentRuntime.cancel() already derived the final
+        // (cancelled) plan and published agent:finished — just return it.
+        return agentSession.getActivePlan()!;
+      }
+    }
+
     for (const step of initialPlan.steps) {
       if (abortSignal.aborted) {
         break;
@@ -298,6 +360,22 @@ export class AgentRuntime {
       }
 
       if (!res.success) {
+        if (res.skipped) {
+          // UX round-1 ②: user skipped this single step — mark it and
+          // continue with the remaining steps instead of terminating.
+          emitPlan(
+            agentSession.updatePlanSteps(
+              steps =>
+                steps.map(s =>
+                  s.id === step.id ? { ...s, status: 'skipped', error: res.error } : s
+                ),
+              {},
+              `步骤 "${step.title}" 已跳过，继续执行后续步骤`
+            )
+          );
+          continue;
+        }
+
         emitPlan(
           agentSession.updatePlanSteps(
             steps =>

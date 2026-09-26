@@ -9,6 +9,8 @@ import type { AgentState } from './AgentState';
 export class AgentSession {
   private state: AgentState;
   private abortController: AbortController | null = null;
+  private confirmResolver: ((confirmed: boolean) => void) | null = null;
+  private confirmAbortListener: (() => void) | null = null;
 
   constructor(public readonly sessionId: string) {
     this.state = {
@@ -86,6 +88,61 @@ export class AgentSession {
       activePlan: plan,
       updatedAt: Date.now()
     };
+  }
+
+  /**
+   * UX round-1 ①: mark the freshly generated plan as awaiting user
+   * confirmation before the step loop starts. Re-derives the plan status via
+   * the single source of truth (`derivePlanStatus` with isAwaitingConfirmation).
+   */
+  public setAwaitingConfirmation(): AgentPlan | undefined {
+    if (!this.state.activePlan) return undefined;
+    const updatedPlan = withDerivedPlanStatus(
+      { ...this.state.activePlan },
+      { isAwaitingConfirmation: true }
+    );
+    this.state = {
+      ...this.state,
+      status: updatedPlan.status,
+      activePlan: updatedPlan,
+      updatedAt: Date.now()
+    };
+    return updatedPlan;
+  }
+
+  /**
+   * Suspend the caller until the user confirms the plan (resolves true),
+   * or the run is cancelled/aborted (resolves false). Mirrors the
+   * AbortController pattern used by the approval gate.
+   */
+  public async waitForPlanConfirmation(planId: string, abortSignal: AbortSignal): Promise<boolean> {
+    if (!this.state.activePlan || this.state.activePlan.id !== planId) return false;
+    if (abortSignal.aborted) return false;
+    return new Promise<boolean>(resolve => {
+      this.confirmResolver = resolve;
+      this.confirmAbortListener = () => {
+        const r = this.confirmResolver;
+        this.confirmResolver = null;
+        this.confirmAbortListener = null;
+        r?.(false);
+      };
+      abortSignal.addEventListener('abort', this.confirmAbortListener, { once: true });
+    });
+  }
+
+  /** Resolve the pending confirmation wait. Returns false if there is none. */
+  public confirmPlan(planId: string): boolean {
+    if (!this.state.activePlan || this.state.activePlan.id !== planId) return false;
+    if (this.state.status !== 'awaiting_confirmation') return false;
+    const resolve = this.confirmResolver;
+    this.confirmResolver = null;
+    if (!resolve) return false;
+    if (this.confirmAbortListener && this.abortController) {
+      this.abortController.signal.removeEventListener('abort', this.confirmAbortListener);
+    }
+    this.confirmAbortListener = null;
+    resolve(true);
+    return true;
   }
 
   public cancel(): AgentPlan | undefined {

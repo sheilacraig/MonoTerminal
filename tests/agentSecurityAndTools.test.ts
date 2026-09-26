@@ -561,6 +561,55 @@ describe('Phase 8 & 10: ShellTool Isolation, Timeout Protection (P0-B), Cross-St
     expect(rejectRes.error).toContain('测试拒绝');
   });
 
+  // Review-3 R5: resolved / expired / rejected approvals are removed from the
+  // manager so a long-lived desktop process cannot accumulate them unbounded.
+  it('R5: removes approval entries once resolved or expired', async () => {
+    const am = new ApprovalManager({ defaultTimeoutMs: 60 });
+    const mkParams = (sid: string) => ({
+      sessionId: sid,
+      toolName: 'shell',
+      action: {
+        kind: 'shell:exec',
+        sessionId: sid,
+        command: 'echo x',
+        cwd: '/tmp'
+      } as Parameters<typeof am.requestApproval>[0]['action'],
+      assessment: {
+        level: 'MEDIUM',
+        reason: 'test'
+      } as Parameters<typeof am.requestApproval>[0]['assessment']
+    });
+
+    // approved → removed
+    const a1 = am.requestApproval(mkParams('sess-r5a'));
+    am.approve(a1.request.id);
+    expect(await a1.decisionPromise).toBe('approved');
+    expect(am.get(a1.request.id)).toBeUndefined();
+    expect(am.listPending()).toHaveLength(0);
+    // the caller-held reference still carries the resolution result
+    expect(a1.request.status).toBe('approved');
+
+    // rejected → removed
+    const a2 = am.requestApproval(mkParams('sess-r5b'));
+    am.reject(a2.request.id, 'no');
+    expect(await a2.decisionPromise).toBe('rejected');
+    expect(am.get(a2.request.id)).toBeUndefined();
+
+    // expired → removed
+    const a3 = am.requestApproval(mkParams('sess-r5c'));
+    expect(await a3.decisionPromise).toBe('expired');
+    expect(am.get(a3.request.id)).toBeUndefined();
+    expect(a3.request.status).toBe('expired');
+
+    // UX round-1 ②: skipped → removed, decision resolves 'skipped'
+    const a4 = am.requestApproval(mkParams('sess-r5d'));
+    am.skip(a4.request.id);
+    expect(await a4.decisionPromise).toBe('skipped');
+    expect(am.get(a4.request.id)).toBeUndefined();
+    expect(a4.request.status).toBe('skipped');
+    expect(a4.request.reason).toBe('用户跳过此步');
+  });
+
   it('P1-1: sanitizes OSC 133/7 and DCS/APC control sequences in broadcastTerminalData so Agent output cannot pollute ShellIntegrationTracker', async () => {
     const { sessionManager } = createAgentTestHarness();
 

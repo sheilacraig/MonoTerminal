@@ -17,6 +17,12 @@ export interface ToolExecutionContext {
 
 export interface ToolResult<O = unknown> {
   success: boolean;
+  /**
+   * UX round-1: set when the user chose to skip this step at the approval
+   * gate. The plan loop treats it as "bypass this step, keep going" instead
+   * of a failure that terminates the plan.
+   */
+  skipped?: boolean;
   output?: O;
   error?: string;
   durationMs: number;

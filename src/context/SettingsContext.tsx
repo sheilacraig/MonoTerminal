@@ -52,6 +52,9 @@ const defaultSettings: AppSettings = {
     enabled: true,
     requireConfirmPhrase: true
   },
+  agent: {
+    requirePlanConfirmation: true
+  },
   terminal: {
     fontSize: 14,
     fontFamily: '"JetBrains Mono", Consolas, monospace',
@@ -85,6 +88,11 @@ function normalizeAISettings(incoming: AppSettings): AppSettings {
     shortcuts: {
       ...defaultSettings.shortcuts,
       ...(incoming.shortcuts || {})
+    },
+    // UX round-1 ①: old settings.json may lack the agent section — default ON.
+    agent: {
+      ...defaultSettings.agent,
+      ...(incoming.agent || {})
     },
     ai: {
       ...incoming.ai,

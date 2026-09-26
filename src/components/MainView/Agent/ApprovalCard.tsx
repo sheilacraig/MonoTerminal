@@ -1,11 +1,13 @@
 import React from 'react';
-import { ShieldAlert, Check, X } from 'lucide-react';
+import { ShieldAlert, Check, X, SkipForward } from 'lucide-react';
 import type { ApprovalRequestPayload } from '../../../../shared/wsProtocol';
 
 interface ApprovalCardProps {
   approval: ApprovalRequestPayload;
   onApprove: (approvalId: string) => void;
   onReject: (approvalId: string, reason?: string) => void;
+  /** UX round-1 ②: bypass this single step — the plan continues afterwards. */
+  onSkip: (approvalId: string) => void;
 }
 
 function formatActionTarget(action: Record<string, unknown>): string {
@@ -25,7 +27,12 @@ function formatActionTarget(action: Record<string, unknown>): string {
  * Strictly uses explicit mouse clicks (`onClick`) without binding `Alt+Y` or
  * global keyboard shortcuts so it never conflicts with `DangerConfirmModal` (P2-H).
  */
-export const ApprovalCard: React.FC<ApprovalCardProps> = ({ approval, onApprove, onReject }) => {
+export const ApprovalCard: React.FC<ApprovalCardProps> = ({
+  approval,
+  onApprove,
+  onReject,
+  onSkip
+}) => {
   const isHigh =
     approval.assessment.level === 'HIGH' || approval.assessment.level === 'CRITICAL';
   const targetText = formatActionTarget(approval.action);
@@ -73,6 +80,17 @@ export const ApprovalCard: React.FC<ApprovalCardProps> = ({ approval, onApprove,
         >
           <X size={12} />
           <span>拒绝</span>
+        </button>
+
+        {/* UX round-1 ②: skip just this step — remaining steps still run. */}
+        <button
+          type="button"
+          onClick={() => onSkip(approval.id)}
+          title="跳过此步骤，继续执行计划中的后续步骤"
+          className="inline-flex items-center space-x-1 px-2.5 py-1 rounded bg-orca-surface hover:bg-slate-700/70 border border-orca-border text-orca-muted text-[11px] transition-colors"
+        >
+          <SkipForward size={12} />
+          <span>跳过此步</span>
         </button>
 
         <button

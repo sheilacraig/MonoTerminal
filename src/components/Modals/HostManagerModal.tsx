@@ -63,15 +63,31 @@ export const HostManagerModal: React.FC = () => {
   );
 
   const persistHost = async (): Promise<HostAsset | null> => {
+    // Review-3 R4: build the request from explicitly picked fields instead of
+    // spreading `...form` — the form state carries GET-derived flags
+    // (`hasPassword` / `hasPassphrase`) that must never be persisted back.
+    const payload: Partial<HostAsset> = {
+      id: form.id,
+      // Preserve the original creation time on edit; server stamps new records.
+      createdAt: form.createdAt,
+      name: (form.name || '').trim(),
+      group: form.group?.trim() || (form.authType === 'local' ? '本机终端' : '生产环境'),
+      host: (form.host || '').trim(),
+      port: form.port || 22,
+      username: (form.username || '').trim(),
+      authType: form.authType,
+      privateKeyPath: form.privateKeyPath || undefined,
+      initialDir: form.initialDir || (form.authType === 'local' ? '~' : ''),
+      plainPassword: form.plainPassword || undefined
+    };
+
     if (form.authType === 'local') {
-      if (!form.name?.trim()) {
+      if (!payload.name) {
         alert('请填写本机终端的会话名称');
         return null;
       }
       return await saveHost({
-        ...form,
-        name: form.name.trim(),
-        group: form.group?.trim() || '本机终端',
+        ...payload,
         host: 'localhost',
         port: 0,
         username: 'local',
@@ -79,19 +95,12 @@ export const HostManagerModal: React.FC = () => {
       });
     }
 
-    if (!form.name?.trim() || !form.host?.trim() || !form.username?.trim()) {
+    if (!payload.name || !payload.host || !payload.username) {
       alert('请填写完整的会话名称、主机 IP 与登录用户名');
       return null;
     }
 
-    return await saveHost({
-      ...form,
-      name: form.name.trim(),
-      group: form.group?.trim() || '生产环境',
-      host: form.host.trim(),
-      port: form.port || 22,
-      username: form.username.trim()
-    });
+    return await saveHost(payload);
   };
 
   const handleSubmitSave = async (e: React.FormEvent) => {

@@ -69,7 +69,13 @@ export class SshManager {
 
             stream.on('close', () => {
               events.emit('close');
-              this.closeSession(sessionId);
+              // Owner check (review-3 R1): a close event may arrive AFTER this
+              // sessionId has been rebuilt with a fresh client (retry after
+              // failure, close-then-recreate). Without this guard the stale
+              // callback would tear down the NEW session it no longer owns.
+              if (this.sessions.get(sessionId)?.client === client) {
+                this.closeSession(sessionId);
+              }
             });
 
             stream.stderr.on('data', (data: Buffer) => {
@@ -108,6 +114,13 @@ export class SshManager {
         if (events.listenerCount('error') > 0) {
           events.emit('error', err);
         }
+        // Connection failed mid-flight: drop the failed instance eagerly so it
+        // cannot linger in the Map (a later 'close' would also clean it up,
+        // but ssh2 does not guarantee 'close' fires for every error path).
+        // Same owner check as below — never touch a rebuilt session.
+        if (this.sessions.get(sessionId)?.client === client) {
+          this.sessions.delete(sessionId);
+        }
         if (!isResolved) {
           isResolved = true;
           reject(err);
@@ -117,7 +130,10 @@ export class SshManager {
       client.on('close', () => {
         instance.isAlive = false;
         events.emit('close');
-        this.closeSession(sessionId);
+        // Owner check (review-3 R1): see comment in the stream 'close' handler.
+        if (this.sessions.get(sessionId)?.client === client) {
+          this.closeSession(sessionId);
+        }
       });
 
       // Connect config with TCP keepalive

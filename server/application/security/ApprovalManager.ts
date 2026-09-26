@@ -1,5 +1,5 @@
 import crypto from 'crypto';
-import type { ApprovalRequest } from '../../domain/security/Approval';
+import type { ApprovalDecision, ApprovalRequest } from '../../domain/security/Approval';
 import type { GuardrailAction, RiskAssessment } from '../../domain/security/types';
 import type { Unsubscribe } from '../../domain/terminal/types';
 
@@ -22,7 +22,7 @@ const DEFAULT_APPROVAL_TIMEOUT_MS = 5 * 60 * 1000; // 5 minutes
 
 export class ApprovalManager {
   private readonly requests = new Map<string, ApprovalRequest>();
-  private readonly resolvers = new Map<string, (approved: boolean) => void>();
+  private readonly resolvers = new Map<string, (decision: ApprovalDecision) => void>();
   private readonly timers = new Map<string, ReturnType<typeof setTimeout>>();
   private readonly listeners = new Set<(request: ApprovalRequest) => void>();
   private readonly defaultTimeoutMs: number;
@@ -50,7 +50,7 @@ export class ApprovalManager {
 
   public requestApproval(params: CreateApprovalParams): {
     request: ApprovalRequest;
-    decisionPromise: Promise<boolean>;
+    decisionPromise: Promise<ApprovalDecision>;
   } {
     const now = Date.now();
     const timeoutMs = params.timeoutMs ?? this.defaultTimeoutMs;
@@ -71,7 +71,7 @@ export class ApprovalManager {
 
     this.requests.set(id, request);
 
-    const decisionPromise = new Promise<boolean>(resolve => {
+    const decisionPromise = new Promise<ApprovalDecision>(resolve => {
       this.resolvers.set(id, resolve);
 
       const timer = setTimeout(() => {
@@ -81,10 +81,15 @@ export class ApprovalManager {
           current.status = 'expired';
           current.resolvedAt = Date.now();
           current.reason = '审批超时未确认';
+          // Review-3 R5: resolved entries are removed so a long-lived desktop
+          // process cannot accumulate approval objects (with their full
+          // GuardrailAction payloads) forever. The request object itself is
+          // still alive for callers holding a reference.
+          this.requests.delete(id);
           const res = this.resolvers.get(id);
           this.resolvers.delete(id);
           this.notify(current);
-          res?.(false);
+          res?.('expired');
         }
       }, timeoutMs);
       timer.unref?.();
@@ -104,10 +109,34 @@ export class ApprovalManager {
     this.clearTimer(approvalId);
     request.status = 'approved';
     request.resolvedAt = Date.now();
+    this.requests.delete(approvalId); // review-3 R5: no unbounded retention
     const resolve = this.resolvers.get(approvalId);
     this.resolvers.delete(approvalId);
     this.notify(request);
-    resolve?.(true);
+    resolve?.('approved');
+    return true;
+  }
+
+  /**
+   * UX round-1 ②: mark the approval as skipped — the user chose to bypass this
+   * single step. The awaiting tool call resolves with `skipped`, and the plan
+   * loop marks the step as skipped and continues with the remaining steps.
+   */
+  public skip(approvalId: string): boolean {
+    const request = this.requests.get(approvalId);
+    if (!request || request.status !== 'pending') {
+      return false;
+    }
+
+    this.clearTimer(approvalId);
+    request.status = 'skipped';
+    request.resolvedAt = Date.now();
+    request.reason = '用户跳过此步';
+    this.requests.delete(approvalId); // review-3 R5: no unbounded retention
+    const resolve = this.resolvers.get(approvalId);
+    this.resolvers.delete(approvalId);
+    this.notify(request);
+    resolve?.('skipped');
     return true;
   }
 
@@ -121,10 +150,11 @@ export class ApprovalManager {
     request.status = 'rejected';
     request.resolvedAt = Date.now();
     request.reason = reason || '用户拒绝执行';
+    this.requests.delete(approvalId); // review-3 R5: no unbounded retention
     const resolve = this.resolvers.get(approvalId);
     this.resolvers.delete(approvalId);
     this.notify(request);
-    resolve?.(false);
+    resolve?.('rejected');
     return true;
   }
 

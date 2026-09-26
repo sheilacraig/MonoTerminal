@@ -103,6 +103,16 @@ describe('validateWsInboundMessage', () => {
       {
         type: 'agent:cancel',
         sessionId: 'sess-1'
+      },
+      {
+        type: 'agent:confirm_plan',
+        sessionId: 'sess-1',
+        planId: 'plan-abc-123'
+      },
+      {
+        type: 'agent:skip',
+        sessionId: 'sess-1',
+        approvalId: 'appr-123'
       }
     ];
 
@@ -145,7 +155,9 @@ describe('validateWsInboundMessage', () => {
       { type: 'term:cmd_event', sessionId: 's', kind: 'bogus', timestamp: Date.now() }, // invalid kind
       { type: 'term:cmd_event', sessionId: 's', kind: 'finished', exitCode: 1.5 }, // non-integer exitCode
       { type: 'agent:run', requestId: 'r', sessionId: 's', goal: '   ' }, // empty goal
-      { type: 'agent:approve', sessionId: 's', approvalId: '../bad' } // invalid approvalId
+      { type: 'agent:approve', sessionId: 's', approvalId: '../bad' }, // invalid approvalId
+      { type: 'agent:confirm_plan', sessionId: 's', planId: '../escape' }, // invalid planId
+      { type: 'agent:skip', sessionId: 's', approvalId: 'x y' } // invalid approvalId
     ];
 
     for (const m of invalid) {

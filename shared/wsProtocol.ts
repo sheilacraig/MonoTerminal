@@ -189,6 +189,18 @@ export interface AgentCancelMessage {
   sessionId: string;
 }
 
+export interface AgentConfirmPlanMessage {
+  type: 'agent:confirm_plan';
+  sessionId: string;
+  planId: string;
+}
+
+export interface AgentSkipMessage {
+  type: 'agent:skip';
+  sessionId: string;
+  approvalId: string;
+}
+
 export type WsInboundMessage =
   | PingMessage
   | TermInitMessage
@@ -207,7 +219,9 @@ export type WsInboundMessage =
   | AgentRunMessage
   | AgentApproveMessage
   | AgentRejectMessage
-  | AgentCancelMessage;
+  | AgentCancelMessage
+  | AgentConfirmPlanMessage
+  | AgentSkipMessage;
 
 /** All SFTP request types accepted by the client-side `requestSftp` helper. */
 export type SftpRequestType =
@@ -304,6 +318,7 @@ export interface AgentPlanPayload {
   goal: string;
   status:
     | 'planning'
+    | 'awaiting_confirmation'
     | 'running'
     | 'awaiting_approval'
     | 'verifying'
@@ -328,7 +343,7 @@ export interface ApprovalRequestPayload {
     reason?: string;
     matchedRule?: string;
   };
-  status: 'pending' | 'approved' | 'rejected' | 'expired';
+  status: 'pending' | 'approved' | 'rejected' | 'skipped' | 'expired';
   createdAt: number;
   expiresAt: number;
   resolvedAt?: number;
@@ -364,8 +379,15 @@ export interface AgentApprovalResolvedMessage {
   type: 'agent:approval_resolved';
   sessionId: string;
   approvalId: string;
-  status: 'approved' | 'rejected' | 'expired';
+  status: 'approved' | 'rejected' | 'skipped' | 'expired';
   reason?: string;
+}
+
+export interface AgentErrorMessage {
+  type: 'agent:error';
+  sessionId: string;
+  requestId?: string;
+  message: string;
 }
 
 export interface AgentTimelineMessage {
@@ -388,7 +410,8 @@ export type WsOutboundMessage =
   | AgentPlanMessage
   | AgentApprovalRequestMessage
   | AgentApprovalResolvedMessage
-  | AgentTimelineMessage;
+  | AgentTimelineMessage
+  | AgentErrorMessage;
 
 // ---------------------------------------------------------------------------
 // Runtime validation — server-side trust boundary
@@ -764,6 +787,32 @@ export function validateWsInboundMessage(value: unknown): WsValidationResult {
         msg: {
           type: 'agent:cancel',
           sessionId: value.sessionId
+        }
+      };
+    }
+
+    case 'agent:confirm_plan': {
+      if (!isId(value.sessionId)) return fail('agent:confirm_plan.sessionId 非法');
+      if (!isId(value.planId)) return fail('agent:confirm_plan.planId 非法');
+      return {
+        ok: true,
+        msg: {
+          type: 'agent:confirm_plan',
+          sessionId: value.sessionId,
+          planId: value.planId
+        }
+      };
+    }
+
+    case 'agent:skip': {
+      if (!isId(value.sessionId)) return fail('agent:skip.sessionId 非法');
+      if (!isId(value.approvalId)) return fail('agent:skip.approvalId 非法');
+      return {
+        ok: true,
+        msg: {
+          type: 'agent:skip',
+          sessionId: value.sessionId,
+          approvalId: value.approvalId
         }
       };
     }

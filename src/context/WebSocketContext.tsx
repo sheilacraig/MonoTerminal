@@ -17,7 +17,8 @@ export type AgentOutboundEvent = Extract<
       | 'agent:plan'
       | 'agent:approval_request'
       | 'agent:approval_resolved'
-      | 'agent:timeline';
+      | 'agent:timeline'
+      | 'agent:error';
   }
 >;
 

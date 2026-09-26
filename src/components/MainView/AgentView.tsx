@@ -37,6 +37,8 @@ export const AgentView: React.FC<AgentViewProps> = ({ isVisible }) => {
     runAgentGoal,
     approveAgentAction,
     rejectAgentAction,
+    confirmAgentPlan,
+    skipAgentApproval,
     cancelAgentPlan,
     clearHistory
   } = useAgentChat();
@@ -45,7 +47,9 @@ export const AgentView: React.FC<AgentViewProps> = ({ isVisible }) => {
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const isPlanRunning = Boolean(
     activePlan &&
-      ['planning', 'running', 'awaiting_approval', 'verifying'].includes(activePlan.status)
+      ['planning', 'awaiting_confirmation', 'running', 'awaiting_approval', 'verifying'].includes(
+        activePlan.status
+      )
   );
   const canClearHistory = !isPlanRunning && (messages.length > 1 || Boolean(activePlan));
 
@@ -225,7 +229,11 @@ export const AgentView: React.FC<AgentViewProps> = ({ isVisible }) => {
             {/* Plan Execution Record Card OR Standard Chat Bubble */}
             {msg.plan ? (
               <div className="w-full">
-                <AgentPlanPanel plan={msg.plan} onCancel={cancelAgentPlan} />
+                <AgentPlanPanel
+                  plan={msg.plan}
+                  onCancel={cancelAgentPlan}
+                  onConfirm={confirmAgentPlan}
+                />
               </div>
             ) : (
               <div
@@ -268,7 +276,11 @@ export const AgentView: React.FC<AgentViewProps> = ({ isVisible }) => {
         ))}
 
         {activePlan && !isActivePlanInMessages && (
-          <AgentPlanPanel plan={activePlan} onCancel={cancelAgentPlan} />
+          <AgentPlanPanel
+            plan={activePlan}
+            onCancel={cancelAgentPlan}
+            onConfirm={confirmAgentPlan}
+          />
         )}
 
         {pendingApprovals.map(appr => (
@@ -277,6 +289,7 @@ export const AgentView: React.FC<AgentViewProps> = ({ isVisible }) => {
             approval={appr}
             onApprove={approveAgentAction}
             onReject={rejectAgentAction}
+            onSkip={skipAgentApproval}
           />
         ))}
         <div ref={messagesEndRef} />

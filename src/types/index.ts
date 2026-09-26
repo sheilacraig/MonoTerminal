@@ -79,6 +79,11 @@ export interface AppSettings {
     enabled: boolean;
     requireConfirmPhrase: boolean;
   };
+  /** UX round-1 ①: agent execution behavior. Optional for backward compat. */
+  agent?: {
+    /** Pause after plan generation until the user explicitly confirms. Default: true. */
+    requirePlanConfirmation?: boolean;
+  };
   terminal: {
     fontSize: number;
     fontFamily: string;

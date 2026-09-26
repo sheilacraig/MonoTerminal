@@ -48,6 +48,10 @@ settingsRouter.post('/', (req, res) => {
       ...current.guardrail,
       ...(incomingSettings.guardrail || {})
     },
+    agent: {
+      ...current.agent,
+      ...(incomingSettings.agent || {})
+    },
     terminal: {
       ...current.terminal,
       ...(incomingSettings.terminal || {})

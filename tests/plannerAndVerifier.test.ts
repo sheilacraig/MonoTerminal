@@ -1,4 +1,4 @@
-import { describe, it, expect } from 'vitest';
+import { describe, it, expect, vi } from 'vitest';
 import { derivePlanStatus, type PlanStep } from '../server/agent/planner/Plan';
 import { Planner } from '../server/agent/planner/Planner';
 import { VerifierRegistry } from '../server/agent/runtime/Verifier';
@@ -73,6 +73,7 @@ function createPlanVerifierHarness() {
     contextEngine,
     verifierRegistry,
     planner,
+    approvalManager,
     agentRuntime
   };
 }
@@ -324,5 +325,161 @@ describe('Phase 12: Deterministic VerifierRegistry & Plan-Execute-Verify Loop (P
     const combinedStream = receivedTerminalChunks.join('');
     expect(combinedStream).toContain('pwd');
     expect(combinedStream).toContain('nginx -t');
+  });
+});
+
+describe('UX round-1: plan confirmation, per-step skip, and concurrency gate', () => {
+  const makeStep = (id: string, command: string): PlanStep => ({
+    id,
+    title: `Step ${id}`,
+    toolName: 'shell',
+    input: { command },
+    status: 'pending'
+  });
+
+  const makePlan = (sessionId: string, planId: string, steps: PlanStep[]) => ({
+    id: planId,
+    sessionId,
+    goal: 'UX round-1 test plan',
+    status: 'planning' as const,
+    createdAt: Date.now(),
+    updatedAt: Date.now(),
+    steps
+  });
+
+  const mockHost = {
+    id: 'mock-ux1',
+    name: 'UX Host',
+    group: 'Test',
+    host: '127.0.0.1',
+    port: 22,
+    username: 'root',
+    authType: 'mock' as const,
+    initialDir: '/etc/nginx',
+    createdAt: 0
+  };
+
+  it('derives awaiting_confirmation status from the isAwaitingConfirmation flag (UX1-①)', () => {
+    expect(derivePlanStatus([makeStep('1', 'pwd')], { isAwaitingConfirmation: true })).toBe(
+      'awaiting_confirmation'
+    );
+    // cancelled still wins over awaiting_confirmation
+    expect(
+      derivePlanStatus([makeStep('1', 'pwd')], {
+        isAwaitingConfirmation: true,
+        isCancelled: true
+      })
+    ).toBe('cancelled');
+  });
+
+  it('pauses at awaiting_confirmation and resumes to completed after confirmPlan (UX1-①)', async () => {
+    const { sessionManager, agentRuntime } = createPlanVerifierHarness();
+    await sessionManager.create({ id: 'sess-confirm', host: mockHost, cols: 80, rows: 24 });
+
+    const statuses: string[] = [];
+    const runPromise = agentRuntime.runPlan(
+      'sess-confirm',
+      makePlan('sess-confirm', 'plan-confirm-1', [makeStep('c1', 'pwd')]),
+      { onPlanUpdate: p => statuses.push(p.status) },
+      { requirePlanConfirmation: true }
+    );
+
+    await vi.waitFor(() => expect(statuses).toContain('awaiting_confirmation'));
+
+    // A duplicate confirm or a wrong planId must be rejected
+    expect(agentRuntime.confirmPlan('sess-confirm', 'plan-wrong')).toBe(false);
+
+    expect(agentRuntime.confirmPlan('sess-confirm', 'plan-confirm-1')).toBe(true);
+    const finalPlan = await runPromise;
+    expect(finalPlan.status).toBe('completed');
+    expect(finalPlan.steps[0].status).toBe('completed');
+    // confirming twice is a no-op once the wait is resolved
+    expect(agentRuntime.confirmPlan('sess-confirm', 'plan-confirm-1')).toBe(false);
+  });
+
+  it('cancels cleanly while awaiting confirmation and derives cancelled status (UX1-①)', async () => {
+    const { sessionManager, agentRuntime } = createPlanVerifierHarness();
+    await sessionManager.create({ id: 'sess-confirm-cancel', host: mockHost, cols: 80, rows: 24 });
+
+    const runPromise = agentRuntime.runPlan(
+      'sess-confirm-cancel',
+      makePlan('sess-confirm-cancel', 'plan-confirm-2', [makeStep('cc1', 'pwd')]),
+      undefined,
+      { requirePlanConfirmation: true }
+    );
+
+    await vi.waitFor(() => {
+      const plan = agentRuntime.getActivePlan('sess-confirm-cancel');
+      expect(plan?.status).toBe('awaiting_confirmation');
+    });
+
+    const cancelled = agentRuntime.cancel('sess-confirm-cancel');
+    expect(cancelled?.status).toBe('cancelled');
+
+    const finalPlan = await runPromise;
+    expect(finalPlan.status).toBe('cancelled');
+  });
+
+  it('rejects a second concurrent run for the same session via the activeRuns gate (UX1-③)', async () => {
+    const { sessionManager, agentRuntime } = createPlanVerifierHarness();
+    await sessionManager.create({ id: 'sess-gate', host: mockHost, cols: 80, rows: 24 });
+
+    const first = agentRuntime.runPlan(
+      'sess-gate',
+      makePlan('sess-gate', 'plan-gate-1', [makeStep('g1', 'pwd')]),
+      undefined,
+      { requirePlanConfirmation: true }
+    );
+
+    await vi.waitFor(() => {
+      expect(agentRuntime.getActivePlan('sess-gate')?.status).toBe('awaiting_confirmation');
+    });
+
+    // A second run while the first is paused on confirmation must throw
+    await expect(
+      agentRuntime.runPlan('sess-gate', makePlan('sess-gate', 'plan-gate-2', [makeStep('g2', 'pwd')]))
+    ).rejects.toThrow('已有正在执行的智能体任务');
+
+    // and a different session is unaffected by the gate
+    await sessionManager.create({ id: 'sess-gate-other', host: mockHost, cols: 80, rows: 24 });
+    const otherPlan = await agentRuntime.runPlan(
+      'sess-gate-other',
+      makePlan('sess-gate-other', 'plan-gate-3', [makeStep('g3', 'pwd')])
+    );
+    expect(otherPlan.status).toBe('completed');
+
+    // gate is released after cancel
+    agentRuntime.cancel('sess-gate');
+    await first;
+    const rerun = await agentRuntime.runPlan(
+      'sess-gate',
+      makePlan('sess-gate', 'plan-gate-4', [makeStep('g4', 'pwd')])
+    );
+    expect(rerun.status).toBe('completed');
+  });
+
+  it('skipping a single approval marks that step skipped and continues the plan (UX1-②)', async () => {
+    const { sessionManager, agentRuntime, approvalManager } = createPlanVerifierHarness();
+    await sessionManager.create({ id: 'sess-skip', host: mockHost, cols: 80, rows: 24 });
+
+    const runPromise = agentRuntime.runPlan(
+      'sess-skip',
+      makePlan('sess-skip', 'plan-skip-1', [
+        makeStep('s1', 'systemctl restart nginx'), // MEDIUM → ask
+        makeStep('s2', 'pwd') // SAFE → allow
+      ])
+    );
+
+    await vi.waitFor(() =>
+      expect(approvalManager.listPending('sess-skip').length).toBeGreaterThan(0)
+    );
+    const approvalId = approvalManager.listPending('sess-skip')[0].id;
+    expect(approvalManager.skip(approvalId)).toBe(true);
+
+    const finalPlan = await runPromise;
+    expect(finalPlan.steps[0].status).toBe('skipped');
+    expect(finalPlan.steps[0].error).toContain('跳过');
+    expect(finalPlan.steps[1].status).toBe('completed');
+    expect(finalPlan.status).toBe('completed');
   });
 });

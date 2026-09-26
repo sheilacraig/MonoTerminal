@@ -166,4 +166,39 @@ describe('Guardrail Security Engine', () => {
       expect(result.isDangerous, `Command should NOT be flagged as dangerous: ${cmd}`).toBe(false);
     }
   });
+
+  // Review-3 R3: separators inside quotes are string data, not command
+  // boundaries — `echo "a;rm -rf /"` executes echo, never rm.
+  it('should treat quoted separators as data, not command boundaries', () => {
+    const quotedText = [
+      'echo "a;rm -rf /"',
+      'echo "never run: dd of=/dev/sda || mkfs.ext4 /dev/sdb"',
+      "echo 'rm -rf / is dangerous'",
+      'echo "rm -rf /" | grep rm',
+      'echo "; rm -rf /' // unclosed quote: shell would not execute the rest either
+    ];
+
+    for (const cmd of quotedText) {
+      const result = checkCommandSafety(cmd);
+      expect(result.isDangerous, `Quoted text should NOT be flagged: ${JSON.stringify(cmd)}`).toBe(false);
+    }
+  });
+
+  // Reverse boundary of the quote-aware splitter (R3): separators OUTSIDE
+  // quotes must still split and catch the dangerous segment.
+  it('should still catch dangerous segments when separators are unquoted', () => {
+    const unquotedSeparators = [
+      'echo "x" ; rm -rf /',
+      'echo ok|rm -rf /',
+      'echo ok||rm -rf /',
+      'echo "a" && sudo rm -rf /',
+      'echo "multi"\nrm -rf /'
+    ];
+
+    for (const cmd of unquotedSeparators) {
+      const result = checkCommandSafety(cmd);
+      expect(result.isDangerous, `Unquoted separator must still be flagged: ${JSON.stringify(cmd)}`).toBe(true);
+      expect(result.level).toBe('CRITICAL');
+    }
+  });
 });

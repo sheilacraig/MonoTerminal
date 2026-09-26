@@ -13,6 +13,11 @@ import {
 } from '../server/ws/handlers/terminal';
 import { handleSftpList, handleSftpWrite, handleSftpMkdir } from '../server/ws/handlers/sftp';
 import { handleAiChat } from '../server/ws/handlers/ai';
+import {
+  handleAgentRun,
+  handleAgentConfirmPlan,
+  handleAgentSkip
+} from '../server/ws/handlers/agent';
 
 import { createDefaultSessionManager } from '../server/ws/wsRouter';
 import type { LocalPtyManager } from '../server/localPtyManager';
@@ -99,7 +104,9 @@ function makeDeps() {
   const storage = {
     getHosts: vi.fn(() => [] as unknown[]),
     isLocked: vi.fn(() => false),
-    decrypt: vi.fn((s: string) => s)
+    decrypt: vi.fn((s: string) => s),
+    // UX round-1 ①: handleAgentRun reads the plan-confirmation setting
+    getSettings: vi.fn(() => ({ agent: { requirePlanConfirmation: true } }))
   };
   const aiService = { streamChat: vi.fn() };
   const mockSessions = new Map<string, MockSessionEntry>();
@@ -258,6 +265,18 @@ describe('ws handlers · terminal', () => {
     await handleTermClose({ type: 'term:close', sessionId: 'local-s1' }, conn, deps);
     expect(localPtyManager.closeSession).toHaveBeenCalledWith('local-s1');
     expect(conn.clientSessions.has('local-s1')).toBe(false);
+  });
+
+  // Review-3 R6: closing a tab must cancel pending approvals instead of
+  // letting an agent plan hang on the 5-minute approval timeout.
+  it('term:close cancels pending approvals for the session', async () => {
+    const { conn } = makeConn();
+    const { deps, localPtyManager } = makeDeps();
+    const cancelSessionApprovals = vi.fn();
+    deps.approvalManager = { cancelSessionApprovals } as unknown as WsDependencies['approvalManager'];
+    await handleTermClose({ type: 'term:close', sessionId: 'local-s1' }, conn, deps);
+    expect(cancelSessionApprovals).toHaveBeenCalledWith('local-s1');
+    expect(localPtyManager.closeSession).toHaveBeenCalledWith('local-s1');
   });
 
   it('term:resize routes to mock or ssh', () => {
@@ -550,5 +569,99 @@ describe('dispatchWsMessage', () => {
     expect(sent).toHaveLength(0);
     expect(warn).toHaveBeenCalled();
     warn.mockRestore();
+  });
+});
+
+describe('ws handlers · agent UX round-1', () => {
+  it('agent:skip resolves the approval as skipped and notifies the client (UX1-②)', () => {
+    const { conn, sent } = makeConn();
+    const { deps } = makeDeps();
+    const skip = vi.fn(() => true);
+    deps.approvalManager = { skip } as unknown as WsDependencies['approvalManager'];
+
+    handleAgentSkip({ type: 'agent:skip', sessionId: 's1', approvalId: 'appr-1' }, conn, deps);
+
+    expect(skip).toHaveBeenCalledWith('appr-1');
+    expect(sent[0]).toMatchObject({
+      type: 'agent:approval_resolved',
+      sessionId: 's1',
+      approvalId: 'appr-1',
+      status: 'skipped'
+    });
+  });
+
+  it('agent:skip stays silent when the approval cannot be skipped', () => {
+    const { conn, sent } = makeConn();
+    const { deps } = makeDeps();
+    const skip = vi.fn(() => false);
+    deps.approvalManager = { skip } as unknown as WsDependencies['approvalManager'];
+
+    handleAgentSkip({ type: 'agent:skip', sessionId: 's1', approvalId: 'appr-gone' }, conn, deps);
+
+    expect(skip).toHaveBeenCalledWith('appr-gone');
+    expect(sent).toHaveLength(0);
+  });
+
+  it('agent:confirm_plan forwards to agentRuntime.confirmPlan and errors when nothing is pending (UX1-①)', () => {
+    const { conn, sent } = makeConn();
+    const { deps } = makeDeps();
+    const confirmPlan = vi.fn(() => false);
+    deps.agentRuntime = { confirmPlan } as unknown as WsDependencies['agentRuntime'];
+
+    handleAgentConfirmPlan(
+      { type: 'agent:confirm_plan', sessionId: 's1', planId: 'plan-1' },
+      conn,
+      deps
+    );
+    expect(confirmPlan).toHaveBeenCalledWith('s1', 'plan-1');
+    expect(sent[0]).toMatchObject({
+      type: 'agent:error',
+      sessionId: 's1'
+    });
+
+    // success path stays silent (the resumed run pushes plan updates itself)
+    sent.length = 0;
+    confirmPlan.mockReturnValue(true);
+    handleAgentConfirmPlan(
+      { type: 'agent:confirm_plan', sessionId: 's1', planId: 'plan-1' },
+      conn,
+      deps
+    );
+    expect(sent).toHaveLength(0);
+  });
+
+  it('agent:run reports a rejected run (concurrency gate) via agent:error (UX1-③)', async () => {
+    const { conn, sent } = makeConn();
+    const { deps } = makeDeps();
+    const runPlan = vi.fn().mockRejectedValue(new Error('该会话已有正在执行的智能体任务，请等待其完成或先取消'));
+    deps.agentRuntime = { runPlan } as unknown as WsDependencies['agentRuntime'];
+
+    await handleAgentRun(
+      { type: 'agent:run', requestId: 'agent-r1', sessionId: 's1', goal: '排查 nginx' },
+      conn,
+      deps
+    );
+
+    expect(runPlan).toHaveBeenCalledTimes(1);
+    // options carry the plan-confirmation setting read from storage
+    expect(runPlan.mock.calls[0][3]).toMatchObject({ requirePlanConfirmation: true });
+    expect(sent.some(m => m.type === 'agent:error')).toBe(true);
+    const err = sent.find(m => m.type === 'agent:error');
+    expect(err).toMatchObject({
+      type: 'agent:error',
+      sessionId: 's1',
+      requestId: 'agent-r1',
+      message: '该会话已有正在执行的智能体任务，请等待其完成或先取消'
+    });
+  });
+
+  it('term:close also cancels any in-flight agent run for the session (UX1-③)', async () => {
+    const { conn } = makeConn();
+    const { deps } = makeDeps();
+    const cancel = vi.fn(() => undefined);
+    deps.agentRuntime = { cancel } as unknown as WsDependencies['agentRuntime'];
+
+    await handleTermClose({ type: 'term:close', sessionId: 'local-s1' }, conn, deps);
+    expect(cancel).toHaveBeenCalledWith('local-s1');
   });
 });

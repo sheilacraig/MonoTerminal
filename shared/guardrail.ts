@@ -63,12 +63,80 @@ export const CRITICAL_ABSOLUTE_DIRS = [
   // cleanup and would trigger a false positive.
 ];
 
-/** Split a shell command line into segments on newlines, `&&`, `||`, `;`, and `|`. */
+/**
+ * Split a shell command line into segments on newlines, `&&`, `||`, `;`, and `|`.
+ *
+ * Quote-aware (review-3 R3): separators inside single/double quotes are data,
+ * not command boundaries — `echo "a;rm -rf /"` must NOT be split into a fake
+ * `rm -rf /` segment. Double-quoted backslash escapes (`\"`) are honoured;
+ * single quotes are literal (POSIX semantics).
+ */
 export function splitShellSegments(cmd: string): string[] {
-  return cmd
-    .split(/[\r\n]+|&&|\|\||[;|]/)
-    .map(s => s.trim())
-    .filter(Boolean);
+  const segments: string[] = [];
+  let current = '';
+  let quote: '"' | "'" | null = null;
+
+  const push = () => {
+    const trimmed = current.trim();
+    if (trimmed) segments.push(trimmed);
+    current = '';
+  };
+
+  for (let i = 0; i < cmd.length; i++) {
+    const ch = cmd[i];
+
+    if (quote) {
+      if (quote === '"' && ch === '\\' && i + 1 < cmd.length) {
+        // Inside double quotes a backslash escapes the next character.
+        current += ch + cmd[i + 1];
+        i++;
+        continue;
+      }
+      current += ch;
+      if (ch === quote) quote = null;
+      continue;
+    }
+
+    if (ch === '"' || ch === "'") {
+      quote = ch;
+      current += ch;
+      continue;
+    }
+
+    if (ch === '\r' || ch === '\n') {
+      push();
+      // Collapse runs of newline characters (`\r\n`, `\n\n`, ...).
+      while (i + 1 < cmd.length && (cmd[i + 1] === '\r' || cmd[i + 1] === '\n')) i++;
+      continue;
+    }
+
+    if (ch === ';') {
+      push();
+      continue;
+    }
+
+    if (ch === '|') {
+      if (cmd[i + 1] === '|') i++; // `||` — consume both pipes
+      push();
+      continue;
+    }
+
+    if (ch === '&') {
+      if (cmd[i + 1] === '&') {
+        i++;
+        push();
+        continue;
+      }
+      // Single `&` (background) — not a command boundary; keep it inline.
+      current += ch;
+      continue;
+    }
+
+    current += ch;
+  }
+
+  push();
+  return segments;
 }
 
 /** Naive whitespace tokenizer that also strips one layer of surrounding quotes. */

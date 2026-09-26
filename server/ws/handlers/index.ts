@@ -16,8 +16,10 @@ import { handleAiChat } from './ai';
 import {
   handleAgentApprove,
   handleAgentCancel,
+  handleAgentConfirmPlan,
   handleAgentReject,
-  handleAgentRun
+  handleAgentRun,
+  handleAgentSkip
 } from './agent';
 
 /** Message-type → handler registry. Add new message types here. */
@@ -39,7 +41,9 @@ export const wsHandlers: WsHandlerMap = {
   'agent:run': handleAgentRun,
   'agent:approve': handleAgentApprove,
   'agent:reject': handleAgentReject,
-  'agent:cancel': handleAgentCancel
+  'agent:cancel': handleAgentCancel,
+  'agent:confirm_plan': handleAgentConfirmPlan,
+  'agent:skip': handleAgentSkip
 };
 
 /**

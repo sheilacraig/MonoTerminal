@@ -34,13 +34,18 @@ hostsRouter.get('/', (req, res) => {
 
 // POST /api/hosts
 hostsRouter.post('/', (req, res) => {
-  // Destructure plaintext secrets and control flags out so they can never leak into storage
+  // Destructure plaintext secrets and control flags out so they can never leak
+  // into storage. `hasPassword` / `hasPassphrase` are GET-derived booleans
+  // (review-3 R4): clients echo them back on edit, and persisting them would
+  // store a stale copy that drifts from the real passwordEncrypted state.
   const {
     plainPassword,
     plainPassphrase,
     clearPassword,
     clearPassphrase,
     copyCredentialsFromId,
+    hasPassword,
+    hasPassphrase,
     ...hostData
   } = req.body as HostPayload;
 

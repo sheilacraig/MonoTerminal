@@ -44,6 +44,11 @@ export interface AppSettings {
     enabled: boolean;
     requireConfirmPhrase: boolean; // type "confirm" or Alt+Y
   };
+  /** UX round-1 ①: agent execution behavior. Optional for backward compat with old settings.json. */
+  agent?: {
+    /** Pause after plan generation until the user explicitly confirms. Default: true. */
+    requirePlanConfirmation?: boolean;
+  };
   terminal: {
     fontSize: number;
     fontFamily: string;
@@ -442,6 +447,9 @@ export class LocalStorageManager {
           enabled: true,
           requireConfirmPhrase: true
         },
+        agent: {
+          requirePlanConfirmation: true
+        },
         terminal: {
           fontSize: 14,
           fontFamily: '"JetBrains Mono", Consolas, monospace',
@@ -630,6 +638,9 @@ export class LocalStorageManager {
       guardrail: {
         enabled: true,
         requireConfirmPhrase: true
+      },
+      agent: {
+        requirePlanConfirmation: true
       },
       terminal: {
         fontSize: 14,

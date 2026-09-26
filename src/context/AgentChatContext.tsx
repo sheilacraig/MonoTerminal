@@ -52,6 +52,10 @@ interface AgentChatContextType extends ChatState {
   runAgentGoal: (goal: string, displayGoal?: string) => void;
   approveAgentAction: (approvalId: string) => void;
   rejectAgentAction: (approvalId: string, reason?: string) => void;
+  /** UX round-1 ①: confirm the plan currently awaiting_confirmation. */
+  confirmAgentPlan: (planId: string) => void;
+  /** UX round-1 ②: bypass a single pending approval, plan continues. */
+  skipAgentApproval: (approvalId: string) => void;
   cancelAgentPlan: () => void;
   clearHistory: () => void;
 }
@@ -59,6 +63,7 @@ interface AgentChatContextType extends ChatState {
 export function formatPlanTraceMarkdown(plan: AgentPlanPayload): string {
   const statusMap: Record<AgentPlanPayload['status'], string> = {
     planning: '规划中',
+    awaiting_confirmation: '等待确认',
     running: '执行中',
     awaiting_approval: '等待审批',
     verifying: '验证中',
@@ -336,6 +341,19 @@ export const AgentChatProvider: React.FC<{ children: React.ReactNode }> = ({ chi
               };
             case 'agent:timeline':
               return { ...cur, timeline: msg.entries };
+            case 'agent:error': {
+              // UX round-1 ③: run-level failures (e.g. the concurrency gate)
+              // surface as a visible assistant message instead of dying silently.
+              const errMsg: ChatMessage = {
+                id: generateId('msg-err-'),
+                role: 'assistant',
+                content: `⚠️ 智能体任务出错: ${msg.message}`,
+                timestamp: Date.now()
+              };
+              return { ...cur, messages: [...cur.messages, errMsg] };
+            }
+            default:
+              return cur;
           }
         });
 
@@ -739,6 +757,32 @@ export const AgentChatProvider: React.FC<{ children: React.ReactNode }> = ({ chi
     [activeSessionId, send]
   );
 
+  /** UX round-1 ①: resume a plan paused at awaiting_confirmation. */
+  const confirmAgentPlan = useCallback(
+    (planId: string) => {
+      if (!activeSessionId || !planId) return;
+      send({
+        type: 'agent:confirm_plan',
+        sessionId: activeSessionId,
+        planId
+      });
+    },
+    [activeSessionId, send]
+  );
+
+  /** UX round-1 ②: bypass this single approval; the plan keeps going. */
+  const skipAgentApproval = useCallback(
+    (approvalId: string) => {
+      if (!activeSessionId || !approvalId) return;
+      send({
+        type: 'agent:skip',
+        sessionId: activeSessionId,
+        approvalId
+      });
+    },
+    [activeSessionId, send]
+  );
+
   const cancelAgentPlan = useCallback(() => {
     if (!activeSessionId) return;
     send({
@@ -755,7 +799,9 @@ export const AgentChatProvider: React.FC<{ children: React.ReactNode }> = ({ chi
       const fresh = createEmptyState();
       const keepPlan =
         cur.activePlan &&
-        ['planning', 'running', 'awaiting_approval', 'verifying'].includes(cur.activePlan.status)
+        ['planning', 'awaiting_confirmation', 'running', 'awaiting_approval', 'verifying'].includes(
+          cur.activePlan.status
+        )
           ? cur.activePlan
           : null;
       return {
@@ -789,6 +835,8 @@ export const AgentChatProvider: React.FC<{ children: React.ReactNode }> = ({ chi
         runAgentGoal,
         approveAgentAction,
         rejectAgentAction,
+        confirmAgentPlan,
+        skipAgentApproval,
         cancelAgentPlan,
         clearHistory
       }}

@@ -8,6 +8,7 @@ export type PlanStepStatus =
 
 export type PlanStatus =
   | 'planning'
+  | 'awaiting_confirmation'
   | 'running'
   | 'awaiting_approval'
   | 'verifying'
@@ -59,6 +60,8 @@ export interface AgentPlan {
 
 export interface DerivePlanStatusFlags {
   isPlanning?: boolean;
+  /** Plan generated but paused, waiting for the user to confirm before execution. */
+  isAwaitingConfirmation?: boolean;
   isVerifying?: boolean;
   isCancelled?: boolean;
 }
@@ -76,6 +79,9 @@ export function derivePlanStatus(
   }
   if (flags.isPlanning || steps.length === 0) {
     return 'planning';
+  }
+  if (flags.isAwaitingConfirmation) {
+    return 'awaiting_confirmation';
   }
   if (steps.some(s => s.status === 'awaiting_approval')) {
     return 'awaiting_approval';
