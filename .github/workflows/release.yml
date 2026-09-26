@@ -106,18 +106,38 @@ jobs:
           Write-Host "将发布以下文件："
           $exeFiles | ForEach-Object { Write-Host " - $_" }
 
+          # 从 CHANGELOG.md 提取当前 tag 对应的详细更新说明（因为直接 push 到 main 时 --generate-notes 不会抓取非 PR 提交）
+          $notesFile = "release-notes.md"
+          $extractedNotes = ""
+          if (Test-Path "CHANGELOG.md") {
+            $rawChangelog = Get-Content -Raw -Encoding UTF8 "CHANGELOG.md"
+            $escapedTag = [regex]::Escape($tag)
+            if ($rawChangelog -match "(?ms)^## \[$escapedTag\][^\r\n]*\r?\n(.+?)(?=^---\r?\n|^## \[|\z)") {
+              $extractedNotes = $Matches[1].Trim()
+            }
+          }
+
           $null = gh release view $tag 2>$null
           if ($LASTEXITCODE -ne 0) {
             Write-Host "创建 Release $tag ..."
-            gh release create $tag $exeFiles --title "MonoTerminal $tag" --generate-notes
+            if ($extractedNotes) {
+              Set-Content -Path $notesFile -Value $extractedNotes -Encoding UTF8
+              gh release create $tag $exeFiles --title "MonoTerminal $tag" --notes-file $notesFile --generate-notes
+            } else {
+              gh release create $tag $exeFiles --title "MonoTerminal $tag" --generate-notes
+            }
             if ($LASTEXITCODE -ne 0) { throw "gh release create 失败 (exit=$LASTEXITCODE)" }
           } else {
             Write-Host "Release $tag 已存在，覆盖上传资产 ..."
             gh release upload $tag $exeFiles --clobber
             if ($LASTEXITCODE -ne 0) { throw "gh release upload 失败 (exit=$LASTEXITCODE)" }
-            # 若已有 Release 处于草稿状态，转正为正式发布对外可见
-            gh release edit $tag --draft=false
-            if ($LASTEXITCODE -ne 0) { throw "gh release edit --draft=false 失败 (exit=$LASTEXITCODE)" }
+            if ($extractedNotes) {
+              Set-Content -Path $notesFile -Value $extractedNotes -Encoding UTF8
+              gh release edit $tag --notes-file $notesFile --draft=false
+            } else {
+              gh release edit $tag --draft=false
+            }
+            if ($LASTEXITCODE -ne 0) { throw "gh release edit 失败 (exit=$LASTEXITCODE)" }
           }
 
           # 兜底校验：必须能查到该 Release，且不是草稿（草稿对外不可见）
