@@ -18,6 +18,7 @@ import {
   handleAgentCancel,
   handleAgentConfirmPlan,
   handleAgentReject,
+  handleAgentRetry,
   handleAgentRun,
   handleAgentSkip
 } from './agent';
@@ -39,6 +40,7 @@ export const wsHandlers: WsHandlerMap = {
   'sftp:mkdir': handleSftpMkdir,
   'ai:chat': handleAiChat,
   'agent:run': handleAgentRun,
+  'agent:retry': handleAgentRetry,
   'agent:approve': handleAgentApprove,
   'agent:reject': handleAgentReject,
   'agent:cancel': handleAgentCancel,

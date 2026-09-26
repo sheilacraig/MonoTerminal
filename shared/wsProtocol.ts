@@ -175,6 +175,13 @@ export interface AgentApproveMessage {
   type: 'agent:approve';
   sessionId: string;
   approvalId: string;
+  includeRelated?: boolean;
+}
+
+export interface AgentRetryMessage {
+  type: 'agent:retry';
+  sessionId: string;
+  planId: string;
 }
 
 export interface AgentRejectMessage {
@@ -217,6 +224,7 @@ export type WsInboundMessage =
   | SftpMkdirMessage
   | AiChatMessage
   | AgentRunMessage
+  | AgentRetryMessage
   | AgentApproveMessage
   | AgentRejectMessage
   | AgentCancelMessage
@@ -348,6 +356,7 @@ export interface ApprovalRequestPayload {
   expiresAt: number;
   resolvedAt?: number;
   reason?: string;
+  relatedSteps?: Array<{ stepId: string; title: string }>;
 }
 
 export interface TimelineEntryPayload {
@@ -753,13 +762,26 @@ export function validateWsInboundMessage(value: unknown): WsValidationResult {
     case 'agent:approve': {
       if (!isId(value.sessionId)) return fail('agent:approve.sessionId 非法');
       if (!isId(value.approvalId)) return fail('agent:approve.approvalId 非法');
+      if (value.includeRelated !== undefined && typeof value.includeRelated !== 'boolean') {
+        return fail('agent:approve.includeRelated 非法');
+      }
       return {
         ok: true,
         msg: {
           type: 'agent:approve',
           sessionId: value.sessionId,
-          approvalId: value.approvalId
+          approvalId: value.approvalId,
+          ...(value.includeRelated === true ? { includeRelated: true } : {})
         }
+      };
+    }
+
+    case 'agent:retry': {
+      if (!isId(value.sessionId)) return fail('agent:retry.sessionId 非法');
+      if (!isId(value.planId)) return fail('agent:retry.planId 非法');
+      return {
+        ok: true,
+        msg: { type: 'agent:retry', sessionId: value.sessionId, planId: value.planId }
       };
     }
 

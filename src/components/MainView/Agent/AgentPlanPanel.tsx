@@ -11,7 +11,8 @@ import {
   GitBranch,
   Server,
   Square,
-  Play
+  Play,
+  RotateCcw
 } from 'lucide-react';
 import type { AgentPlanPayload, AgentPlanStepPayload } from '../../../../shared/wsProtocol';
 
@@ -20,6 +21,7 @@ interface AgentPlanPanelProps {
   onCancel?: () => void;
   /** UX round-1 ①: emitted when the user clicks 确认执行 on an awaiting_confirmation plan. */
   onConfirm?: (planId: string) => void;
+  onRetry?: (planId: string) => void;
 }
 
 function renderStepIcon(status: AgentPlanStepPayload['status']) {
@@ -77,7 +79,12 @@ function statusBadge(status: AgentPlanPayload['status']) {
   }
 }
 
-export const AgentPlanPanel: React.FC<AgentPlanPanelProps> = ({ plan, onCancel, onConfirm }) => {
+export const AgentPlanPanel: React.FC<AgentPlanPanelProps> = ({
+  plan,
+  onCancel,
+  onConfirm,
+  onRetry
+}) => {
   const badge = statusBadge(plan.status);
   const isAwaitingConfirmation = plan.status === 'awaiting_confirmation';
   const isActive =
@@ -102,6 +109,19 @@ export const AgentPlanPanel: React.FC<AgentPlanPanelProps> = ({ plan, onCancel, 
         </div>
 
         <div className="flex items-center space-x-1.5 shrink-0">
+          {plan.status === 'failed' &&
+            plan.steps.some(step => step.status === 'failed') &&
+            onRetry && (
+              <button
+                type="button"
+                onClick={() => onRetry(plan.id)}
+                className="flex items-center space-x-1 px-2.5 py-0.5 rounded bg-blue-900/50 hover:bg-blue-900/80 border border-blue-600/60 text-blue-200 text-[10px] font-medium transition-colors"
+                title="保留已完成步骤和输出，从失败步骤继续"
+              >
+                <RotateCcw size={10} />
+                <span>从失败处继续</span>
+              </button>
+            )}
           {isAwaitingConfirmation && onConfirm && (
             <button
               type="button"

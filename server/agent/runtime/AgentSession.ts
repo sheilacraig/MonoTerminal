@@ -44,7 +44,14 @@ export class AgentSession {
   public startRun(plan: AgentPlan, initialCwd?: string): AbortSignal {
     this.abortController?.abort();
     this.abortController = new AbortController();
-    const updatedPlan = withDerivedPlanStatus(plan);
+    // Preserve terminal plans (especially model/planner failures with no steps).
+    // derivePlanStatus intentionally treats an empty step list as "planning",
+    // which is useful for drafts but would otherwise turn a failed plan back
+    // into an endless spinner when it enters the session.
+    const updatedPlan =
+      plan.status === 'failed' || plan.status === 'cancelled'
+        ? { ...plan, updatedAt: Date.now() }
+        : withDerivedPlanStatus(plan);
     this.state = {
       sessionId: this.sessionId,
       status: updatedPlan.status,

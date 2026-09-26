@@ -35,6 +35,7 @@ export const AgentView: React.FC<AgentViewProps> = ({ isVisible }) => {
     fillCommand,
     explainCommand,
     runAgentGoal,
+    retryAgentPlan,
     approveAgentAction,
     rejectAgentAction,
     confirmAgentPlan,
@@ -44,7 +45,9 @@ export const AgentView: React.FC<AgentViewProps> = ({ isVisible }) => {
   } = useAgentChat();
 
   const [showTimeline, setShowTimeline] = useState(false);
-  const messagesEndRef = useRef<HTMLDivElement>(null);
+  const [isFollowingLatest, setIsFollowingLatest] = useState(true);
+  const messagesContainerRef = useRef<HTMLDivElement>(null);
+  const shouldFollowLatestRef = useRef(true);
   const isPlanRunning = Boolean(
     activePlan &&
       ['planning', 'awaiting_confirmation', 'running', 'awaiting_approval', 'verifying'].includes(
@@ -81,10 +84,21 @@ export const AgentView: React.FC<AgentViewProps> = ({ isVisible }) => {
     setInput
   ]);
 
-  // Scroll to bottom on new messages
+  // Follow streaming output only while the user is already at the bottom.
+  // scrollTop is scoped to this panel; scrollIntoView can move outer layouts too.
   useEffect(() => {
-    messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
+    const container = messagesContainerRef.current;
+    if (!container || !shouldFollowLatestRef.current) return;
+    container.scrollTop = container.scrollHeight;
   }, [messages, activePlan, pendingApprovals]);
+
+  const handleMessagesScroll = () => {
+    const container = messagesContainerRef.current;
+    if (!container) return;
+    const following = container.scrollHeight - container.scrollTop - container.clientHeight < 48;
+    shouldFollowLatestRef.current = following;
+    setIsFollowingLatest(following);
+  };
 
   const handleSend = () => {
     if (!input.trim() || isStreaming) return;
@@ -208,7 +222,17 @@ export const AgentView: React.FC<AgentViewProps> = ({ isVisible }) => {
       </div>
 
       {/* Messages & Workspace Agent Panels Stream Area */}
-      <div className="flex-1 overflow-y-auto p-4 space-y-4">
+      <div
+        ref={messagesContainerRef}
+        onScroll={handleMessagesScroll}
+        onWheel={event => {
+          if (event.deltaY < 0) {
+            shouldFollowLatestRef.current = false;
+            setIsFollowingLatest(false);
+          }
+        }}
+        className="flex-1 overflow-y-auto p-4 space-y-4"
+      >
         {showTimeline && <TimelinePanel entries={timeline} />}
 
         {messages.map(msg => (
@@ -233,6 +257,7 @@ export const AgentView: React.FC<AgentViewProps> = ({ isVisible }) => {
                   plan={msg.plan}
                   onCancel={cancelAgentPlan}
                   onConfirm={confirmAgentPlan}
+                  onRetry={retryAgentPlan}
                 />
               </div>
             ) : (
@@ -280,6 +305,7 @@ export const AgentView: React.FC<AgentViewProps> = ({ isVisible }) => {
             plan={activePlan}
             onCancel={cancelAgentPlan}
             onConfirm={confirmAgentPlan}
+            onRetry={retryAgentPlan}
           />
         )}
 
@@ -292,7 +318,23 @@ export const AgentView: React.FC<AgentViewProps> = ({ isVisible }) => {
             onSkip={skipAgentApproval}
           />
         ))}
-        <div ref={messagesEndRef} />
+        {!isFollowingLatest && (
+          <div className="sticky bottom-0 flex justify-end pointer-events-none">
+            <button
+              type="button"
+              onClick={() => {
+                const container = messagesContainerRef.current;
+                if (!container) return;
+                container.scrollTop = container.scrollHeight;
+                shouldFollowLatestRef.current = true;
+                setIsFollowingLatest(true);
+              }}
+              className="pointer-events-auto mb-1 rounded-full border border-purple-700/60 bg-[#171225] px-2.5 py-1 text-[10px] text-purple-200 shadow-lg hover:bg-purple-950"
+            >
+              回到最新消息
+            </button>
+          </div>
+        )}
       </div>
 
       {/* Input Box Footer */}

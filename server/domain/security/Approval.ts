@@ -22,4 +22,5 @@ export interface ApprovalRequest {
   expiresAt: number;
   resolvedAt?: number;
   reason?: string;
+  relatedSteps?: Array<{ stepId: string; title: string }>;
 }

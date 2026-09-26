@@ -50,7 +50,8 @@ interface AgentChatContextType extends ChatState {
   fillCommand: (cmd: string) => void;
   explainCommand: (cmd: string) => void;
   runAgentGoal: (goal: string, displayGoal?: string) => void;
-  approveAgentAction: (approvalId: string) => void;
+  retryAgentPlan: (planId: string) => void;
+  approveAgentAction: (approvalId: string, includeRelated?: boolean) => void;
   rejectAgentAction: (approvalId: string, reason?: string) => void;
   /** UX round-1 ①: confirm the plan currently awaiting_confirmation. */
   confirmAgentPlan: (planId: string) => void;
@@ -350,7 +351,37 @@ export const AgentChatProvider: React.FC<{ children: React.ReactNode }> = ({ chi
                 content: `⚠️ 智能体任务出错: ${msg.message}`,
                 timestamp: Date.now()
               };
-              return { ...cur, messages: [...cur.messages, errMsg] };
+              const activePlan = cur.activePlan;
+              // A run-level error can belong to a newly submitted request while
+              // another session plan is still active. Only close the matching
+              // client-side planning draft here; normal plan failures arrive as
+              // an agent:plan update with their own final status.
+              const matchesRequest =
+                !msg.requestId || activePlan?.id === `pending-${msg.requestId}`;
+              const failedPlan =
+                activePlan &&
+                activePlan.status === 'planning' &&
+                matchesRequest
+                  ? {
+                    ...activePlan,
+                    status: 'failed' as const,
+                    summary: msg.message,
+                    updatedAt: Date.now()
+                  }
+                  : undefined;
+              return {
+                ...cur,
+                activePlan: failedPlan ?? activePlan,
+                messages: [
+                  ...cur.messages.map(m =>
+                    failedPlan && m.plan &&
+                    (m.plan.id === activePlan?.id || m.plan.id.startsWith('pending-'))
+                      ? { ...m, plan: failedPlan, content: formatPlanTraceMarkdown(failedPlan) }
+                      : m
+                  ),
+                  errMsg
+                ]
+              };
             }
             default:
               return cur;
@@ -733,13 +764,22 @@ export const AgentChatProvider: React.FC<{ children: React.ReactNode }> = ({ chi
   );
 
   const approveAgentAction = useCallback(
-    (approvalId: string) => {
+    (approvalId: string, includeRelated = false) => {
       if (!activeSessionId || !approvalId) return;
       send({
         type: 'agent:approve',
         sessionId: activeSessionId,
-        approvalId
+        approvalId,
+        ...(includeRelated ? { includeRelated: true } : {})
       });
+    },
+    [activeSessionId, send]
+  );
+
+  const retryAgentPlan = useCallback(
+    (planId: string) => {
+      if (!activeSessionId || !planId) return;
+      send({ type: 'agent:retry', sessionId: activeSessionId, planId });
     },
     [activeSessionId, send]
   );
@@ -833,6 +873,7 @@ export const AgentChatProvider: React.FC<{ children: React.ReactNode }> = ({ chi
         fillCommand,
         explainCommand,
         runAgentGoal,
+        retryAgentPlan,
         approveAgentAction,
         rejectAgentAction,
         confirmAgentPlan,

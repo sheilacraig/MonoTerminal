@@ -4,7 +4,7 @@ import type { ApprovalRequestPayload } from '../../../../shared/wsProtocol';
 
 interface ApprovalCardProps {
   approval: ApprovalRequestPayload;
-  onApprove: (approvalId: string) => void;
+  onApprove: (approvalId: string, includeRelated?: boolean) => void;
   onReject: (approvalId: string, reason?: string) => void;
   /** UX round-1 ②: bypass this single step — the plan continues afterwards. */
   onSkip: (approvalId: string) => void;
@@ -72,7 +72,23 @@ export const ApprovalCard: React.FC<ApprovalCardProps> = ({
         </div>
       )}
 
-      <div className="flex items-center justify-end space-x-2 pt-1">
+      {approval.relatedSteps && approval.relatedSteps.length > 0 && (
+        <div className="rounded border border-white/10 bg-black/25 px-2.5 py-2">
+          <div className="text-[10px] font-medium opacity-90">
+            本计划还有 {approval.relatedSteps.length} 个相同风险规则的待执行步骤：
+          </div>
+          <ul className="mt-1 list-disc pl-4 text-[10px] opacity-75 space-y-0.5">
+            {approval.relatedSteps.map(step => (
+              <li key={step.stepId}>{step.title}</li>
+            ))}
+          </ul>
+          <div className="mt-1 text-[10px] opacity-65">
+            批量授权仅适用于上列步骤，且执行前仍会重新检查安全规则。
+          </div>
+        </div>
+      )}
+
+      <div className="flex flex-wrap items-center justify-end gap-2 pt-1">
         <button
           type="button"
           onClick={() => onReject(approval.id, '用户手动拒绝执行')}
@@ -101,6 +117,17 @@ export const ApprovalCard: React.FC<ApprovalCardProps> = ({
           <Check size={12} />
           <span>批准执行</span>
         </button>
+        {approval.relatedSteps && approval.relatedSteps.length > 0 && (
+          <button
+            type="button"
+            onClick={() => onApprove(approval.id, true)}
+            className="inline-flex items-center space-x-1 px-2.5 py-1 rounded bg-indigo-700 hover:bg-indigo-600 text-white font-medium text-[11px] transition-colors"
+            title="仅批准上方列出的本计划相近步骤"
+          >
+            <Check size={12} />
+            <span>批准这步及相近步骤 ({approval.relatedSteps.length + 1})</span>
+          </button>
+        )}
       </div>
     </div>
   );

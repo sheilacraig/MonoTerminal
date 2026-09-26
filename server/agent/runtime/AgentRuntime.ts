@@ -5,7 +5,7 @@ import type { ApprovalManager } from '../../application/security/ApprovalManager
 import type { GuardrailPipeline } from '../../application/security/GuardrailPipeline';
 import type { ContextEngine } from '../../application/context/ContextEngine';
 import type { DefaultSessionManager } from '../../application/session/DefaultSessionManager';
-import type { AgentPlan } from '../planner/Plan';
+import type { AgentPlan, PlanStep } from '../planner/Plan';
 import { Planner } from '../planner/Planner';
 import type { Tool, ToolExecutionContext, ToolResult } from '../tools/Tool';
 import { VerifierRegistry } from './Verifier';
@@ -75,6 +75,7 @@ export class AgentRuntime {
    */
   private readonly activeRuns = new Set<string>();
   private readonly toolMap = new Map<string, AnyTool>();
+  private readonly relatedApprovalGrants = new Map<string, string>();
   private readonly planner: Planner;
   private readonly verifierRegistry?: VerifierRegistry;
 
@@ -111,6 +112,118 @@ export class AgentRuntime {
     this.getOrCreateAgentSession(sessionId).restorePlan(plan);
   }
 
+  private approvalGrantKey(planId: string, stepId: string): string {
+    return `${planId}:${stepId}`;
+  }
+
+  private approvalGroupKey(
+    toolName: string,
+    action: ReturnType<AnyTool['toGuardrailAction']>,
+    level: string,
+    matchedRule?: string
+  ): string {
+    return `${toolName}|${action.kind}|${level}|${matchedRule || ''}`;
+  }
+
+  private actionFingerprint(action: ReturnType<AnyTool['toGuardrailAction']>): string {
+    return JSON.stringify(action);
+  }
+
+  private createToolContext(sessionId: string): ToolExecutionContext {
+    const agentSession = this.getOrCreateAgentSession(sessionId);
+    const session = this.deps.sessionManager.get(sessionId);
+    return {
+      sessionId,
+      cwd: agentSession.getCwd() || session?.terminal.cwd,
+      onCwdChange: (newCwd: string) => {
+        agentSession.setCwd(newCwd);
+        this.deps.sessionManager.updateCwd(sessionId, newCwd);
+      }
+    };
+  }
+
+  private findRelatedApprovalSteps(
+    sessionId: string,
+    planId: string,
+    currentStepId: string,
+    toolName: string,
+    action: ReturnType<AnyTool['toGuardrailAction']>,
+    level: string,
+    matchedRule?: string
+  ): Array<{ stepId: string; title: string }> {
+    const plan = this.getOrCreateAgentSession(sessionId).getActivePlan();
+    if (!plan || plan.id !== planId) return [];
+    const targetGroup = this.approvalGroupKey(toolName, action, level, matchedRule);
+    const ctx = this.createToolContext(sessionId);
+
+    return plan.steps.flatMap(step => {
+      if (step.id === currentStepId || step.status !== 'pending') return [];
+      const tool = this.toolMap.get(step.toolName);
+      if (!tool) return [];
+      const validation = tool.schema.validate(step.input);
+      if (!validation.ok) return [];
+      const candidateAction = tool.toGuardrailAction(validation.data, ctx);
+      const candidateRisk = this.deps.guardrailPipeline.evaluate(candidateAction);
+      if (
+        candidateRisk.decision !== 'ask' ||
+        this.approvalGroupKey(
+          tool.name,
+          candidateAction,
+          candidateRisk.assessment.level,
+          candidateRisk.assessment.matchedRule
+        ) !== targetGroup
+      ) {
+        return [];
+      }
+      return [{ stepId: step.id, title: step.title }];
+    });
+  }
+
+  /** Approve one action and, when explicitly requested, exact matching sibling steps in this plan. */
+  public approveAction(sessionId: string, approvalId: string, includeRelated = false): boolean {
+    const request = this.deps.approvalManager.get(approvalId);
+    if (!request || request.sessionId !== sessionId) return false;
+
+    if (includeRelated && request.planId && request.relatedSteps?.length) {
+      const plan = this.getOrCreateAgentSession(sessionId).getActivePlan();
+      if (plan?.id === request.planId) {
+        const targetGroup = this.approvalGroupKey(
+          request.toolName,
+          request.action,
+          request.assessment.level,
+          request.assessment.matchedRule
+        );
+        const ctx = this.createToolContext(sessionId);
+        for (const related of request.relatedSteps) {
+          const step = plan.steps.find(candidate => candidate.id === related.stepId);
+          const tool = step && this.toolMap.get(step.toolName);
+          if (!step || !tool || step.status !== 'pending') continue;
+          const validation = tool.schema.validate(step.input);
+          if (!validation.ok) continue;
+          const action = tool.toGuardrailAction(validation.data, ctx);
+          const risk = this.deps.guardrailPipeline.evaluate(action);
+          if (
+            risk.decision !== 'ask' ||
+            this.approvalGroupKey(
+              tool.name,
+              action,
+              risk.assessment.level,
+              risk.assessment.matchedRule
+            ) !== targetGroup
+          ) {
+            continue;
+          }
+          this.relatedApprovalGrants.set(
+            this.approvalGrantKey(plan.id, step.id),
+            this.actionFingerprint(action)
+          );
+        }
+      }
+    }
+
+    return this.deps.approvalManager.approve(approvalId);
+  }
+
   /**
    * Execute a single tool call through the mandatory security pipeline:
    * Schema Validation -> GuardrailAction -> GuardrailPipeline -> (Allow / Ask Approval / Deny) -> Execute
@@ -145,16 +258,9 @@ export class AgentRuntime {
     }
 
     const agentSession = this.getOrCreateAgentSession(sessionId);
-    const session = this.deps.sessionManager.get(sessionId);
-    const effectiveCwd = agentSession.getCwd() || session?.terminal.cwd;
     const ctx: ToolExecutionContext = {
-      sessionId,
-      cwd: effectiveCwd,
-      abortSignal: options?.abortSignal,
-      onCwdChange: (newCwd: string) => {
-        agentSession.setCwd(newCwd);
-        this.deps.sessionManager.updateCwd(sessionId, newCwd);
-      }
+      ...this.createToolContext(sessionId),
+      abortSignal: options?.abortSignal
     };
 
     const action = tool.toGuardrailAction(validation.data, ctx);
@@ -170,14 +276,36 @@ export class AgentRuntime {
       };
     }
 
-    if (policyResult.decision === 'ask') {
+    const approvalFingerprint = this.actionFingerprint(action);
+    const grantKey =
+      options?.planId && options.stepId
+        ? this.approvalGrantKey(options.planId, options.stepId)
+        : undefined;
+    const hasRelatedGrant = Boolean(
+      grantKey && this.relatedApprovalGrants.get(grantKey) === approvalFingerprint
+    );
+
+    if (policyResult.decision === 'ask' && !hasRelatedGrant) {
+      const relatedSteps =
+        options?.planId && options.stepId
+          ? this.findRelatedApprovalSteps(
+              sessionId,
+              options.planId,
+              options.stepId,
+              toolName,
+              action,
+              policyResult.assessment.level,
+              policyResult.assessment.matchedRule
+            )
+          : [];
       const { request, decisionPromise } = this.deps.approvalManager.requestApproval({
         sessionId,
         planId: options?.planId,
         stepId: options?.stepId,
         toolName,
         action,
-        assessment: policyResult.assessment
+        assessment: policyResult.assessment,
+        relatedSteps
       });
       options?.onApprovalPending?.(request);
 
@@ -198,6 +326,10 @@ export class AgentRuntime {
           durationMs: 0
         };
       }
+    }
+
+    if (hasRelatedGrant && grantKey) {
+      this.relatedApprovalGrants.delete(grantKey);
     }
 
     const toolCallId = `tc-${crypto.randomUUID()}`;
@@ -248,6 +380,34 @@ export class AgentRuntime {
     } finally {
       this.activeRuns.delete(sessionId);
     }
+  }
+
+  /** Resume a failed plan from its failed step, preserving completed output. */
+  public async retryFailedStep(
+    sessionId: string,
+    planId: string,
+    callbacks?: AgentRunCallbacks
+  ): Promise<AgentPlan> {
+    const plan = this.getOrCreateAgentSession(sessionId).getActivePlan();
+    if (!plan || plan.id !== planId || plan.status !== 'failed') {
+      throw new Error('当前没有可继续的失败计划');
+    }
+    if (!plan.steps.some(step => step.status === 'failed')) {
+      throw new Error('计划中没有可重试的失败步骤');
+    }
+
+    const resumedPlan: AgentPlan = {
+      ...plan,
+      status: 'running',
+      summary: undefined,
+      updatedAt: Date.now(),
+      steps: plan.steps.map(step =>
+        step.status === 'failed'
+          ? { ...step, status: 'pending', error: undefined, outputSummary: undefined }
+          : step
+      )
+    };
+    return this.runPlan(sessionId, resumedPlan, callbacks);
   }
 
   private async runPlanInner(
@@ -329,6 +489,7 @@ export class AgentRuntime {
       if (abortSignal.aborted) {
         break;
       }
+      if (step.status !== 'pending') continue;
 
       // Mark current step running
       emitPlan(
@@ -383,9 +544,6 @@ export class AgentRuntime {
                 if (s.id === step.id) {
                   return { ...s, status: 'failed', error: res.error || '执行失败' };
                 }
-                if (s.status === 'pending') {
-                  return { ...s, status: 'skipped' };
-                }
                 return s;
               }),
             {},
@@ -421,9 +579,6 @@ export class AgentRuntime {
                       outputSummary: stepOutputSummary,
                       error: verifyRes.message
                     };
-                  }
-                  if (s.status === 'pending') {
-                    return { ...s, status: 'skipped' };
                   }
                   return s;
                 }),
@@ -465,6 +620,13 @@ export class AgentRuntime {
       timestamp: Date.now()
     });
 
+    if (finalPlan.status === 'completed' || finalPlan.status === 'cancelled') {
+      const grantPrefix = `${finalPlan.id}:`;
+      for (const key of this.relatedApprovalGrants.keys()) {
+        if (key.startsWith(grantPrefix)) this.relatedApprovalGrants.delete(key);
+      }
+    }
+
     return finalPlan;
   }
 
@@ -472,6 +634,10 @@ export class AgentRuntime {
     this.deps.approvalManager.cancelSessionApprovals(sessionId);
     const plan = this.agentSessions.get(sessionId)?.cancel();
     if (plan) {
+      const grantPrefix = `${plan.id}:`;
+      for (const key of this.relatedApprovalGrants.keys()) {
+        if (key.startsWith(grantPrefix)) this.relatedApprovalGrants.delete(key);
+      }
       this.deps.eventBus.publish({
         type: 'agent:finished',
         sessionId,

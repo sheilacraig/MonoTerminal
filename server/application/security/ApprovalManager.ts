@@ -11,6 +11,7 @@ export interface CreateApprovalParams {
   toolName: string;
   action: GuardrailAction;
   assessment: RiskAssessment;
+  relatedSteps?: Array<{ stepId: string; title: string }>;
   timeoutMs?: number;
 }
 
@@ -64,6 +65,7 @@ export class ApprovalManager {
       toolName: params.toolName,
       action: params.action,
       assessment: params.assessment,
+      relatedSteps: params.relatedSteps?.map(step => ({ ...step })),
       status: 'pending',
       createdAt: now,
       expiresAt: now + timeoutMs

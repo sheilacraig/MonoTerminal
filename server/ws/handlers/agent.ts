@@ -4,6 +4,7 @@ import type {
   AgentConfirmPlanMessage,
   AgentPlanPayload,
   AgentRejectMessage,
+  AgentRetryMessage,
   AgentRunMessage,
   AgentSkipMessage,
   ApprovalRequestPayload
@@ -53,7 +54,8 @@ function toApprovalPayload(req: ApprovalRequest): ApprovalRequestPayload {
     createdAt: req.createdAt,
     expiresAt: req.expiresAt,
     resolvedAt: req.resolvedAt,
-    reason: req.reason
+    reason: req.reason,
+    relatedSteps: req.relatedSteps
   };
 }
 
@@ -111,6 +113,45 @@ export const handleAgentRun: WsHandler<AgentRunMessage> = async (msg, conn, deps
   pushTimeline();
 };
 
+export const handleAgentRetry: WsHandler<AgentRetryMessage> = async (msg, conn, deps) => {
+  if (!deps.agentRuntime) return;
+  const pushTimeline = () => {
+    if (!deps.timelineService) return;
+    conn.send({
+      type: 'agent:timeline',
+      sessionId: msg.sessionId,
+      entries: deps.timelineService.getTimeline(msg.sessionId)
+    });
+  };
+
+  try {
+    await deps.agentRuntime.retryFailedStep(msg.sessionId, msg.planId, {
+      onPlanUpdate: plan => {
+        conn.send({
+          type: 'agent:plan',
+          sessionId: msg.sessionId,
+          plan: toPlanPayload(plan)
+        });
+        pushTimeline();
+      },
+      onApprovalRequest: req => {
+        conn.send({
+          type: 'agent:approval_request',
+          sessionId: msg.sessionId,
+          approval: toApprovalPayload(req)
+        });
+      }
+    });
+  } catch (err) {
+    conn.send({
+      type: 'agent:error',
+      sessionId: msg.sessionId,
+      message: errorMessage(err)
+    });
+  }
+  pushTimeline();
+};
+
 /** UX round-1 ①: user confirmed the generated plan — resume the paused run. */
 export const handleAgentConfirmPlan: WsHandler<AgentConfirmPlanMessage> = (msg, conn, deps) => {
   if (!deps.agentRuntime) return;
@@ -141,7 +182,9 @@ export const handleAgentSkip: WsHandler<AgentSkipMessage> = (msg, conn, deps) =>
 
 export const handleAgentApprove: WsHandler<AgentApproveMessage> = (msg, conn, deps) => {
   if (!deps.approvalManager) return;
-  const ok = deps.approvalManager.approve(msg.approvalId);
+  const ok = deps.agentRuntime
+    ? deps.agentRuntime.approveAction(msg.sessionId, msg.approvalId, msg.includeRelated)
+    : !msg.includeRelated && deps.approvalManager.approve(msg.approvalId);
   if (ok) {
     conn.send({
       type: 'agent:approval_resolved',

@@ -370,6 +370,15 @@ export class ShellRiskAnalyzer {
         continue;
       }
 
+      if (bin === 'find') {
+        // Plain find is an inspection command. Keep approval for its action
+        // predicates and command-execution forms, which can mutate state.
+        const mutatingFindAction = inv.args.some(arg =>
+          /^-(?:delete|exec|execdir|ok|okdir|fprint\d*|fprintf)(?:$|=)/i.test(arg)
+        );
+        if (!mutatingFindAction) continue;
+      }
+
       if (WRAPPER_EXECUTORS.has(bin) || isInlineScriptExecution(bin, inv.args)) {
         elevate({
           level: 'HIGH',
