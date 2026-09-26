@@ -44,9 +44,9 @@ const defaultSettings: AppSettings = {
   },
   shortcuts: {
     toggleMode: 'Ctrl+\\',
-    toggleSidebar: 'Ctrl+B',
-    newTab: 'Ctrl+T',
-    closeTab: 'Ctrl+W'
+    toggleSidebar: 'Ctrl+Shift+B',
+    newTab: 'Ctrl+Shift+T',
+    closeTab: 'Ctrl+Shift+W'
   },
   guardrail: {
     enabled: true,
@@ -82,6 +82,10 @@ function normalizeAISettings(incoming: AppSettings): AppSettings {
     : providers[0]?.id || 'deepseek-api';
   return {
     ...incoming,
+    shortcuts: {
+      ...defaultSettings.shortcuts,
+      ...(incoming.shortcuts || {})
+    },
     ai: {
       ...incoming.ai,
       activeProvider,

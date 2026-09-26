@@ -4,12 +4,7 @@ import { useWebSocket } from './WebSocketContext';
 import { useSettings } from './SettingsContext';
 import { detectTerminalError, ERROR_BUBBLE_COOLDOWN_MS } from '../utils/errorDetector';
 import { checkCommandSafety } from '../utils/guardrail';
-import {
-  isBackslashEvent,
-  isSidebarEvent,
-  isNewTabEvent,
-  isCloseTabEvent
-} from '../constants/shortcuts';
+import { SHORTCUTS, matchesShortcut } from '../constants/shortcuts';
 import { generateId } from '../../shared/id';
 import { apiFetch } from '../utils/api';
 import { disposeAuthStore } from '../services/terminalAuth';
@@ -497,6 +492,11 @@ export const SessionProvider: React.FC<{ children: React.ReactNode }> = ({ child
   // Global Keyboard Shortcuts
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
+      const target = e.target as HTMLElement | null;
+      if (target?.dataset?.shortcutRecorder === 'true') {
+        return;
+      }
+
       // Alt + 1 (Left Dock -> 会话 Tab)
       if (e.altKey && !e.ctrlKey && !e.metaKey && (e.key === '1' || e.code === 'Digit1')) {
         e.preventDefault();
@@ -531,24 +531,30 @@ export const SessionProvider: React.FC<{ children: React.ReactNode }> = ({ child
         return;
       }
 
-      // Ctrl + \ (or configured toggle shortcut)
-      if ((e.ctrlKey || e.metaKey) && isBackslashEvent(e)) {
+      const sc = settings.shortcuts;
+      const toggleModeKey = sc?.toggleMode || SHORTCUTS.TOGGLE_AGENT;
+      const toggleSidebarKey = sc?.toggleSidebar || SHORTCUTS.TOGGLE_SIDEBAR;
+      const newTabKey = sc?.newTab || SHORTCUTS.NEW_TAB;
+      const closeTabKey = sc?.closeTab || SHORTCUTS.CLOSE_TAB;
+
+      // Toggle AI Agent Panel (default: Ctrl + \)
+      if (matchesShortcut(e, toggleModeKey)) {
         e.preventDefault();
         e.stopPropagation();
         toggleAgent();
         return;
       }
 
-      // Ctrl + B (toggle sidebar)
-      if ((e.ctrlKey || e.metaKey) && !e.shiftKey && isSidebarEvent(e)) {
+      // Toggle Left Sidebar (default: Ctrl + Shift + B)
+      if (matchesShortcut(e, toggleSidebarKey)) {
         e.preventDefault();
         e.stopPropagation();
         setIsSidebarCollapsed(prev => !prev);
         return;
       }
 
-      // Ctrl + T (new tab)
-      if ((e.ctrlKey || e.metaKey) && !e.shiftKey && isNewTabEvent(e)) {
+      // New Tab (default: Ctrl + Shift + T)
+      if (matchesShortcut(e, newTabKey)) {
         e.preventDefault();
         e.stopPropagation();
         if (hosts.length > 0) {
@@ -559,8 +565,8 @@ export const SessionProvider: React.FC<{ children: React.ReactNode }> = ({ child
         return;
       }
 
-      // Ctrl + W (close current tab)
-      if ((e.ctrlKey || e.metaKey) && !e.shiftKey && isCloseTabEvent(e)) {
+      // Close Current Tab (default: Ctrl + Shift + W)
+      if (matchesShortcut(e, closeTabKey)) {
         e.preventDefault();
         e.stopPropagation();
         if (activeSessionId) {
@@ -572,7 +578,15 @@ export const SessionProvider: React.FC<{ children: React.ReactNode }> = ({ child
 
     window.addEventListener('keydown', handleKeyDown, true);
     return () => window.removeEventListener('keydown', handleKeyDown, true);
-  }, [activeSessionId, hosts, createSession, openHostModal, toggleAgent, closeSession]);
+  }, [
+    activeSessionId,
+    hosts,
+    createSession,
+    openHostModal,
+    toggleAgent,
+    closeSession,
+    settings.shortcuts
+  ]);
 
   const activeSession = sessions.find(s => s.id === activeSessionId) || sessions[0];
 

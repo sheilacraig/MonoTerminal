@@ -113,7 +113,7 @@ export const HeaderBar: React.FC<HeaderBarProps> = () => {
                       closeSession(tab.id);
                     }}
                     className="p-0.5 hover:text-orca-danger text-orca-muted rounded"
-                    title="关闭会话 (Ctrl+W)"
+                    title="关闭会话 (Ctrl+Shift+W)"
                   >
                     <X size={12} />
                   </button>
@@ -133,7 +133,7 @@ export const HeaderBar: React.FC<HeaderBarProps> = () => {
             }
           }}
           className="flex items-center space-x-1 px-2 py-1 text-xs text-orca-muted hover:text-orca-accent hover:bg-orca-card rounded transition-colors"
-          title="新建终端标签页 (Ctrl+T)"
+          title="新建终端标签页 (Ctrl+Shift+T)"
         >
           <Plus size={14} />
         </button>

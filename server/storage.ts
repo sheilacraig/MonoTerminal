@@ -434,9 +434,9 @@ export class LocalStorageManager {
         },
         shortcuts: {
           toggleMode: 'Ctrl+\\',
-          toggleSidebar: 'Ctrl+B',
-          newTab: 'Ctrl+T',
-          closeTab: 'Ctrl+W'
+          toggleSidebar: 'Ctrl+Shift+B',
+          newTab: 'Ctrl+Shift+T',
+          closeTab: 'Ctrl+Shift+W'
         },
         guardrail: {
           enabled: true,
@@ -453,9 +453,9 @@ export class LocalStorageManager {
     } else {
       try {
         const settings: AppSettings = JSON.parse(fs.readFileSync(settingsPath, 'utf8'));
-        if (settings && settings.ai && Array.isArray(settings.ai.providers)) {
-          let modified = false;
+        let modified = false;
 
+        if (settings && settings.ai && Array.isArray(settings.ai.providers)) {
           if (settings.ai.providers.some(p => p.id === 'mock-ai' || p.type === 'mock')) {
             settings.ai.providers = settings.ai.providers.filter(
               p => p.id !== 'mock-ai' && p.type !== 'mock'
@@ -488,10 +488,26 @@ export class LocalStorageManager {
             settings.ai.activeProvider = settings.ai.providers[0].id;
             modified = true;
           }
+        }
 
-          if (modified) {
-            fs.writeFileSync(settingsPath, JSON.stringify(settings, null, 2), 'utf8');
+        // Auto-migrate legacy single-Ctrl shortcuts that conflict with SSH/tmux/Vim
+        if (settings && settings.shortcuts) {
+          if (settings.shortcuts.toggleSidebar === 'Ctrl+B') {
+            settings.shortcuts.toggleSidebar = 'Ctrl+Shift+B';
+            modified = true;
           }
+          if (settings.shortcuts.newTab === 'Ctrl+T') {
+            settings.shortcuts.newTab = 'Ctrl+Shift+T';
+            modified = true;
+          }
+          if (settings.shortcuts.closeTab === 'Ctrl+W') {
+            settings.shortcuts.closeTab = 'Ctrl+Shift+W';
+            modified = true;
+          }
+        }
+
+        if (modified) {
+          fs.writeFileSync(settingsPath, JSON.stringify(settings, null, 2), 'utf8');
         }
       } catch (e) {
         console.error('Failed to migrate settings.json', e);
@@ -607,9 +623,9 @@ export class LocalStorageManager {
       },
       shortcuts: {
         toggleMode: 'Ctrl+\\',
-        toggleSidebar: 'Ctrl+B',
-        newTab: 'Ctrl+T',
-        closeTab: 'Ctrl+W'
+        toggleSidebar: 'Ctrl+Shift+B',
+        newTab: 'Ctrl+Shift+T',
+        closeTab: 'Ctrl+Shift+W'
       },
       guardrail: {
         enabled: true,

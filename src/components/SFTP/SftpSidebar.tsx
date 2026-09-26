@@ -113,6 +113,10 @@ export const SftpSidebar: React.FC = () => {
   // Ctrl + Shift + S -> Focus Session Search Input
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
+      const target = e.target as HTMLElement | null;
+      if (target?.dataset?.shortcutRecorder === 'true') {
+        return;
+      }
       if (
         (e.ctrlKey || e.metaKey) &&
         e.shiftKey &&
@@ -409,7 +413,7 @@ export const SftpSidebar: React.FC = () => {
         <button
           onClick={() => setIsSidebarCollapsed(false)}
           className="p-1.5 text-orca-muted hover:text-white hover:bg-orca-card rounded transition-colors"
-          title="展开侧边栏 (Ctrl+B)"
+          title="展开侧边栏 (Ctrl+Shift+B)"
         >
           <SidebarOpen size={15} />
         </button>
@@ -516,7 +520,7 @@ export const SftpSidebar: React.FC = () => {
           <button
             onClick={() => setIsSidebarCollapsed(true)}
             className="p-1 text-orca-muted hover:text-white rounded hover:bg-orca-card"
-            title="折叠侧边栏 (Ctrl+B)"
+            title="折叠侧边栏 (Ctrl+Shift+B)"
           >
             <SidebarClose size={14} />
           </button>

@@ -4,7 +4,12 @@ import { useSettings } from '../../context/SettingsContext';
 import { AIProvider } from '../../types';
 import { generateId } from '../../../shared/id';
 import { apiFetch } from '../../utils/api';
-import { Settings, X, Bot, Keyboard, Shield, Terminal, Check, Plus, Lock } from 'lucide-react';
+import {
+  SHORTCUTS,
+  formatShortcutFromEvent,
+  getTerminalConflictWarning
+} from '../../constants/shortcuts';
+import { Settings, X, Bot, Keyboard, Shield, Terminal, Check, Plus, Lock, RotateCcw, AlertTriangle } from 'lucide-react';
 
 interface SecurityStatus {
   masterPasswordEnabled: boolean;
@@ -557,46 +562,124 @@ export const SettingsModal: React.FC = () => {
 
             {activeTab === 'shortcuts' && (
               <div className="space-y-4">
-                <h4 className="font-semibold text-white">全局快捷键配置</h4>
+                <div className="flex items-center justify-between">
+                  <div>
+                    <h4 className="font-semibold text-white">全局快捷键配置</h4>
+                    <p className="text-[11px] text-orca-muted mt-0.5">
+                      点击输入框后直接按下组合键即可录制；默认采用 <code className="text-orca-accent">Ctrl+Shift+字母</code> 规范以避免与 SSH / tmux / Vim 控制键冲突。
+                    </p>
+                  </div>
+                  <button
+                    type="button"
+                    onClick={() =>
+                      setShortcuts({
+                        toggleMode: SHORTCUTS.TOGGLE_AGENT,
+                        toggleSidebar: SHORTCUTS.TOGGLE_SIDEBAR,
+                        newTab: SHORTCUTS.NEW_TAB,
+                        closeTab: SHORTCUTS.CLOSE_TAB
+                      })
+                    }
+                    className="flex items-center space-x-1 px-2.5 py-1 rounded bg-orca-bg hover:bg-orca-surface border border-orca-border text-[11px] text-orca-muted hover:text-white transition-colors shrink-0"
+                    title="恢复为无冲突的终端标准快捷键"
+                  >
+                    <RotateCcw size={12} />
+                    <span>恢复默认规范</span>
+                  </button>
+                </div>
+
                 <div className="space-y-2.5">
-                  <div className="flex items-center justify-between">
-                    <span className="text-orca-muted">终端 ↔ Agent 穿梭流切换</span>
-                    <input
-                      type="text"
-                      value={shortcuts.toggleMode}
-                      onChange={e => setShortcuts({ ...shortcuts, toggleMode: e.target.value })}
-                      className="w-32 bg-orca-bg border border-orca-border text-center text-white font-mono py-1 rounded"
-                    />
-                  </div>
+                  {(
+                    [
+                      {
+                        key: 'toggleMode' as const,
+                        label: '终端 ↔ Agent 穿梭流切换',
+                        desc: '展开或收起右侧 AI 运维助手面板'
+                      },
+                      {
+                        key: 'toggleSidebar' as const,
+                        label: '左侧会话 / SFTP 栏折叠与展开',
+                        desc: '默认 Ctrl+Shift+B，将 Ctrl+B 完整留给 tmux 前缀键与 Vim 翻页'
+                      },
+                      {
+                        key: 'newTab' as const,
+                        label: '新建会话标签页',
+                        desc: '默认 Ctrl+Shift+T，将 Ctrl+T 留给 fzf 搜索与 Shell 字符交换'
+                      },
+                      {
+                        key: 'closeTab' as const,
+                        label: '关闭当前会话标签页',
+                        desc: '默认 Ctrl+Shift+W，防止在 Shell / Vim 中按 Ctrl+W 删词时误关连接'
+                      }
+                    ]
+                  ).map(item => {
+                    const val = shortcuts[item.key] || '';
+                    const warning = getTerminalConflictWarning(val);
+                    return (
+                      <div
+                        key={item.key}
+                        className="p-2.5 rounded bg-orca-bg/60 border border-orca-border/80 space-y-1.5"
+                      >
+                        <div className="flex items-center justify-between">
+                          <div>
+                            <div className="text-white text-xs font-medium">{item.label}</div>
+                            <div className="text-[11px] text-orca-muted">{item.desc}</div>
+                          </div>
+                          <input
+                            type="text"
+                            data-shortcut-recorder="true"
+                            value={val}
+                            placeholder="按下快捷键..."
+                            onKeyDown={e => {
+                              e.preventDefault();
+                              e.stopPropagation();
+                              const recorded = formatShortcutFromEvent(e.nativeEvent);
+                              if (recorded) {
+                                setShortcuts({ ...shortcuts, [item.key]: recorded });
+                              }
+                            }}
+                            onChange={e =>
+                              setShortcuts({ ...shortcuts, [item.key]: e.target.value })
+                            }
+                            className={`w-36 bg-orca-surface border text-center text-white font-mono text-xs py-1 px-2 rounded outline-none transition-colors ${
+                              warning
+                                ? 'border-amber-500/80 focus:border-amber-400'
+                                : 'border-orca-border focus:border-orca-accent'
+                            }`}
+                            title="点击后直接按下键盘组合键录制，也可手动输入"
+                          />
+                        </div>
+                        {warning && (
+                          <div className="flex items-center space-x-1.5 text-[11px] text-amber-400 bg-amber-500/10 border border-amber-500/30 rounded px-2 py-1">
+                            <AlertTriangle size={12} className="shrink-0" />
+                            <span>{warning}</span>
+                          </div>
+                        )}
+                      </div>
+                    );
+                  })}
+                </div>
 
-                  <div className="flex items-center justify-between">
-                    <span className="text-orca-muted">SFTP 侧边栏折叠/展开</span>
-                    <input
-                      type="text"
-                      value={shortcuts.toggleSidebar}
-                      onChange={e => setShortcuts({ ...shortcuts, toggleSidebar: e.target.value })}
-                      className="w-32 bg-orca-bg border border-orca-border text-center text-white font-mono py-1 rounded"
-                    />
+                <div className="pt-2 border-t border-orca-border/60">
+                  <div className="text-xs font-medium text-orca-text mb-2">
+                    内置防冲突辅助快捷键（无需占用终端 Ctrl+字母）
                   </div>
-
-                  <div className="flex items-center justify-between">
-                    <span className="text-orca-muted">新建会话 Tab</span>
-                    <input
-                      type="text"
-                      value={shortcuts.newTab}
-                      onChange={e => setShortcuts({ ...shortcuts, newTab: e.target.value })}
-                      className="w-32 bg-orca-bg border border-orca-border text-center text-white font-mono py-1 rounded"
-                    />
-                  </div>
-
-                  <div className="flex items-center justify-between">
-                    <span className="text-orca-muted">关闭当前会话</span>
-                    <input
-                      type="text"
-                      value={shortcuts.closeTab}
-                      onChange={e => setShortcuts({ ...shortcuts, closeTab: e.target.value })}
-                      className="w-32 bg-orca-bg border border-orca-border text-center text-white font-mono py-1 rounded"
-                    />
+                  <div className="grid grid-cols-2 gap-2 text-[11px] text-orca-muted">
+                    <div className="flex items-center justify-between bg-orca-bg/40 px-2.5 py-1.5 rounded border border-orca-border/50">
+                      <span>新建主机连接配置</span>
+                      <kbd className="text-white font-mono">Ctrl+Shift+N</kbd>
+                    </div>
+                    <div className="flex items-center justify-between bg-orca-bg/40 px-2.5 py-1.5 rounded border border-orca-border/50">
+                      <span>搜索主机与会话</span>
+                      <kbd className="text-white font-mono">Ctrl+Shift+S</kbd>
+                    </div>
+                    <div className="flex items-center justify-between bg-orca-bg/40 px-2.5 py-1.5 rounded border border-orca-border/50">
+                      <span>切换会话 / 文件面板</span>
+                      <kbd className="text-white font-mono">Alt+1 / Alt+2</kbd>
+                    </div>
+                    <div className="flex items-center justify-between bg-orca-bg/40 px-2.5 py-1.5 rounded border border-orca-border/50">
+                      <span>打开全局设置</span>
+                      <kbd className="text-white font-mono">Ctrl+,</kbd>
+                    </div>
                   </div>
                 </div>
               </div>

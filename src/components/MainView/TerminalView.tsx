@@ -5,12 +5,7 @@ import '@xterm/xterm/css/xterm.css';
 import { useWebSocket } from '../../context/WebSocketContext';
 import { useSession } from '../../context/SessionContext';
 import { useSettings } from '../../context/SettingsContext';
-import {
-  isBackslashEvent,
-  isSidebarEvent,
-  isNewTabEvent,
-  isCloseTabEvent
-} from '../../constants/shortcuts';
+import { SHORTCUTS, matchesShortcut } from '../../constants/shortcuts';
 import { checkCommandSafety } from '../../utils/guardrail';
 import { readClipboardText, writeClipboardText, COPY_SCOPE_ATTR } from '../../utils/clipboard';
 import { getAuthStore } from '../../services/terminalAuth';
@@ -201,28 +196,34 @@ export const TerminalView: React.FC<TerminalViewProps> = ({ sessionId, isVisible
     // Intercept custom shortcuts before xterm consumes or transmits them as control characters
     term.attachCustomKeyEventHandler((event: KeyboardEvent) => {
       const c = ctxRef.current;
-      if ((event.ctrlKey || event.metaKey) && isBackslashEvent(event)) {
+      const sc = c.settings?.shortcuts;
+      const toggleModeKey = sc?.toggleMode || SHORTCUTS.TOGGLE_AGENT;
+      const toggleSidebarKey = sc?.toggleSidebar || SHORTCUTS.TOGGLE_SIDEBAR;
+      const newTabKey = sc?.newTab || SHORTCUTS.NEW_TAB;
+      const closeTabKey = sc?.closeTab || SHORTCUTS.CLOSE_TAB;
+
+      if (matchesShortcut(event, toggleModeKey)) {
         if (event.type === 'keydown') {
           c.toggleAgent();
         }
-        return false; // Prevent xterm from sending 0x1c (SIGQUIT)
+        return false; // Prevent xterm from sending control sequence (e.g. 0x1c SIGQUIT)
       }
 
-      if ((event.ctrlKey || event.metaKey) && isSidebarEvent(event)) {
+      if (matchesShortcut(event, toggleSidebarKey)) {
         if (event.type === 'keydown') {
           c.setIsSidebarCollapsed((prev: boolean) => !prev);
         }
         return false;
       }
 
-      if ((event.ctrlKey || event.metaKey) && isNewTabEvent(event)) {
+      if (matchesShortcut(event, newTabKey)) {
         if (event.type === 'keydown') {
           c.setIsHostModalOpen(true);
         }
         return false;
       }
 
-      if ((event.ctrlKey || event.metaKey) && isCloseTabEvent(event)) {
+      if (matchesShortcut(event, closeTabKey)) {
         if (event.type === 'keydown') {
           c.closeSession(sessionId);
         }

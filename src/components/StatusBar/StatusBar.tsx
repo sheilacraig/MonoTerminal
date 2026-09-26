@@ -1,9 +1,13 @@
 import React from 'react';
 import { useWebSocket } from '../../context/WebSocketContext';
+import { useSettings } from '../../context/SettingsContext';
+import { SHORTCUTS } from '../../constants/shortcuts';
 import { Activity, ShieldCheck } from 'lucide-react';
 
 export const StatusBar: React.FC = () => {
   const { rtt, isConnected } = useWebSocket();
+  const { settings } = useSettings();
+  const sc = settings.shortcuts;
 
   let latencyColor = 'text-orca-success';
   if (rtt > 80) latencyColor = 'text-orca-warning';
@@ -35,16 +39,16 @@ export const StatusBar: React.FC = () => {
       {/* Right: Shortcut guide */}
       <div className="flex items-center space-x-3 hidden md:flex text-[10px]">
         <span>
-          <kbd className="text-white">Ctrl+\</kbd> 穿梭模式
+          <kbd className="text-white">{sc?.toggleMode || SHORTCUTS.TOGGLE_AGENT}</kbd> 穿梭模式
         </span>
         <span>
-          <kbd className="text-white">Ctrl+B</kbd> 折叠文件树
+          <kbd className="text-white">{sc?.toggleSidebar || SHORTCUTS.TOGGLE_SIDEBAR}</kbd> 折叠侧栏
         </span>
         <span>
-          <kbd className="text-white">Ctrl+T</kbd> 新建会话
+          <kbd className="text-white">{sc?.newTab || SHORTCUTS.NEW_TAB}</kbd> 新建会话
         </span>
         <span>
-          <kbd className="text-white">Ctrl+W</kbd> 关闭标签
+          <kbd className="text-white">{sc?.closeTab || SHORTCUTS.CLOSE_TAB}</kbd> 关闭标签
         </span>
       </div>
     </footer>
