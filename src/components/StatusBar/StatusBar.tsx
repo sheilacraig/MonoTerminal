@@ -2,54 +2,40 @@ import React from 'react';
 import { useWebSocket } from '../../context/WebSocketContext';
 import { useSettings } from '../../context/SettingsContext';
 import { SHORTCUTS } from '../../constants/shortcuts';
-import { Activity, ShieldCheck } from 'lucide-react';
+import { Wifi, Keyboard } from 'lucide-react';
+import { useSession } from '../../context/SessionContext';
 
 export const StatusBar: React.FC = () => {
   const { rtt, isConnected } = useWebSocket();
   const { settings } = useSettings();
+  const { activeSession } = useSession();
   const sc = settings.shortcuts;
 
-  let latencyColor = 'text-orca-success';
-  if (rtt > 80) latencyColor = 'text-orca-warning';
-  if (rtt > 200 || !isConnected) latencyColor = 'text-orca-danger';
-
   return (
-    <footer className="h-6 bg-orca-surface border-t border-orca-border px-3 flex items-center justify-between text-[11px] text-orca-muted font-mono select-none z-30 shrink-0">
-      {/* Left: Latency & Encryption & Encoding */}
-      <div className="flex items-center space-x-3">
-        <div className="flex items-center space-x-1" title="实时网络往返延迟 (RTT)">
-          <Activity size={12} className={latencyColor} />
-          <span className={latencyColor}>{isConnected ? `${rtt}ms` : '断开连接'}</span>
+    <footer className="h-7 bg-[#0e141b] border-t border-white/[0.06] px-4 flex items-center justify-between text-[10px] text-slate-500 font-mono select-none z-30 shrink-0">
+      <div className="flex items-center gap-4 min-w-0">
+        <div className="flex items-center gap-1.5" title="终端会话连接状态">
+          <span className={`w-1.5 h-1.5 rounded-full ${activeSession?.status === 'connected' ? 'bg-emerald-400' : activeSession?.status === 'connecting' || activeSession?.status === 'busy' ? 'bg-amber-400' : 'bg-slate-600'}`} />
+          <span className="text-slate-400">{activeSession?.status === 'connected' ? '终端已连接' : activeSession?.status === 'connecting' ? '正在连接' : activeSession?.status === 'busy' ? '终端忙碌' : '终端未连接'}</span>
         </div>
 
-        <span className="text-orca-border">|</span>
+        <span className="h-3 w-px bg-white/[0.08]" />
 
-        <div className="flex items-center space-x-1" title="SSH 加密传输通道 (本地运行)">
-          <ShieldCheck size={12} className="text-orca-accent" />
-          <span>SSH-2.0 (AES-256)</span>
+        <div className="flex items-center gap-1.5" title="客户端与本地服务的实时往返延迟">
+          <Wifi size={11} className={isConnected ? 'text-slate-500' : 'text-rose-400'} />
+          <span>{isConnected ? `${rtt} ms` : '服务离线'}</span>
         </div>
 
-        <span className="text-orca-border hidden sm:inline">|</span>
-
-        <span className="hidden sm:inline" title="终端字符集编码">
-          UTF-8
-        </span>
+        <span className="hidden sm:inline text-slate-600">UTF-8</span>
       </div>
 
-      {/* Right: Shortcut guide */}
-      <div className="flex items-center space-x-3 hidden md:flex text-[10px]">
-        <span>
-          <kbd className="text-white">{sc?.toggleMode || SHORTCUTS.TOGGLE_AGENT}</kbd> 穿梭模式
+      <div className="hidden md:flex items-center gap-4 text-[9px]">
+        <span className="inline-flex items-center gap-1.5 text-slate-600">
+          <Keyboard size={10} /> 快捷键
         </span>
-        <span>
-          <kbd className="text-white">{sc?.toggleSidebar || SHORTCUTS.TOGGLE_SIDEBAR}</kbd> 折叠侧栏
-        </span>
-        <span>
-          <kbd className="text-white">{sc?.newTab || SHORTCUTS.NEW_TAB}</kbd> 新建会话
-        </span>
-        <span>
-          <kbd className="text-white">{sc?.closeTab || SHORTCUTS.CLOSE_TAB}</kbd> 关闭标签
-        </span>
+        <span><kbd className="text-slate-300">{sc?.toggleMode || SHORTCUTS.TOGGLE_AGENT}</kbd> 助手</span>
+        <span><kbd className="text-slate-300">{sc?.toggleSidebar || SHORTCUTS.TOGGLE_SIDEBAR}</kbd> 侧栏</span>
+        <span><kbd className="text-slate-300">{sc?.newTab || SHORTCUTS.NEW_TAB}</kbd> 新会话</span>
       </div>
     </footer>
   );

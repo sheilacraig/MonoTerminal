@@ -489,11 +489,11 @@ export const TerminalView: React.FC<TerminalViewProps> = ({ sessionId, isVisible
       {hasUnreadError && (
         <div
           onClick={() => ctxRef.current.toggleAgent(true)}
-          className="absolute bottom-6 right-6 z-40 bg-orca-card/95 hover:bg-orca-card border-2 border-orca-danger rounded-lg px-3.5 py-2 shadow-2xl flex items-center space-x-2.5 cursor-pointer backdrop-blur-md error-bubble-anim transition-all hover:scale-105 group"
+          className="absolute bottom-5 right-5 z-40 bg-[#171c24]/95 hover:bg-[#202833] border border-rose-400/30 rounded-lg px-3 py-2 shadow-xl flex items-center space-x-2.5 cursor-pointer backdrop-blur-md transition-colors group"
           title="点击或敲击 [Ctrl + \] 展开 AI 助手排查"
         >
           <div className="w-6 h-6 rounded-full bg-orca-danger/20 flex items-center justify-center text-orca-danger shrink-0">
-            <Zap size={14} className="fill-orca-danger animate-bounce" />
+            <Zap size={14} className="text-rose-300" />
           </div>
 
           <div className="flex flex-col">

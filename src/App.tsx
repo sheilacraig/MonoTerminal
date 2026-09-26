@@ -19,16 +19,15 @@ const isStaticDemo =
 
 const AppContent: React.FC<{ onOpenLanding: () => void }> = ({ onOpenLanding }) => {
   return (
-    <div className="flex flex-col h-screen w-screen overflow-hidden bg-orca-bg text-orca-text select-none">
-      {/* Top Header Bar (36px) */}
+    <div className="flex flex-col h-screen w-screen overflow-hidden bg-[#090d12] text-orca-text select-none">
+      {/* Global session switcher */}
       <HeaderBar onOpenLanding={onOpenLanding} />
 
-      {/* Main 2-Column Ergonomic Body */}
-      <div className="flex-1 flex overflow-hidden relative">
-        {/* Column 1: Collapsible SFTP File Tree */}
+      <div className="flex-1 flex overflow-hidden relative min-h-0">
+        {/* Host/session navigation and file browser */}
         <SftpSidebar />
 
-        {/* Column 2: Shell & Agent Combined Workspace */}
+        {/* Terminal and AI collaboration workspace */}
         <MainWorkspace />
       </div>
 

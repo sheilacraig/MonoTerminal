@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { useSession } from '../../context/SessionContext';
 import { TerminalView } from './TerminalView';
 import { AgentView } from './AgentView';
+import { ModeBar } from './ModeBar';
 import { Terminal, Plus, Server } from 'lucide-react';
 
 export const MainWorkspace: React.FC = () => {
@@ -81,11 +82,12 @@ export const MainWorkspace: React.FC = () => {
   const agentWidth = activeSession.agentWidth || 460;
 
   return (
-    <div className="flex-1 flex flex-col h-full bg-[#0d1117] overflow-hidden relative">
-      {/* Main Workspace: Terminal and Agent in the SAME Window */}
-      <div className="flex-1 flex w-full h-full overflow-hidden relative">
+    <div className="flex-1 flex flex-col h-full bg-[#0b1016] overflow-hidden relative min-w-0">
+      <ModeBar />
+      {/* Main workspace: terminal first, assistant beside it when space allows. */}
+      <div className="flex-1 flex w-full min-h-0 overflow-hidden relative">
         {/* Terminal Area (Always present in window) */}
-        <div className="flex-1 h-full min-w-0 relative overflow-hidden bg-[#0d1117]">
+        <div className="flex-1 h-full min-w-0 relative overflow-hidden bg-[#0b1016]">
           {sessions.map(tab => (
             <div
               key={tab.id}
@@ -102,7 +104,7 @@ export const MainWorkspace: React.FC = () => {
         {isAgentOpen && (
           <div
             onMouseDown={() => setIsResizingAgent(true)}
-            className="w-1.5 h-full cursor-col-resize hover:bg-purple-500/60 bg-orca-border transition-colors z-20 shrink-0"
+            className="w-1.5 h-full cursor-col-resize hover:bg-violet-400/50 bg-white/[0.04] transition-colors z-20 shrink-0 max-[1180px]:hidden"
             title="拖拽调节终端与 AI 助手宽度"
           />
         )}
@@ -110,8 +112,8 @@ export const MainWorkspace: React.FC = () => {
         {/* Agent Assistant Area (Coexists in the same window) */}
         {isAgentOpen && (
           <div
-            style={{ width: `${agentWidth}px` }}
-            className="h-full border-l border-orca-border z-20 shrink-0 overflow-hidden animate-in slide-in-from-right-10 duration-150"
+            style={{ width: `${agentWidth}px`, maxWidth: 'calc(100vw - 36px)' }}
+            className="h-full border-l border-white/[0.08] z-20 shrink-0 overflow-hidden animate-in slide-in-from-right-10 duration-150 max-[1180px]:absolute max-[1180px]:right-0 max-[1180px]:top-0 max-[1180px]:bottom-0 max-[1180px]:shadow-2xl"
           >
             <AgentView isVisible={isAgentOpen} />
           </div>

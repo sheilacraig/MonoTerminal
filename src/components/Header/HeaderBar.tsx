@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { useSession } from '../../context/SessionContext';
-import { Plus, X, Edit2, Check, Bot, PanelRightClose, PanelRightOpen } from 'lucide-react';
+import { Plus, X, Edit2, Check, Terminal } from 'lucide-react';
 import { SessionTab } from '../../types';
 
 interface HeaderBarProps {
@@ -11,13 +11,11 @@ export const HeaderBar: React.FC<HeaderBarProps> = () => {
   const {
     sessions,
     activeSessionId,
-    activeSession,
     setActiveSessionId,
     closeSession,
     openHostModal,
     hosts,
     createSession,
-    toggleAgent,
     updateSessionTitle
   } = useSession();
 
@@ -38,12 +36,20 @@ export const HeaderBar: React.FC<HeaderBarProps> = () => {
     setEditingTabId(null);
   };
 
-  const isAgentOpen = Boolean(activeSession?.isAgentOpen);
-
   return (
-    <header className="h-9 bg-orca-surface border-b border-orca-border flex items-center justify-between px-2 select-none z-30">
-      {/* Left: Tab list */}
-      <div className="flex items-center space-x-1 overflow-x-auto flex-1 h-full py-1 pr-2 no-scrollbar">
+    <header className="h-11 bg-[#111720] border-b border-white/[0.06] flex items-center px-3 select-none z-30 shrink-0 shadow-sm">
+      <div className="flex items-center gap-2.5 w-[184px] shrink-0 pr-4 mr-2 border-r border-white/[0.08] max-[640px]:w-8 max-[640px]:pr-0 max-[640px]:border-r-0">
+        <div className="w-7 h-7 rounded-lg bg-blue-500/15 border border-blue-400/20 flex items-center justify-center">
+          <Terminal size={15} className="text-blue-300" />
+        </div>
+        <div className="min-w-0 leading-tight max-[640px]:hidden">
+          <div className="text-[12px] font-semibold tracking-wide text-slate-100">MonoTerminal</div>
+          <div className="text-[9px] tracking-[0.12em] uppercase text-slate-500">Ops workspace</div>
+        </div>
+      </div>
+
+      {/* Open session tabs */}
+      <div className="flex items-center gap-1.5 overflow-x-auto flex-1 h-full py-1.5 pr-2 no-scrollbar min-w-0">
         {sessions.map(tab => {
           const isActive = tab.id === activeSessionId;
           const isEditing = editingTabId === tab.id;
@@ -57,10 +63,10 @@ export const HeaderBar: React.FC<HeaderBarProps> = () => {
             <div
               key={tab.id}
               onClick={() => setActiveSessionId(tab.id)}
-              className={`group flex items-center space-x-2 px-3 py-1 text-xs rounded-t border-t-2 transition-all cursor-pointer h-full max-w-[200px] truncate ${
+              className={`group flex items-center gap-2 px-3 text-xs rounded-md border transition-all cursor-pointer h-full max-w-[220px] min-w-[118px] truncate ${
                 isActive
-                  ? 'bg-orca-bg border-orca-accent text-white font-medium shadow'
-                  : 'bg-orca-surface hover:bg-orca-card border-transparent text-orca-muted hover:text-orca-text'
+                  ? 'bg-[#1b2633] border-blue-400/30 text-white font-medium shadow-sm'
+                  : 'bg-transparent hover:bg-white/[0.04] border-transparent text-slate-400 hover:text-slate-200'
               }`}
             >
               {/* Status indicator dot */}
@@ -132,36 +138,13 @@ export const HeaderBar: React.FC<HeaderBarProps> = () => {
               openHostModal(null);
             }
           }}
-          className="flex items-center space-x-1 px-2 py-1 text-xs text-orca-muted hover:text-orca-accent hover:bg-orca-card rounded transition-colors"
+          className="flex items-center justify-center w-8 h-8 text-slate-500 hover:text-blue-200 hover:bg-white/[0.06] rounded-md transition-colors"
           title="新建终端标签页 (Ctrl+Shift+T)"
         >
           <Plus size={14} />
         </button>
       </div>
 
-      {/* Right: Single AI Assistant Toggle */}
-      <div className="flex items-center space-x-1 pl-2 border-l border-orca-border">
-        <button
-          onClick={() => toggleAgent()}
-          className={`flex items-center space-x-1.5 px-2.5 py-1 text-xs rounded transition-colors relative ${
-            isAgentOpen
-              ? 'bg-purple-600 hover:bg-purple-700 text-white font-medium shadow-sm'
-              : 'bg-orca-card/70 hover:bg-orca-card text-purple-300 hover:text-white border border-purple-900/50'
-          }`}
-          title={isAgentOpen ? '收起 AI 助手 (Ctrl+\\)' : '展开 AI 助手 (Ctrl+\\)'}
-        >
-          <Bot size={13} className={isAgentOpen ? 'text-white' : 'text-purple-400'} />
-          <span className="text-[11px] hidden sm:inline">AI 助手</span>
-          {isAgentOpen ? (
-            <PanelRightClose size={12} className="opacity-80" />
-          ) : (
-            <PanelRightOpen size={12} className="opacity-80" />
-          )}
-          {activeSession?.unreadError && !isAgentOpen && (
-            <span className="w-2 h-2 rounded-full bg-orca-danger absolute -top-0.5 -right-0.5 animate-ping" />
-          )}
-        </button>
-      </div>
     </header>
   );
 };

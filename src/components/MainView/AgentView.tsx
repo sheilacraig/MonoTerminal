@@ -155,10 +155,12 @@ export const AgentView: React.FC<AgentViewProps> = ({ isVisible }) => {
       {...{ [COPY_SCOPE_ATTR]: 'agent' }}
     >
       {/* Header Context Indicator */}
-      <div className="h-9 bg-purple-950/20 border-b border-purple-900/30 px-3 flex items-center justify-between text-xs text-purple-300 select-none shrink-0">
+      <div className="h-10 bg-[#14131d] border-b border-violet-300/[0.08] px-3 flex items-center justify-between text-xs text-violet-200 select-none shrink-0">
         <div className="flex items-center space-x-1.5 min-w-0">
-          <Bot size={13} className="text-purple-400 shrink-0" />
-          <span className="font-semibold text-[11px] text-purple-300 truncate">
+          <div className="w-6 h-6 rounded-md bg-violet-400/10 border border-violet-300/10 flex items-center justify-center shrink-0">
+            <Bot size={13} className="text-violet-300" />
+          </div>
+          <span className="font-semibold text-[11px] text-slate-200 truncate">
             MonoTerminal Ops Agent
           </span>
         </div>

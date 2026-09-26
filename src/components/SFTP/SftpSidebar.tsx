@@ -409,7 +409,7 @@ export const SftpSidebar: React.FC = () => {
   // Collapsed Sidebar View (36px strip)
   if (isSidebarCollapsed) {
     return (
-      <aside className="w-9 bg-orca-surface border-r border-orca-border flex flex-col items-center py-2 space-y-2 select-none z-20 shrink-0">
+      <aside className="w-11 bg-[#101720] border-r border-white/[0.06] flex flex-col items-center py-3 space-y-2 select-none z-20 shrink-0">
         <button
           onClick={() => setIsSidebarCollapsed(false)}
           className="p-1.5 text-orca-muted hover:text-white hover:bg-orca-card rounded transition-colors"
@@ -469,23 +469,23 @@ export const SftpSidebar: React.FC = () => {
   return (
     <aside
       style={{ width: `${width}px` }}
-      className="bg-orca-surface border-r border-orca-border flex flex-col h-full select-none z-20 relative shrink-0"
+      className="bg-[#101720] border-r border-white/[0.06] flex flex-col h-full select-none z-20 relative shrink-0"
     >
       {/* Dual-Tab Dock Header: 会话 (Alt+1) / 文件 (Alt+2) */}
-      <div className="h-9 bg-orca-surface border-b border-orca-border flex items-center justify-between px-1.5 text-xs shrink-0">
+      <div className="h-10 bg-[#101720] border-b border-white/[0.06] flex items-center justify-between px-2 text-xs shrink-0">
         <div className="flex items-center h-full space-x-0.5 flex-1">
           <button
             onClick={() => setSidebarTab('sessions')}
             className={`flex items-center justify-center space-x-1.5 px-3 h-full border-b-2 transition-colors text-xs ${
               sidebarTab === 'sessions'
-                ? 'border-orca-accent text-white font-semibold bg-orca-bg/40'
-                : 'border-transparent text-orca-muted hover:text-orca-text'
+                ? 'border-blue-400 text-slate-100 font-semibold bg-blue-400/[0.06]'
+                : 'border-transparent text-slate-500 hover:text-slate-200'
             }`}
             title="会话列表 (Alt+1)"
           >
             <Server
               size={13}
-              className={sidebarTab === 'sessions' ? 'text-orca-accent' : 'text-orca-muted'}
+              className={sidebarTab === 'sessions' ? 'text-blue-300' : 'text-slate-500'}
             />
             <span>会话</span>
           </button>
@@ -494,14 +494,14 @@ export const SftpSidebar: React.FC = () => {
             onClick={() => setSidebarTab('files')}
             className={`flex items-center justify-center space-x-1.5 px-3 h-full border-b-2 transition-colors text-xs ${
               sidebarTab === 'files'
-                ? 'border-orca-accent text-white font-semibold bg-orca-bg/40'
-                : 'border-transparent text-orca-muted hover:text-orca-text'
+                ? 'border-blue-400 text-slate-100 font-semibold bg-blue-400/[0.06]'
+                : 'border-transparent text-slate-500 hover:text-slate-200'
             }`}
             title="远程/本地文件树 (Alt+2)"
           >
             <Folder
               size={13}
-              className={sidebarTab === 'files' ? 'text-orca-accent' : 'text-orca-muted'}
+              className={sidebarTab === 'files' ? 'text-blue-300' : 'text-slate-500'}
             />
             <span>文件</span>
           </button>
@@ -531,7 +531,7 @@ export const SftpSidebar: React.FC = () => {
       {sidebarTab === 'sessions' ? (
         <>
           {/* Search / Filter Bar */}
-          <div className="p-2 bg-orca-bg/40 border-b border-orca-border shrink-0">
+          <div className="p-3 bg-[#0c121a] border-b border-white/[0.05] shrink-0">
             <div className="relative flex items-center">
               <Search size={12} className="absolute left-2 text-orca-muted pointer-events-none" />
               <input
@@ -546,7 +546,7 @@ export const SftpSidebar: React.FC = () => {
                   }
                 }}
                 placeholder="搜索 / 过滤"
-                className="w-full bg-orca-surface border border-orca-border text-orca-text text-xs pl-7 pr-14 py-1 rounded outline-none focus:border-orca-accent"
+                className="w-full bg-[#151e29] border border-white/[0.07] text-slate-200 text-xs pl-7 pr-14 py-2 rounded-md outline-none focus:border-blue-400/50 placeholder:text-slate-600"
                 title="搜索主机名称、IP、用户或分组 (Ctrl+Shift+S)"
               />
               {sessionSearch ? (
@@ -565,7 +565,7 @@ export const SftpSidebar: React.FC = () => {
           </div>
 
           {/* Collapsible Host Groups Tree */}
-          <div className="flex-1 overflow-y-auto overflow-x-hidden p-1.5 space-y-1 text-xs">
+          <div className="flex-1 overflow-y-auto overflow-x-hidden p-2 space-y-2 text-xs">
             {groupedHosts.length === 0 && (
               <div className="text-center py-8 text-orca-muted text-[11px]">
                 未找到匹配的会话
@@ -610,7 +610,7 @@ export const SftpSidebar: React.FC = () => {
                   <button
                     type="button"
                     onClick={() => handleToggleGroup(groupName)}
-                    className="w-full flex items-center justify-between px-1.5 py-1 text-[11px] font-semibold text-orca-muted hover:text-white rounded hover:bg-orca-card/50 transition-colors"
+                    className="w-full flex items-center justify-between px-2 py-1.5 text-[10px] font-semibold uppercase tracking-[0.08em] text-slate-500 hover:text-slate-200 rounded-md hover:bg-white/[0.03] transition-colors"
                   >
                     <div className="flex items-center space-x-1 truncate">
                       <span className="w-3 text-center font-mono text-[10px]">
@@ -679,12 +679,12 @@ export const SftpSidebar: React.FC = () => {
                                 host
                               });
                             }}
-                            className={`group flex items-center justify-between px-2 py-1.5 rounded cursor-pointer transition-colors ${
-                              isSelected
-                                ? 'bg-orca-accent/15 text-white border border-orca-accent/40'
+                        className={`group flex items-center justify-between px-2.5 py-2 rounded-md cursor-pointer transition-colors ${
+                            isSelected
+                                ? 'bg-blue-400/[0.10] text-slate-100 border border-blue-300/20 shadow-sm'
                                 : isActiveHost
-                                  ? 'bg-orca-card/80 text-white border border-transparent'
-                                  : 'text-orca-text hover:bg-orca-card/60 border border-transparent'
+                                  ? 'bg-white/[0.045] text-slate-200 border border-transparent'
+                                  : 'text-slate-400 hover:text-slate-200 hover:bg-white/[0.035] border border-transparent'
                             }`}
                             title={`${host.name}${addressText ? ` (${ host.username }@${addressText})` : ''}\n双击: 当前标签连接 | Ctrl+双击 / 中键: 新标签打开 | 拖拽: 跨分组移动`}
                           >
@@ -709,10 +709,10 @@ export const SftpSidebar: React.FC = () => {
           </div>
 
           {/* Upper Footer Row: Session Actions (＋ 新建会话 | 🎛 属性) */}
-          <div className="h-9 bg-orca-card border-t border-orca-border flex items-center justify-between px-2 gap-1.5 text-xs shrink-0">
+          <div className="h-12 bg-[#0c121a] border-t border-white/[0.06] flex items-center justify-between px-3 gap-2 text-xs shrink-0">
             <button
               onClick={() => openHostModal(null)}
-              className="flex-1 flex items-center justify-center space-x-1 py-1 px-2 bg-orca-surface hover:bg-orca-hover border border-orca-border text-white rounded transition-colors"
+              className="flex-1 flex items-center justify-center space-x-1.5 py-2 px-2 bg-blue-500/15 hover:bg-blue-500/20 border border-blue-400/20 text-blue-100 rounded-md transition-colors"
               title="新建会话 (Ctrl+Shift+N)"
             >
               <Plus size={13} className="text-orca-accent" />
@@ -722,7 +722,7 @@ export const SftpSidebar: React.FC = () => {
             <button
               onClick={() => openHostModal(selectedHost)}
               disabled={!selectedHost}
-              className="flex items-center justify-center space-x-1 py-1 px-3 bg-orca-surface hover:bg-orca-hover border border-orca-border text-orca-text hover:text-white disabled:opacity-40 rounded transition-colors"
+              className="flex items-center justify-center space-x-1.5 py-2 px-3 bg-white/[0.03] hover:bg-white/[0.06] border border-white/[0.07] text-slate-400 hover:text-slate-100 disabled:opacity-40 rounded-md transition-colors"
               title={selectedHost ? `编辑 "${selectedHost.name}" 属性` : '编辑会话属性'}
             >
               <SlidersHorizontal size={12} className="text-orca-muted" />
